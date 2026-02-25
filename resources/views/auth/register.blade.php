@@ -30,11 +30,32 @@
                 @csrf
                 <div class="form-group">
                     <label class="form-label">Full Name</label>
-                    <input type="text" name="name" class="form-control" required autofocus>
+                    <input type="text" name="name" class="form-control" value="{{ old('name') }}" required autofocus>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Username</label>
+                    <input type="text" name="username" class="form-control" value="{{ old('username') }}" required>
                 </div>
                 <div class="form-group">
                     <label class="form-label">Email Address</label>
-                    <input type="email" name="email" class="form-control" required>
+                    <input type="email" name="email" class="form-control" value="{{ old('email') }}" required>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Role</label>
+                    <select name="role" class="form-control" required>
+                        <option value="">-- Select Role --</option>
+                        <option value="admin" {{ old('role') === 'admin' ? 'selected' : '' }}>Admin</option>
+                        <option value="manager" {{ old('role') === 'manager' ? 'selected' : '' }}>Manager</option>
+                        <option value="user" {{ old('role') === 'user' ? 'selected' : '' }}>User</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Position</label>
+                    <input type="text" name="position" class="form-control" value="{{ old('position') }}" placeholder="e.g. Senior Manager" required>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Address</label>
+                    <textarea name="address" class="form-control" rows="3" placeholder="Enter your full address" required>{{ old('address') }}</textarea>
                 </div>
                 <div class="form-group">
                     <label class="form-label">Password</label>

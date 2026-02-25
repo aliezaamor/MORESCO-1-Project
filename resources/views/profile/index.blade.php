@@ -29,11 +29,34 @@
                     <input type="text" name="name" value="{{ old('name', $user->name) }}" style="width:100%; padding:0.5rem; border:1px solid #e6e6e6; border-radius:6px;" />
                     @error('name') <div style="color:#dc2626; margin-top:0.25rem;">{{ $message }}</div> @enderror
 
+                    <label style="display:block; font-weight:600; margin-top:0.75rem; margin-bottom:0.25rem;">Username</label>
+                    <input type="text" name="username" value="{{ old('username', $user->username) }}" style="width:100%; padding:0.5rem; border:1px solid #e6e6e6; border-radius:6px;" />
+                    @error('username') <div style="color:#dc2626; margin-top:0.25rem;">{{ $message }}</div> @enderror
+
                     <label style="display:block; font-weight:600; margin-top:0.75rem; margin-bottom:0.25rem;">Email</label>
                     <input type="email" name="email" value="{{ old('email', $user->email) }}" style="width:100%; padding:0.5rem; border:1px solid #e6e6e6; border-radius:6px;" />
                     @error('email') <div style="color:#dc2626; margin-top:0.25rem;">{{ $message }}</div> @enderror
+                </div>
+            </div>
 
-                    <label style="display:block; font-weight:600; margin-top:0.75rem; margin-bottom:0.25rem;">Profile Photo</label>
+            <div style="margin-top: 1.5rem;">
+                <label style="display:block; font-weight:600; margin-bottom:0.25rem;">Role</label>
+                <select name="role" style="width:100%; padding:0.5rem; border:1px solid #e6e6e6; border-radius:6px;">
+                    <option value="admin" {{ old('role', $user->role) === 'admin' ? 'selected' : '' }}>Admin</option>
+                    <option value="manager" {{ old('role', $user->role) === 'manager' ? 'selected' : '' }}>Manager</option>
+                    <option value="user" {{ old('role', $user->role) === 'user' ? 'selected' : '' }}>User</option>
+                </select>
+                @error('role') <div style="color:#dc2626; margin-top:0.25rem;">{{ $message }}</div> @enderror
+
+                <label style="display:block; font-weight:600; margin-top:0.75rem; margin-bottom:0.25rem;">Position</label>
+                <input type="text" name="position" value="{{ old('position', $user->position) }}" placeholder="e.g. Senior Manager" style="width:100%; padding:0.5rem; border:1px solid #e6e6e6; border-radius:6px;" />
+                @error('position') <div style="color:#dc2626; margin-top:0.25rem;">{{ $message }}</div> @enderror
+
+                <label style="display:block; font-weight:600; margin-top:0.75rem; margin-bottom:0.25rem;">Address</label>
+                <textarea name="address" rows="3" placeholder="Enter your full address" style="width:100%; padding:0.5rem; border:1px solid #e6e6e6; border-radius:6px; font-family:inherit;">{{ old('address', $user->address) }}</textarea>
+                @error('address') <div style="color:#dc2626; margin-top:0.25rem;">{{ $message }}</div> @enderror
+
+                <label style="display:block; font-weight:600; margin-top:0.75rem; margin-bottom:0.25rem;">Profile Photo</label>
                     <input type="file" name="avatar" accept="image/*" />
                     @error('avatar') <div style="color:#dc2626; margin-top:0.25rem;">{{ $message }}</div> @enderror
                 </div>
