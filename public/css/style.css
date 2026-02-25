@@ -636,45 +636,76 @@ body {
     /* Allow footer to flow below if needed */
     align-items: center;
     justify-content: center;
-    padding: 2rem 1rem;
+    padding: 0.5rem 0.5rem;
 }
 
 .auth-card {
     background: white;
-    padding: 1.25rem;
-    /* Slightly tighter padding */
-    border-radius: var(--border-radius);
+    padding: 0.45rem 0.6rem;
+    border-radius: 8px;
     width: 100%;
-    max-width: 480px;
-    /* Bigger card */
+    max-width: 460px;
     box-shadow: var(--shadow-lg);
+    font-size: 14px;
 }
+
+/* Login page specific card styling: slightly larger, centered and more airy */
+.login-page .auth-card {
+    max-width: 420px;
+    padding: 1.25rem;
+    border-radius: 12px;
+    box-shadow: 0 8px 28px rgba(30, 41, 59, 0.08);
+    background: linear-gradient(180deg, rgba(255,255,255,0.98), rgba(255,255,255,0.96));
+}
+
+.login-page .auth-card .logo-area img {
+    width: 80px;
+    height: 80px;
+}
+
+.login-page .auth-card .form-label { font-size: 0.85rem; }
+.login-page .auth-card .form-control { font-size: 0.95rem; padding: 0.5rem 0.75rem; }
+.login-page .auth-card .btn { padding: 0.6rem 1rem; font-size: 0.95rem; }
+
+/* Register page should match login page styling */
+.register-page .auth-card {
+    max-width: 420px;
+    padding: 1.0rem 1.1rem;
+    border-radius: 12px;
+    box-shadow: 0 8px 28px rgba(30, 41, 59, 0.08);
+    background: linear-gradient(180deg, rgba(255,255,255,0.98), rgba(255,255,255,0.96));
+}
+.register-page .auth-card .logo-area img {
+    width: 72px;
+    height: 72px;
+}
+.register-page .auth-card .form-label { font-size: 0.82rem; }
+.register-page .auth-card .form-control { font-size: 0.92rem; padding: 0.45rem 0.65rem; }
+.register-page .auth-card .btn { padding: 0.55rem 0.95rem; font-size: 0.92rem; }
 
 .auth-card .form-label {
-    font-size: 0.8125rem;
-    /* Smaller labels */
-    margin-bottom: 0.25rem;
+    font-size: 0.72rem;
+    margin-bottom: 0.15rem;
 }
 
-.auth-card .form-control {
-    padding: 0.4rem 0.75rem;
-    /* Tighter inputs */
-    font-size: 0.875rem;
+ .auth-card .form-control {
+     padding: 0.28rem 0.5rem;
+     font-size: 0.82rem;
+     border-radius: 6px;
 }
 
-.auth-card .btn {
-    padding: 0.6rem 1rem;
-    /* Smaller button height */
-    font-size: 0.875rem;
+ .auth-card .btn {
+     padding: 0.4rem 0.6rem;
+     font-size: 0.82rem;
 }
 
-.auth-card .logo-area {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    text-align: center;
-    gap: 0.5rem;
-    margin-bottom: 1.5rem;
+ .auth-card .logo-area {
+     display: flex;
+     flex-direction: column;
+     align-items: center;
+     text-align: center;
+     gap: 0.25rem;
+     margin-bottom: 0.6rem;
 }
 
 .auth-card .logo-area div:first-of-type {
@@ -686,11 +717,34 @@ body {
 
 
 .auth-footer {
-    padding: 1rem 0;
+    padding: 0.6rem 0;
     /* Reduced padding */
     text-align: center;
     color: rgba(255, 255, 255, 0.8);
     font-size: 0.75rem;
+}
+
+/* Responsive: make the auth card more compact on short viewports */
+@media (max-height: 720px), (max-width: 420px) {
+    .auth-wrapper {
+        padding: 0.4rem 0.4rem;
+    }
+    .auth-card {
+        padding: 0.35rem 0.5rem;
+        max-width: 340px;
+    }
+    .auth-card .logo-area img {
+        width: 56px;
+        height: 56px;
+    }
+    .auth-card .logo-area div:first-of-type {
+        font-size: 0.98rem;
+    }
+}
+
+/* Reduce vertical spacing between form groups */
+.auth-card .form-group {
+    margin-bottom: 0.4rem;
 }
 
 .header {
@@ -909,6 +963,17 @@ body.dark-mode .form-control {
     padding: 0.5rem;
     display: none;
     z-index: 1000;
+}
+
+/* Profile email styling: allow long emails to wrap cleanly and stay inside the card */
+.profile-email {
+    font-size: 0.75rem;
+    color: var(--text-light);
+    display: block;
+    max-width: 100%;
+    white-space: normal; /* allow wrapping */
+    overflow-wrap: anywhere; /* break long words/emails if needed */
+    word-break: break-word;
 }
 
 .profile-menu.show {

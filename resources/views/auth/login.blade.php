@@ -8,7 +8,7 @@
     <link rel="stylesheet" href="{{ asset('css/style.css') }}">
     <link rel="icon" type="image/x-icon" href="{{ asset('images/M1-L.png') }}">
 </head>
-<body class="auth-body">
+<body class="auth-body login-page">
     <div class="auth-wrapper">
         <div class="auth-card">
             <div class="logo-area">
@@ -36,8 +36,8 @@
             <form action="{{ route('login') }}" method="POST">
                 @csrf
                 <div class="form-group">
-                    <label class="form-label">Email Address</label>
-                    <input type="email" name="email" class="form-control" required autofocus>
+                    <label class="form-label">Username</label>
+                    <input type="text" name="username" value="{{ old('username') }}" class="form-control" required autofocus>
                 </div>
                 <div class="form-group">
                     <label class="form-label">Password</label>

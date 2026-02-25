@@ -65,7 +65,7 @@
                 <div class="profile-menu" id="profileMenu">
                     <div style="padding: 0.75rem 1rem;">
                         <div style="font-weight: 600; font-size: 0.875rem;">{{ auth()->user()->name }}</div>
-                        <div style="font-size: 0.75rem; color: var(--text-light);">{{ auth()->user()->email }}</div>
+                        <div class="profile-email" title="{{ auth()->user()->email }}" style="font-size: 0.75rem; color: var(--text-light);">{{ auth()->user()->email }}</div>
                     </div>
                     <div class="profile-menu-divider"></div>
                     <a href="{{ route('profile.edit') }}" class="profile-menu-item">

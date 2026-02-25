@@ -15,13 +15,18 @@
             @csrf
             @method('PUT')
 
-            <div style="display:flex; gap:1.5rem; align-items:center;">
-                <div style="width:120px; height:120px; border-radius:8px; overflow:hidden; background:#f3f4f6; display:flex; align-items:center; justify-content:center;">
-                    @if ($user->avatar)
-                        <img src="{{ asset('storage/' . $user->avatar) }}" alt="avatar" style="width:100%; height:100%; object-fit:cover;" />
-                    @else
-                        <span style="color:#94a3b8;">No photo</span>
-                    @endif
+            <div style="display:flex; gap:6.5rem; align-items:flex-start;">
+                <div style="display:flex; flex-direction:column; gap:0.5rem; width:120px;">
+                    <div id="avatarUpload" style="width:210px; height:210px; border-radius:8px; overflow:hidden; background:#f3f4f6; display:flex; align-items:center; justify-content:center; cursor:pointer; transition:all 0.2s ease; position:relative;">
+                        @if ($user->avatar)
+                            <img src="{{ asset('storage/' . $user->avatar) }}" alt="avatar" style="width:100%; height:100%; object-fit:cover;" />
+                        @else
+                            <span style="color:#94a3b8;">Click To Add Photo</span>
+                        @endif
+                        <div style="position:absolute; top:0; left:0; right:0; bottom:0; background:rgba(0,0,0,0); border-radius:8px; transition:background 0.2s ease;" class="avatar-hover-overlay"></div>
+                    </div>
+                    <input type="file" id="avatarInput" name="avatar" accept="image/*" style="display:none;" />
+                    @error('avatar') <div style="color:#dc2626; margin-top:0.25rem; font-size:0.85rem;">{{ $message }}</div> @enderror
                 </div>
 
                 <div style="flex:1;">
@@ -56,9 +61,6 @@
                 <textarea name="address" rows="3" placeholder="Enter your full address" style="width:100%; padding:0.5rem; border:1px solid #e6e6e6; border-radius:6px; font-family:inherit;">{{ old('address', $user->address) }}</textarea>
                 @error('address') <div style="color:#dc2626; margin-top:0.25rem;">{{ $message }}</div> @enderror
 
-                <label style="display:block; font-weight:600; margin-top:0.75rem; margin-bottom:0.25rem;">Profile Photo</label>
-                    <input type="file" name="avatar" accept="image/*" />
-                    @error('avatar') <div style="color:#dc2626; margin-top:0.25rem;">{{ $message }}</div> @enderror
                 </div>
             </div>
 
@@ -70,4 +72,145 @@
         </form>
     </div>
 </div>
+
+<script>
+    const avatarUpload = document.getElementById('avatarUpload');
+    const avatarInput = document.getElementById('avatarInput');
+    const hoverOverlay = document.querySelector('.avatar-hover-overlay');
+
+    // Show modal when avatar is clicked
+    avatarUpload.addEventListener('click', () => {
+        showAvatarMenu();
+    });
+
+    // Add hover effect to show avatar is clickable
+    avatarUpload.addEventListener('mouseover', () => {
+        hoverOverlay.style.background = 'rgba(0,0,0,0.4)';
+    });
+
+    avatarUpload.addEventListener('mouseout', () => {
+        hoverOverlay.style.background = 'rgba(0,0,0,0)';
+    });
+
+    // Function to show the avatar menu modal
+    function showAvatarMenu() {
+        // Remove existing modal if any
+        const existingModal = document.getElementById('avatarModal');
+        if (existingModal) existingModal.remove();
+
+        // Create modal
+        const modal = document.createElement('div');
+        modal.id = 'avatarModal';
+        modal.style.cssText = `
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0,0,0,0.5);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 10000;
+        `;
+
+        const content = document.createElement('div');
+        content.style.cssText = `
+            background: white;
+            border-radius: 12px;
+            padding: 1.5rem;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.15);
+            text-align: center;
+            width: 90%;
+            max-width: 300px;
+        `;
+
+        const title = document.createElement('h3');
+        title.textContent = 'Avatar Options';
+        title.style.cssText = 'margin: 0 0 1rem 0; font-size: 1.1rem; color: #334155;';
+
+        const viewBtn = document.createElement('button');
+        viewBtn.textContent = 'View Avatar';
+        viewBtn.style.cssText = `
+            display: block;
+            width: 100%;
+            padding: 0.75rem;
+            margin-bottom: 0.75rem;
+            background: #e2e8f0;
+            border: 1px solid #cbd5e1;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: 500;
+            color: #334155;
+            transition: all 0.2s ease;
+        `;
+        viewBtn.addEventListener('mouseover', () => viewBtn.style.background = '#cbd5e1');
+        viewBtn.addEventListener('mouseout', () => viewBtn.style.background = '#e2e8f0');
+        viewBtn.addEventListener('click', () => {
+            if (avatarUpload.querySelector('img')) {
+                window.open(avatarUpload.querySelector('img').src, '_blank');
+            }
+            modal.remove();
+        });
+
+        const changeBtn = document.createElement('button');
+        changeBtn.textContent = 'Choose Avatar';
+        changeBtn.style.cssText = `
+            display: block;
+            width: 100%;
+            padding: 0.75rem;
+            background: #0077b5;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: 500;
+            color: white;
+            transition: all 0.2s ease;
+        `;
+        changeBtn.addEventListener('mouseover', () => changeBtn.style.background = '#2c4762');
+        changeBtn.addEventListener('mouseout', () => changeBtn.style.background = '#0077b5');
+        changeBtn.addEventListener('click', () => {
+            avatarInput.click();
+            modal.remove();
+        });
+
+        content.appendChild(title);
+        content.appendChild(viewBtn);
+        content.appendChild(changeBtn);
+        modal.appendChild(content);
+
+        // Close modal when clicking outside
+        modal.addEventListener('click', (e) => {
+            if (e.target === modal) modal.remove();
+        });
+
+        document.body.appendChild(modal);
+    }
+
+    // Update avatar preview when file is selected
+    avatarInput.addEventListener('change', (e) => {
+        const file = e.target.files[0];
+        if (file) {
+            const reader = new FileReader();
+            reader.onload = (event) => {
+                const img = avatarUpload.querySelector('img');
+                if (img) {
+                    img.src = event.target.result;
+                    // Hide "No photo" text if existed
+                    const span = avatarUpload.querySelector('span');
+                    if (span) span.remove();
+                } else {
+                    // Create new img element
+                    const imgEl = document.createElement('img');
+                    imgEl.src = event.target.result;
+                    imgEl.style.cssText = 'width:100%; height:100%; object-fit:cover;';
+                    const span = avatarUpload.querySelector('span');
+                    if (span) span.remove();
+                    avatarUpload.appendChild(imgEl);
+                }
+            };
+            reader.readAsDataURL(file);
+        }
+    });
+</script>
 @endsection

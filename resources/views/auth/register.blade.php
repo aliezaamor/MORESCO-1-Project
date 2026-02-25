@@ -8,11 +8,11 @@
     <link rel="stylesheet" href="{{ asset('css/style.css') }}">
     <link rel="icon" type="image/x-icon" href="{{ asset('images/M1-L.png') }}">
 </head>
-<body class="auth-body">
+<body class="auth-body register-page">
     <div class="auth-wrapper">
         <div class="auth-card">
             <div class="logo-area">
-                <img src="{{ asset('images/M1.jpg') }}" alt="Moresco-1 Logo" style="width: 70px; height: auto; border-radius: 50%; object-fit: cover;">
+                <img src="{{ asset('images/M1.jpg') }}" alt="Moresco-1 Logo" style="width: 64px; height: 64px; border-radius: 50%; object-fit: cover;">
                 <div>Create Account</div>
             </div>
 
@@ -55,7 +55,7 @@
                 </div>
                 <div class="form-group">
                     <label class="form-label">Address</label>
-                    <textarea name="address" class="form-control" rows="3" placeholder="Enter your full address" required>{{ old('address') }}</textarea>
+                    <textarea name="address" class="form-control" rows="2" placeholder="Enter your full address" required>{{ old('address') }}</textarea>
                 </div>
                 <div class="form-group">
                     <label class="form-label">Password</label>
@@ -66,12 +66,12 @@
                     <input type="password" name="password_confirmation" class="form-control" required>
                 </div>
                 
-                <button type="submit" class="btn btn-primary" style="width: 100%; padding: 0.75rem;">
+                <button type="submit" class="btn btn-primary" style="width: 100%; padding: 0.6rem;">
                     Register
                 </button>
             </form>
             
-            <div style="margin-top: 1.5rem; text-align: center; font-size: 0.875rem;">
+            <div style="margin-top: 1rem; text-align: center; font-size: 0.875rem;">
                 Already have an account? <a href="{{ route('login') }}" style="color: var(--moresco-blue); text-decoration: none; font-weight: 500;">Log in</a>
             </div>
         </div>
