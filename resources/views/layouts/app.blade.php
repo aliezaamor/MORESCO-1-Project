@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>SMS System</title>
     <!-- Favicon -->
-    <link rel="icon" type="image/x-icon" href="{{ asset('images/M1.jpg') }}">
+    <link rel="icon" type="image/x-icon" href="{{ asset('images/M1-L.png') }}">
     <!-- Google Fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -65,7 +65,7 @@
                 <div class="profile-menu" id="profileMenu">
                     <div style="padding: 0.75rem 1rem;">
                         <div style="font-weight: 600; font-size: 0.875rem;">{{ auth()->user()->name }}</div>
-                        <div style="font-size: 0.75rem; color: var(--text-light);">{{ auth()->user()->email }}</div>
+                        <div class="profile-email" title="{{ auth()->user()->email }}" style="font-size: 0.75rem; color: var(--text-light);">{{ auth()->user()->email }}</div>
                     </div>
                     <div class="profile-menu-divider"></div>
                     <a href="{{ route('profile.edit') }}" class="profile-menu-item">

@@ -6,12 +6,13 @@
     <title>Register - Moresco-1 SMS System</title>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="{{ asset('css/style.css') }}">
+    <link rel="icon" type="image/x-icon" href="{{ asset('images/M1-L.png') }}">
 </head>
-<body class="auth-body">
+<body class="auth-body register-page">
     <div class="auth-wrapper">
         <div class="auth-card">
             <div class="logo-area">
-                <img src="{{ asset('images/M1.jpg') }}" alt="Moresco-1 Logo" style="width: 70px; height: auto; border-radius: 50%; object-fit: cover;">
+                <img src="{{ asset('images/M1.jpg') }}" alt="Moresco-1 Logo" style="width: 64px; height: 64px; border-radius: 50%; object-fit: cover;">
                 <div>Create Account</div>
             </div>
 
@@ -29,11 +30,32 @@
                 @csrf
                 <div class="form-group">
                     <label class="form-label">Full Name</label>
-                    <input type="text" name="name" class="form-control" required autofocus>
+                    <input type="text" name="name" class="form-control" value="{{ old('name') }}" required autofocus>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Username</label>
+                    <input type="text" name="username" class="form-control" value="{{ old('username') }}" required>
                 </div>
                 <div class="form-group">
                     <label class="form-label">Email Address</label>
-                    <input type="email" name="email" class="form-control" required>
+                    <input type="email" name="email" class="form-control" value="{{ old('email') }}" required>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Role</label>
+                    <select name="role" class="form-control" required>
+                        <option value="">-- Select Role --</option>
+                        <option value="admin" {{ old('role') === 'admin' ? 'selected' : '' }}>Admin</option>
+                        <option value="manager" {{ old('role') === 'manager' ? 'selected' : '' }}>Manager</option>
+                        <option value="user" {{ old('role') === 'user' ? 'selected' : '' }}>User</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Position</label>
+                    <input type="text" name="position" class="form-control" value="{{ old('position') }}" placeholder="e.g. Senior Manager" required>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Address</label>
+                    <textarea name="address" class="form-control" rows="2" placeholder="Enter your full address" required>{{ old('address') }}</textarea>
                 </div>
                 <div class="form-group">
                     <label class="form-label">Password</label>
@@ -44,12 +66,12 @@
                     <input type="password" name="password_confirmation" class="form-control" required>
                 </div>
                 
-                <button type="submit" class="btn btn-primary" style="width: 100%; padding: 0.75rem;">
+                <button type="submit" class="btn btn-primary" style="width: 100%; padding: 0.6rem;">
                     Register
                 </button>
             </form>
             
-            <div style="margin-top: 1.5rem; text-align: center; font-size: 0.875rem;">
+            <div style="margin-top: 1rem; text-align: center; font-size: 0.875rem;">
                 Already have an account? <a href="{{ route('login') }}" style="color: var(--moresco-blue); text-decoration: none; font-weight: 500;">Log in</a>
             </div>
         </div>

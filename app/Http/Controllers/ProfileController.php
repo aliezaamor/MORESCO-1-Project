@@ -29,12 +29,19 @@ class ProfileController extends Controller
 
         $validated = $request->validate([
             'name' => ['required', 'string', 'max:255'],
+            'username' => ['required', 'string', 'max:255', Rule::unique('users')->ignore($user->id)],
             'email' => ['required', 'string', 'email', 'max:255', Rule::unique('users')->ignore($user->id)],
+            'role' => ['required', 'string', 'in:admin,manager,user'],
+            'address' => ['required', 'string', 'max:500'],
+            'position' => ['required', 'string', 'max:255'],
             'avatar' => ['nullable','image','max:2048'],
         ]);
 
         $user->name = $validated['name'];
-        $user->email = $validated['email'];
+        $user->username = $validated['username'];
+        $user->role = $validated['role'];
+        $user->address = $validated['address'];
+        $user->position = $validated['position'];
 
         // Handle avatar upload
         if ($request->hasFile('avatar')) {
