@@ -47,7 +47,7 @@
                     <label style="display: flex; align-items: center; gap: 0.5rem; cursor: pointer;">
                         <input type="checkbox" name="remember"> Remember me
                     </label>
-                    <a href="{{ route('password.request') }}" style="color: var(--moresc-blue); text-decoration: none;">Forgot Password?</a>
+                    <a href="{{ route('password.request') }}" style="color: var(--moresco-blue); text-decoration: none;">Forgot Password?</a>
                 </div>
                 <button type="submit" class="btn btn-primary" style="width: 100%; padding: 0.75rem;">
                     Log In

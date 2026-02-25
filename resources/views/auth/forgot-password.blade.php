@@ -6,8 +6,9 @@
     <title>Forgot Password - Moresco-1 SMS System</title>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="{{ asset('css/style.css') }}">
+    <link rel="icon" type="image/x-icon" href="{{ asset('images/M1-L.png') }}">
 </head>
-<body class="auth-body">
+<body class="auth-body login-page">
     <div class="auth-wrapper">
         <div class="auth-card">
             <div class="logo-area">
