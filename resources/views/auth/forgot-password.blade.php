@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Login - Moresco-1 SMS System</title>
+    <title>Forgot Password - Moresco-1 SMS System</title>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="{{ asset('css/style.css') }}">
 </head>
@@ -15,6 +15,9 @@
                 <div>MORESCO-1</div>
                 <div style="font-size: 0.875rem; color: var(--text-light); font-weight: 400;">SMS Management System</div>
             </div>
+
+            <h2 style="margin-bottom: 0.5rem; color: var(--text-dark); font-size: 1.25rem;">Forgot Password?</h2>
+            <p style="margin-bottom: 1.5rem; color: var(--text-light); font-size: 0.875rem;">No problem. Just let us know your email address and we will email you a 6-digit password reset code.</p>
 
             @if ($errors->any())
                 <div style="background: #fef2f2; color: #b91c1c; padding: 0.75rem; border-radius: 8px; margin-bottom: 1rem; font-size: 0.875rem;">
@@ -32,29 +35,20 @@
                 </div>
             @endif
 
-            <form action="{{ route('login') }}" method="POST">
+            <form action="{{ route('password.email') }}" method="POST">
                 @csrf
                 <div class="form-group">
                     <label class="form-label">Email Address</label>
-                    <input type="email" name="email" class="form-control" required autofocus>
+                    <input type="email" name="email" class="form-control" required autofocus value="{{ old('email') }}">
                 </div>
-                <div class="form-group">
-                    <label class="form-label">Password</label>
-                    <input type="password" name="password" class="form-control" required>
-                </div>
-                <div style="margin-bottom: 1.5rem; display: flex; justify-content: space-between; align-items: center; font-size: 0.875rem;">
-                    <label style="display: flex; align-items: center; gap: 0.5rem; cursor: pointer;">
-                        <input type="checkbox" name="remember"> Remember me
-                    </label>
-                    <a href="{{ route('password.request') }}" style="color: var(--moresc-blue); text-decoration: none;">Forgot Password?</a>
-                </div>
+                
                 <button type="submit" class="btn btn-primary" style="width: 100%; padding: 0.75rem;">
-                    Log In
+                    Email Password Reset Link
                 </button>
             </form>
             
             <div style="margin-top: 1.5rem; text-align: center; font-size: 0.875rem;">
-                Don't have an account? <a href="{{ route('register') }}" style="color: var(--moresco-blue); text-decoration: none; font-weight: 500;">Register</a>
+                Back to <a href="{{ route('login') }}" style="color: var(--moresco-blue); text-decoration: none; font-weight: 500;">Login</a>
             </div>
         </div>
     </div>

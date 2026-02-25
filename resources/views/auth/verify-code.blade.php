@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Login - Moresco-1 SMS System</title>
+    <title>Verify Code - Moresco-1 SMS System</title>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="{{ asset('css/style.css') }}">
 </head>
@@ -15,6 +15,9 @@
                 <div>MORESCO-1</div>
                 <div style="font-size: 0.875rem; color: var(--text-light); font-weight: 400;">SMS Management System</div>
             </div>
+
+            <h2 style="margin-bottom: 0.5rem; color: var(--text-dark); font-size: 1.25rem;">Verify Reset Code</h2>
+            <p style="margin-bottom: 1.5rem; color: var(--text-light); font-size: 0.875rem;">Please enter the 6-digit code sent to {{ $email }}.</p>
 
             @if ($errors->any())
                 <div style="background: #fef2f2; color: #b91c1c; padding: 0.75rem; border-radius: 8px; margin-bottom: 1rem; font-size: 0.875rem;">
@@ -32,29 +35,22 @@
                 </div>
             @endif
 
-            <form action="{{ route('login') }}" method="POST">
+            <form action="{{ route('password.confirm') }}" method="POST">
                 @csrf
+                <input type="hidden" name="email" value="{{ $email }}">
+                
                 <div class="form-group">
-                    <label class="form-label">Email Address</label>
-                    <input type="email" name="email" class="form-control" required autofocus>
+                    <label class="form-label">6-Digit Code</label>
+                    <input type="text" name="code" class="form-control" maxlength="6" style="text-align: center; font-size: 1.5rem; letter-spacing: 0.5rem;" required autofocus>
                 </div>
-                <div class="form-group">
-                    <label class="form-label">Password</label>
-                    <input type="password" name="password" class="form-control" required>
-                </div>
-                <div style="margin-bottom: 1.5rem; display: flex; justify-content: space-between; align-items: center; font-size: 0.875rem;">
-                    <label style="display: flex; align-items: center; gap: 0.5rem; cursor: pointer;">
-                        <input type="checkbox" name="remember"> Remember me
-                    </label>
-                    <a href="{{ route('password.request') }}" style="color: var(--moresc-blue); text-decoration: none;">Forgot Password?</a>
-                </div>
+                
                 <button type="submit" class="btn btn-primary" style="width: 100%; padding: 0.75rem;">
-                    Log In
+                    Verify Code
                 </button>
             </form>
             
             <div style="margin-top: 1.5rem; text-align: center; font-size: 0.875rem;">
-                Don't have an account? <a href="{{ route('register') }}" style="color: var(--moresco-blue); text-decoration: none; font-weight: 500;">Register</a>
+                Didn't receive code? <a href="{{ route('password.request') }}" style="color: var(--moresco-blue); text-decoration: none; font-weight: 500;">Resend</a>
             </div>
         </div>
     </div>
