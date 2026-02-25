@@ -51,12 +51,14 @@
         <header class="header">
             <h1 class="page-title">@yield('title')</h1>
             <div class="profile-dropdown" id="profileDropdown">
-                <div class="profile-trigger" onclick="toggleProfileMenu(event)">
+                <div class="profile-trigger" onclick="toggleProfileMenu(event)" title="{{ auth()->user()->name }}">
                     <div class="avatar">
-                        {{ collect(explode(' ', auth()->user()->name))->map(fn($n) => substr($n, 0, 1))->take(2)->implode('') }}
+                        @if (auth()->user()->avatar)
+                            <img src="{{ asset('storage/' . auth()->user()->avatar) }}" alt="{{ auth()->user()->name }}" />
+                        @else
+                            {{ collect(explode(' ', auth()->user()->name))->map(fn($n) => substr($n, 0, 1))->take(2)->implode('') }}
+                        @endif
                     </div>
-                    <span style="font-weight: 500;">{{ auth()->user()->name }}</span>
-                    <i class="fa-solid fa-chevron-down" style="font-size: 0.75rem; color: var(--text-light);"></i>
                 </div>
                 <div class="profile-menu" id="profileMenu">
                     <div style="padding: 0.75rem 1rem;">

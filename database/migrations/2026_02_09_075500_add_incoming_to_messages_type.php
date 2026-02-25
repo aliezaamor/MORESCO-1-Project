@@ -13,10 +13,13 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::table('messages', function (Blueprint $table) {
-            // Using raw statement as changing enum types can be tricky
-            DB::statement("ALTER TABLE messages MODIFY COLUMN type ENUM('individual', 'broadcast', 'auto_reply', 'incoming') NOT NULL");
-        });
+        // Only run raw ALTER for MySQL — SQLite doesn't support MODIFY
+        if (DB::getDriverName() === 'mysql') {
+            Schema::table('messages', function (Blueprint $table) {
+                // Using raw statement as changing enum types can be tricky
+                DB::statement("ALTER TABLE messages MODIFY COLUMN type ENUM('individual', 'broadcast', 'auto_reply', 'incoming') NOT NULL");
+            });
+        }
     }
 
     /**
