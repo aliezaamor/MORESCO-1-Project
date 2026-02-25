@@ -573,8 +573,33 @@ body {
     display: flex;
     flex-direction: column;
     min-height: 100vh;
-    background: linear-gradient(135deg, var(--moresco-dark) 0%, var(--moresco-blue) 100%);
+    background-image: url("/images/M-1.png");
+    background-size: cover;
+    background-position: center;
+    background-attachment: fixed;
+    position: relative;
 }
+
+/* Add blur overlay to auth-body */
+.auth-body::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: rgba(0, 0, 0, 0.4);
+    backdrop-filter: blur(2px);
+    z-index: 1;
+}
+
+/* Ensure content is above the blur overlay */
+.auth-body > * {
+    position: relative;
+    z-index: 2;
+}
+
+/*background: linear-gradient(135deg, var(--moresco-dark) 0%, var(--moresco-blue) 100%); */
 
 .auth-wrapper {
     flex: 1;
