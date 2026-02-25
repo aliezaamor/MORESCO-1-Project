@@ -384,6 +384,47 @@ body.dark-mode .header h3 {
     color: #ffffff !important;
 }
 
+/* Messages page refresh button and radio labels visibility */
+body.dark-mode .header button {
+    background-color: #1e293b !important;
+    color: #ffffff !important;
+    border: 1px solid #334155 !important;
+}
+
+body.dark-mode .header button i {
+    color: #ffffff !important;
+}
+
+body.dark-mode label {
+    color: #ffffff !important;
+}
+
+body.dark-mode input[type="radio"] {
+    cursor: pointer;
+}
+
+body.dark-mode .form-group label span,
+body.dark-mode .form-group > div label {
+    color: #ffffff !important;
+    font-weight: 500;
+}
+
+/* File input visibility in dark mode */
+body.dark-mode input[type="file"] {
+    background-color: transparent !important;
+    color: #ffffff !important;
+}
+
+body.dark-mode input[type="file"]::file-selector-button {
+    background-color: #e5e7eb !important;
+    color: #1f2937 !important;
+    padding: 0.2rem 0.75rem !important;
+    cursor: pointer !important;
+    border-radius: 4px !important;
+    border: 1px solid #d1d5db !important;
+    font-size: 0.875rem !important;
+}
+
 body.dark-mode span[style*="color"],
 body.dark-mode span[style*="opacity"] {
     color: #ffffff !important;
