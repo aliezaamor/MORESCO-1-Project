@@ -209,14 +209,42 @@ body.dark-mode .table-dense tr:hover {
     background-color: rgba(255, 255, 255, 0.05) !important;
 }
 
-body.dark-mode select,
-body.dark-mode select option {
+/* Select dropdown styling */
+select {
     background-color: #ffffff !important;
     color: #334155 !important;
+    appearance: none;
+    -webkit-appearance: none;
+    -moz-appearance: none;
+    padding-right: 2rem;
+    padding: 0.5rem 0.75rem;
+    border: 1px solid #e2e8f0;
+    border-radius: 6px;
+    font-family: inherit;
+    cursor: pointer;
 }
 
-body.dark-mode select:focus {
-    border-color: var(--primary-color) !important;
+select option {
+    background-color: #ffffff !important;
+    color: #334155 !important;
+    padding: 0.5rem;
+    line-height: 1.8;
+    margin: 0.25rem 0;
+}
+
+select option:checked {
+    background: linear-gradient(#0077b5, #0077b5) !important;
+    background-color: var(--primary-color) !important;
+    color: #ffffff !important;
+}
+
+select option:disabled {
+    color: #94a3b8 !important;
+}
+
+body.dark-mode select {
+    background-color: #ffffff !important;
+    color: #334155 !important;
 }
 
 body.dark-mode .scrollable-container::-webkit-scrollbar-track {
