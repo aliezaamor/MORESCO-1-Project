@@ -34,7 +34,7 @@ class ProfileController extends Controller
             'role' => ['required', 'string', 'in:admin,manager,user'],
             'address' => ['required', 'string', 'max:500'],
             'position' => ['required', 'string', 'max:255'],
-            'avatar' => ['nullable','image','max:2048'],
+            'avatar' => ['nullable', 'image', 'max:2048'],
         ]);
 
         $user->name = $validated['name'];
@@ -42,6 +42,14 @@ class ProfileController extends Controller
         $user->role = $validated['role'];
         $user->address = $validated['address'];
         $user->position = $validated['position'];
+
+        // Handle avatar removal
+        if ($request->input('remove_avatar') == '1') {
+            if ($user->avatar) {
+                Storage::disk('public')->delete($user->avatar);
+            }
+            $user->avatar = null;
+        }
 
         // Handle avatar upload
         if ($request->hasFile('avatar')) {
