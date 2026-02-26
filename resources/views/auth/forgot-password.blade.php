@@ -44,7 +44,7 @@
                 </div>
                 
                 <button type="submit" class="btn btn-primary" style="width: 100%; padding: 0.75rem;">
-                    Email Password Reset Link
+                    Email Password Reset Code
                 </button>
             </form>
             

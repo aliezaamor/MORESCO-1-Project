@@ -6,8 +6,9 @@
     <title>Reset Password - Moresco-1 SMS System</title>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="{{ asset('css/style.css') }}">
+    <link rel="icon" type="image/x-icon" href="{{ asset('images/M1-L.png') }}">
 </head>
-<body class="auth-body">
+<body class="auth-body login-page">
     <div class="auth-wrapper">
         <div class="auth-card">
             <div class="logo-area">
@@ -51,6 +52,11 @@
                 <button type="submit" class="btn btn-primary" style="width: 100%; padding: 0.75rem;">
                     Reset Password
                 </button>
+            </form>
+
+            <div style="margin-top: 1rem; text-align: center; font-size: 0.875rem;">
+                Back to <a href="{{ route('login') }}" style="color: var(--moresco-blue); text-decoration: none; font-weight: 500;">Login</a>
+            </div>
             </form>
         </div>
     </div>
