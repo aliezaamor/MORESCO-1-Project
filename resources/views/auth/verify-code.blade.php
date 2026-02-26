@@ -6,8 +6,9 @@
     <title>Verify Code - Moresco-1 SMS System</title>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="{{ asset('css/style.css') }}">
+    <link rel="icon" type="image/x-icon" href="{{ asset('images/M1-L.png') }}">
 </head>
-<body class="auth-body">
+<body class="auth-body login-page">
     <div class="auth-wrapper">
         <div class="auth-card">
             <div class="logo-area">
@@ -44,9 +45,14 @@
                     <input type="text" name="code" class="form-control" maxlength="6" style="text-align: center; font-size: 1.5rem; letter-spacing: 0.5rem;" required autofocus>
                 </div>
                 
-                <button type="submit" class="btn btn-primary" style="width: 100%; padding: 0.75rem;">
-                    Verify Code
-                </button>
+                <div style="display: flex; gap: 0.5rem;">
+                    <button type="button" onclick="history.back()" class="btn btn-secondary" style="flex: 1; padding: 0.75rem;">
+                        Go Back
+                    </button>
+                    <button type="submit" class="btn btn-primary" style="flex: 1; padding: 0.75rem;">
+                        Verify Code
+                    </button>
+                </div>
             </form>
             
             <div style="margin-top: 1.5rem; text-align: center; font-size: 0.875rem;">
