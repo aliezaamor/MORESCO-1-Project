@@ -45,6 +45,8 @@ class MessageController extends Controller
             }
         }
 
+        $this->logUserActivity("Sent {$validated['type']} message");
+
         return response()->json([
             'message' => 'Message sent successfully',
             'data' => $message->load('recipients'),

@@ -5,6 +5,7 @@ use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\PasswordResetController;
+use App\Http\Controllers\AdminActivityController;
 
 
 // Auth Routes
@@ -21,6 +22,9 @@ Route::get('/verify-password', [PasswordResetController::class , 'showVerifyForm
 Route::post('/verify-password', [PasswordResetController::class , 'verifyCode'])->name('password.confirm');
 Route::get('/reset-password/{token}', [PasswordResetController::class , 'showResetForm'])->name('password.reset');
 Route::post('/reset-password', [PasswordResetController::class , 'reset'])->name('password.update');
+
+// Admin activity logs
+Route::get('/admin/activities', [AdminActivityController::class, 'index'])->name('admin.activities');
 
 // Protected Routes
 Route::middleware('auth')->group(function () {

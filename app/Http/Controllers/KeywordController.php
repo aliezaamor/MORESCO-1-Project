@@ -21,7 +21,11 @@ class KeywordController extends Controller
             'parent_id' => 'nullable|exists:keywords,id',
         ]);
 
-        return Keyword::create($validated);
+        $keyword = Keyword::create($validated);
+
+        $this->logUserActivity("Created keyword: {$keyword->keyword}");
+
+        return $keyword;
     }
 
     public function show(Keyword $keyword)
@@ -40,12 +44,18 @@ class KeywordController extends Controller
 
         $keyword->update($validated);
 
+        $this->logUserActivity("Updated keyword: {$keyword->keyword}");
+
         return $keyword;
     }
 
     public function destroy(Keyword $keyword)
     {
+        $name = $keyword->keyword;
         $keyword->delete();
+
+        $this->logUserActivity("Deleted keyword: {$name}");
+
         return response()->noContent();
     }
 }

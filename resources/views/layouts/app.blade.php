@@ -4,6 +4,8 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>SMS System</title>
+    <!-- CSRF Token -->
+    <meta name="csrf-token" content="{{ csrf_token() }}">
     <!-- Favicon -->
     <link rel="icon" type="image/x-icon" href="{{ asset('images/M1-L.png') }}">
     <!-- Google Fonts -->
@@ -26,6 +28,13 @@
                     <i class="fa-solid fa-gauge"></i> Dashboard
                 </a>
             </li>
+            @if(auth()->user()->role === 'admin')
+            <li>
+                <a href="{{ route('admin.activities') }}" class="nav-link {{ request()->routeIs('admin.activities') ? 'active' : '' }}">
+                    <i class="fa-solid fa-list-check"></i> User Activity Log
+                </a>
+            </li>
+            @endif
             <li>
                 <a href="{{ route('view.contacts.index') }}" class="nav-link {{ request()->routeIs('view.contacts.*') ? 'active' : '' }}">
                     <i class="fa-solid fa-address-book"></i> Contacts & Groups
@@ -104,11 +113,14 @@
         const API_BASE_URL = "{{ url('/api') }}";
         
         async function fetchAPI(endpoint, options = {}) {
+            const csrfToken = document.querySelector('meta[name="csrf-token"]').getAttribute('content');
+            
             const response = await fetch(`${API_BASE_URL}${endpoint}`, {
                 ...options,
                 headers: {
                     'Content-Type': 'application/json',
                     'Accept': 'application/json',
+                    'X-CSRF-TOKEN': csrfToken,
                     ...options.headers
                 }
             });

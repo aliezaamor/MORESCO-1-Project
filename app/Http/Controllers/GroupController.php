@@ -19,7 +19,11 @@ class GroupController extends Controller
             'description' => 'nullable|string',
         ]);
 
-        return Group::create($validated);
+        $group = Group::create($validated);
+
+        $this->logUserActivity("Created group: {$group->name}");
+
+        return $group;
     }
 
     public function show(Group $group)
@@ -36,12 +40,18 @@ class GroupController extends Controller
 
         $group->update($validated);
 
+        $this->logUserActivity("Updated group: {$group->name}");
+
         return $group;
     }
 
     public function destroy(Group $group)
     {
+        $name = $group->name;
         $group->delete();
+
+        $this->logUserActivity("Deleted group: {$name}");
+
         return response()->noContent();
     }
 
@@ -54,6 +64,9 @@ class GroupController extends Controller
 
         $group->contacts()->syncWithoutDetaching($validated['contact_ids']);
         
+        $count = count($validated['contact_ids']);
+        $this->logUserActivity("Added {$count} contacts to group: {$group->name}");
+
         return response()->json([
             'message' => count($validated['contact_ids']) . ' contacts added to group',
             'group' => $group->load('contacts')
@@ -63,6 +76,9 @@ class GroupController extends Controller
     public function removeContact(Group $group, $contactId)
     {
         $group->contacts()->detach($contactId);
+        
+        $this->logUserActivity("Removed contact from group: {$group->name}");
+
         return response()->json(['message' => 'Contact removed from group']);
     }
 }

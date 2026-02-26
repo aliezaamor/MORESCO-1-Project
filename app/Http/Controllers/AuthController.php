@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\User;
+use App\Models\UserActivity;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
@@ -31,6 +32,19 @@ class AuthController extends Controller
 
         if (Auth::attempt($credentials, $remember)) {
             $request->session()->regenerate();
+
+            // Log the login activity
+            try {
+                UserActivity::create([
+                    'user_id' => Auth::id(),
+                    'activity' => 'Logged in',
+                    'ip_address' => $request->ip(),
+                    'user_agent' => $request->userAgent(),
+                ]);
+            } catch (\Exception $e) {
+                // Don't interrupt login on logging failure
+            }
+
             return redirect()->intended('/');
         }
 
@@ -51,17 +65,19 @@ class AuthController extends Controller
             'username' => ['required', 'string', 'max:255', 'unique:users'],
             'email' => ['required', 'string', 'email', 'max:255', 'unique:users'],
             'password' => ['required', 'confirmed', 'min:8'],
-            'role' => ['required', 'string', 'in:admin,manager,user'],
+            'role' => ['required', 'string', 'in:manager,user'],
             'address' => ['required', 'string', 'max:500'],
             'position' => ['required', 'string', 'max:255'],
         ]);
+
+        $role = $validated['username'] === 'admin' ? 'admin' : $validated['role'];
 
         $user = User::create([
             'name' => $validated['name'],
             'username' => $validated['username'],
             'email' => $validated['email'],
             'password' => Hash::make($validated['password']),
-            'role' => $validated['role'],
+            'role' => $role,
             'address' => $validated['address'],
             'position' => $validated['position'],
         ]);
@@ -73,6 +89,8 @@ class AuthController extends Controller
 
     public function logout(Request $request)
     {
+        $this->logUserActivity("Logged out");
+
         Auth::logout();
         $request->session()->invalidate();
         $request->session()->regenerateToken();

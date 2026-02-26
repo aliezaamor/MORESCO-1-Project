@@ -31,6 +31,8 @@ class SettingsController extends Controller
             'password' => Hash::make($validated['new_password']),
         ]);
 
+        $this->logUserActivity("Changed password");
+
         return back()->with('success', 'Password updated successfully!');
     }
 }

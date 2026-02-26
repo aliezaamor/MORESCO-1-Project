@@ -63,6 +63,8 @@ class ProfileController extends Controller
         }
         $user->save();
 
+        $this->logUserActivity("Updated profile details");
+
         return back()->with('success', 'Profile updated successfully!');
     }
 }

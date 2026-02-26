@@ -20,7 +20,11 @@ class ContactController extends Controller
             'email' => 'nullable|email|max:255',
         ]);
 
-        return Contact::create($validated);
+        $contact = Contact::create($validated);
+
+        $this->logUserActivity("Created contact: {$contact->name}");
+
+        return $contact;
     }
 
     public function show(Contact $contact)
@@ -38,12 +42,18 @@ class ContactController extends Controller
 
         $contact->update($validated);
 
+        $this->logUserActivity("Updated contact: {$contact->name}");
+
         return $contact;
     }
 
     public function destroy(Contact $contact)
     {
+        $name = $contact->name;
         $contact->delete();
+
+        $this->logUserActivity("Deleted contact: {$name}");
+
         return response()->noContent();
     }
 }
