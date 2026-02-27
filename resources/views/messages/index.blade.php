@@ -17,35 +17,47 @@
                     </select>
                 </div>
 
-                <div class="form-group" id="contactInput" style="font-size: 0.9rem; margin-top: 0.5rem;">
+                <div class="form-group" id="contactInput" style="font-size: 0.9rem; margin-top: 0.5rem; position: relative;">
                     <label class="form-label">Select Recipient (Contact)</label>
-                    <select name="contact_id" class="form-control" id="contactSelect" style="padding: 0.75rem;">
-                        <option value="">Choose Contact...</option>
-                    </select>
+                    <input type="hidden" name="contact_id" id="contactIdInput">
+                    <div id="customContactSelect" tabindex="0" class="form-control" style="padding: 0.75rem; cursor: pointer; display: flex; justify-content: space-between; align-items: center;" onclick="toggleContactDropdown(event)">
+                        <span id="contactSelectText" style="color: var(--text-color);">Choose Contact...</span>
+                        <i class="fa-solid fa-chevron-down" style="color: var(--text-light); font-size: 0.8em; pointer-events: none;"></i>
+                    </div>
+                    
+                    <div id="contactDropdownList" style="display: none; position: absolute; top: calc(100% - 0.5rem); left: 0; right: 0; border: 1px solid var(--border-color); border-radius: 8px; padding: 0.5rem; flex-direction: column; z-index: 10; box-shadow: var(--shadow-md); margin-top: 0.5rem; background: var(--input-bg); max-height: 200px; overflow-y: auto;">
+                        <div style="color: var(--text-light); font-size: 0.8rem; padding: 0.5rem;">Loading contacts...</div>
+                    </div>
                 </div>
 
                 <!-- Broadcast Specific Options -->
                 <div id="broadcastOptions" style="display: none;">
                     <div class="form-group" style="font-size: 0.9rem; margin-top: 1rem; position: relative;">
                         <label class="form-label">Select Target Group/s</label>
-                        <div id="customGroupSelect" tabindex="0" class="form-control" style="padding: 0.75rem; cursor: pointer; display: flex; justify-content: space-between; align-items: center; background: #fff;" onclick="toggleGroupDropdown(event)">
+                        <div id="customGroupSelect" tabindex="0" class="form-control" style="padding: 0.75rem; cursor: pointer; display: flex; justify-content: space-between; align-items: center;" onclick="toggleGroupDropdown(event)">
                             <span id="groupSelectText" style="color: var(--text-color);">Select groups...</span>
                             <i class="fa-solid fa-chevron-down" style="color: var(--text-light); font-size: 0.8em; pointer-events: none;"></i>
                         </div>
                         
-                        <div id="groupDropdownList" style="display: none; position: absolute; top: calc(100% - 0.5rem); left: 0; right: 0; background: white; border: 1px solid var(--border-color); border-radius: 8px; padding: 0.75rem; max-height: 200px; overflow-y: auto; flex-direction: column; gap: 0.5rem; z-index: 10; box-shadow: var(--shadow-md); margin-top: 0.5rem;">
+                        <div id="groupDropdownList" style="display: none; position: absolute; top: calc(100% - 0.5rem); left: 0; right: 0; border: 1px solid var(--border-color); border-radius: 8px; padding: 0.75rem; max-height: 200px; overflow-y: auto; flex-direction: column; gap: 0.5rem; z-index: 10; box-shadow: var(--shadow-md); margin-top: 0.5rem; background: var(--input-bg);">
                             <!-- Populated by JS -->
                             <div style="color: var(--text-light); font-size: 0.8rem;">Loading groups...</div>
                         </div>
                     </div>
 
-                    <div class="form-group" style="font-size: 0.9rem; margin-top: 1rem;">
+                    <div class="form-group" style="font-size: 0.9rem; margin-top: 1rem; position: relative;">
                         <label class="form-label">Message Category</label>
-                        <select name="category" class="form-control" style="padding: 0.75rem;">
-                            <option value="ADVISORY">ADVISORY</option>
-                            <option value="OUTAGE">OUTAGE</option>
-                            <option value="EVENTS">EVENTS</option>
-                        </select>
+                        <input type="hidden" name="category" id="categoryInput" value="ADVISORY">
+                        <div id="customCategorySelect" tabindex="0" class="form-control" style="padding: 0.75rem; cursor: pointer; display: flex; justify-content: space-between; align-items: center;" onclick="toggleCategoryDropdown(event)">
+                            <span id="categorySelectText" style="color: var(--text-color);">ADVISORY</span>
+                            <i class="fa-solid fa-chevron-down" style="color: var(--text-light); font-size: 0.8em; pointer-events: none;"></i>
+                        </div>
+                        
+                        <div id="categoryDropdownList" style="display: none; position: absolute; top: calc(100% - 0.5rem); left: 0; right: 0; border: 1px solid var(--border-color); border-radius: 8px; padding: 0.5rem; flex-direction: column; z-index: 10; box-shadow: var(--shadow-md); margin-top: 0.5rem; background: var(--input-bg);">
+                            <div class="category-option" onclick="selectCategory('ADVISORY')" style="padding: 0.5rem 0.75rem; cursor: pointer; border-radius: 4px; color: var(--text-color);">ADVISORY</div>
+                            <div class="category-option" onclick="selectCategory('OUTAGE')" style="padding: 0.5rem 0.75rem; cursor: pointer; border-radius: 4px; color: var(--text-color);">OUTAGE</div>
+                            <div class="category-option" onclick="selectCategory('EVENTS')" style="padding: 0.5rem 0.75rem; cursor: pointer; border-radius: 4px; color: var(--text-color);">EVENTS</div>
+                        </div>
                     </div>
                 </div>
 
@@ -108,7 +120,43 @@
     function toggleGroupDropdown(event) {
         event.stopPropagation();
         const dropdown = document.getElementById('groupDropdownList');
+        const catDropdown = document.getElementById('categoryDropdownList');
+        const conDropdown = document.getElementById('contactDropdownList');
+        if (catDropdown) catDropdown.style.display = 'none';
+        if (conDropdown) conDropdown.style.display = 'none';
         dropdown.style.display = dropdown.style.display === 'none' ? 'flex' : 'none';
+    }
+
+    function toggleCategoryDropdown(event) {
+        event.stopPropagation();
+        const dropdown = document.getElementById('categoryDropdownList');
+        const groupDropdown = document.getElementById('groupDropdownList');
+        const conDropdown = document.getElementById('contactDropdownList');
+        if (groupDropdown) groupDropdown.style.display = 'none';
+        if (conDropdown) conDropdown.style.display = 'none';
+        dropdown.style.display = dropdown.style.display === 'none' ? 'flex' : 'none';
+    }
+
+    function toggleContactDropdown(event) {
+        event.stopPropagation();
+        const dropdown = document.getElementById('contactDropdownList');
+        const groupDropdown = document.getElementById('groupDropdownList');
+        const catDropdown = document.getElementById('categoryDropdownList');
+        if (groupDropdown) groupDropdown.style.display = 'none';
+        if (catDropdown) catDropdown.style.display = 'none';
+        dropdown.style.display = dropdown.style.display === 'none' ? 'flex' : 'none';
+    }
+
+    function selectContact(id, name, phone) {
+        document.getElementById('contactIdInput').value = id;
+        document.getElementById('contactSelectText').textContent = `${name} (${phone})`;
+        document.getElementById('contactDropdownList').style.display = 'none';
+    }
+
+    function selectCategory(value) {
+        document.getElementById('categoryInput').value = value;
+        document.getElementById('categorySelectText').textContent = value;
+        document.getElementById('categoryDropdownList').style.display = 'none';
     }
 
     function updateGroupSelectText() {
@@ -128,13 +176,28 @@
         }
     }
 
-    // Close dropdown when clicking outside
+    // Close dropdowns when clicking outside
     document.addEventListener('click', function(event) {
-        const dropdown = document.getElementById('groupDropdownList');
-        const trigger = document.getElementById('customGroupSelect');
-        if (dropdown && dropdown.style.display === 'flex') {
-            if (!trigger.contains(event.target) && !dropdown.contains(event.target)) {
-                dropdown.style.display = 'none';
+        const groupDropdown = document.getElementById('groupDropdownList');
+        const groupTrigger = document.getElementById('customGroupSelect');
+        const catDropdown = document.getElementById('categoryDropdownList');
+        const catTrigger = document.getElementById('customCategorySelect');
+        const conDropdown = document.getElementById('contactDropdownList');
+        const conTrigger = document.getElementById('customContactSelect');
+
+        if (groupDropdown && groupDropdown.style.display === 'flex') {
+            if (!groupTrigger.contains(event.target) && !groupDropdown.contains(event.target)) {
+                groupDropdown.style.display = 'none';
+            }
+        }
+        if (catDropdown && catDropdown.style.display === 'flex') {
+            if (!catTrigger.contains(event.target) && !catDropdown.contains(event.target)) {
+                catDropdown.style.display = 'none';
+            }
+        }
+        if (conDropdown && conDropdown.style.display === 'flex') {
+            if (!conTrigger.contains(event.target) && !conDropdown.contains(event.target)) {
+                conDropdown.style.display = 'none';
             }
         }
     });
@@ -150,18 +213,25 @@
             fetchAPI('/groups')
         ]);
 
-        const contactSelect = document.getElementById('contactSelect');
-        contactSelect.innerHTML = '<option value="">Choose Contact...</option>' + 
-            contacts.map(c => `<option value="${c.id}">${c.name} (${c.phone_number})</option>`).join('');
+        const contactContainer = document.getElementById('contactDropdownList');
+        if (contacts.length === 0) {
+            contactContainer.innerHTML = '<div style="color: var(--text-light); font-size: 0.8rem; padding: 0.5rem;">No contacts available.</div>';
+        } else {
+            contactContainer.innerHTML = contacts.map(c => `
+                <div class="contact-option" onclick="selectContact('${c.id}', '${c.name}', '${c.phone_number}')" style="padding: 0.5rem 0.75rem; cursor: pointer; border-radius: 4px; color: var(--text-color); font-size: 0.85rem;">
+                    ${c.name} (${c.phone_number})
+                </div>
+            `).join('');
+        }
 
         const groupContainer = document.getElementById('groupDropdownList');
         if (groups.length === 0) {
             groupContainer.innerHTML = '<div style="color: var(--text-light); font-size: 0.8rem;">No groups available.</div>';
         } else {
             groupContainer.innerHTML = groups.map(g => `
-                <label style="display: flex; align-items: center; gap: 0.75rem; cursor: pointer; padding: 0.25rem 0; font-size: 0.85rem;" onclick="event.stopPropagation()">
+                <label style="display: flex; align-items: center; gap: 0.75rem; cursor: pointer; padding: 0.25rem 0; font-size: 0.85rem; color: var(--text-color);" onclick="event.stopPropagation()">
                     <input type="checkbox" name="group_ids[]" value="${g.id}" onchange="updateGroupSelectText()">
-                    <span>${g.name}</span>
+                    <span style="color: inherit;">${g.name}</span>
                 </label>
             `).join('');
         }
@@ -181,7 +251,7 @@
                 
                 if (m.type === 'broadcast') {
                     badgeColor = 'var(--primary-color)';
-                    categoryLabel = `<span class="badge" style="background: #e2e8f0; color: #475569; padding: 1px 6px; border-radius: 4px; font-size: 0.6rem; margin-left: 0.5rem; border: 1px solid #cbd5e1;">${m.category}</span>`;
+                    categoryLabel = `<span class="badge" style="background: var(--moresco-dark); color: white; padding: 2px 8px; border-radius: 4px; font-size: 0.6rem; margin-left: 0.5rem; border: 1px solid var(--border-color); font-weight: 600;">${m.category}</span>`;
                 }
                 
                 if (m.type === 'incoming') badgeColor = '#f59e0b';
