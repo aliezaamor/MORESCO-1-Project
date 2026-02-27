@@ -40,10 +40,26 @@
                     <i class="fa-solid fa-address-book"></i> Contacts & Groups
                 </a>
             </li>
-            <li>
-                <a href="{{ route('view.messages.index') }}" class="nav-link {{ request()->routeIs('view.messages.*') ? 'active' : '' }}">
+            <li class="nav-item has-dropdown">
+                @php
+                    $isMessagesActive = request()->routeIs('view.messages.*') || request()->routeIs('view.broadcasts.*');
+                @endphp
+                <a href="#" class="nav-link {{ $isMessagesActive ? 'active' : '' }}" onclick="toggleSubmenu(event, 'messagesSubmenu')">
                     <i class="fa-solid fa-envelope"></i> Messages
+                    <i class="fa-solid fa-chevron-down submenu-icon" style="margin-left: auto; font-size: 0.8em; transition: transform 0.3s; transform: {{ $isMessagesActive ? 'rotate(180deg)' : 'rotate(0deg)' }};"></i>
                 </a>
+                <ul class="submenu" id="messagesSubmenu" style="display: {{ $isMessagesActive ? 'flex' : 'none' }}; list-style: none; padding-left: 2rem; margin-top: 0.5rem; gap: 0.5rem; flex-direction: column;">
+                    <li>
+                        <a href="{{ route('view.messages.index') }}" class="nav-link {{ request()->routeIs('view.messages.*') ? 'active' : '' }}" style="padding: 0.5rem 1rem; font-size: 0.9em;">
+                            <i class="fa-solid fa-user"></i> Individual Notification
+                        </a>
+                    </li>
+                    <li>
+                        <a href="#" class="nav-link" style="padding: 0.5rem 1rem; font-size: 0.9em;">
+                            <i class="fa-solid fa-bullhorn"></i> Broadcast Messages
+                        </a>
+                    </li>
+                </ul>
             </li>
             <li>
                 <a href="{{ route('view.keywords.index') }}" class="nav-link {{ request()->routeIs('view.keywords.*') ? 'active' : '' }}">
@@ -142,6 +158,19 @@
                 if (menu.classList.contains('show')) {
                     menu.classList.remove('show');
                 }
+            }
+        }
+
+        function toggleSubmenu(event, id) {
+            event.preventDefault();
+            const submenu = document.getElementById(id);
+            const icon = event.currentTarget.querySelector('.submenu-icon');
+            if (submenu.style.display === 'none') {
+                submenu.style.display = 'flex';
+                if(icon) icon.style.transform = 'rotate(180deg)';
+            } else {
+                submenu.style.display = 'none';
+                if(icon) icon.style.transform = 'rotate(0deg)';
             }
         }
     </script>
