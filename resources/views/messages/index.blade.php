@@ -26,13 +26,17 @@
 
                 <!-- Broadcast Specific Options -->
                 <div id="broadcastOptions" style="display: none;">
-                    <div class="form-group" style="font-size: 0.9rem; margin-top: 1rem;">
+                    <div class="form-group" style="font-size: 0.9rem; margin-top: 1rem; position: relative;">
                         <label class="form-label">Select Target Group/s</label>
-                        <div id="groupCheckboxContainer" style="background: white; border: 1px solid var(--border-color); border-radius: 8px; padding: 0.75rem; max-height: 150px; overflow-y: auto; display: flex; flex-direction: column; gap: 0.5rem;">
+                        <div id="customGroupSelect" tabindex="0" class="form-control" style="padding: 0.75rem; cursor: pointer; display: flex; justify-content: space-between; align-items: center; background: #fff;" onclick="toggleGroupDropdown(event)">
+                            <span id="groupSelectText" style="color: var(--text-color);">Select groups...</span>
+                            <i class="fa-solid fa-chevron-down" style="color: var(--text-light); font-size: 0.8em; pointer-events: none;"></i>
+                        </div>
+                        
+                        <div id="groupDropdownList" style="display: none; position: absolute; top: calc(100% - 0.5rem); left: 0; right: 0; background: white; border: 1px solid var(--border-color); border-radius: 8px; padding: 0.75rem; max-height: 200px; overflow-y: auto; flex-direction: column; gap: 0.5rem; z-index: 10; box-shadow: var(--shadow-md); margin-top: 0.5rem;">
                             <!-- Populated by JS -->
                             <div style="color: var(--text-light); font-size: 0.8rem;">Loading groups...</div>
                         </div>
-                        <small style="color: var(--text-light); font-size: 0.7rem; margin-top: 0.25rem; display: block;">Select one or more groups for this broadcast</small>
                     </div>
 
                     <div class="form-group" style="font-size: 0.9rem; margin-top: 1rem;">
@@ -43,22 +47,23 @@
                             <option value="EVENTS">EVENTS</option>
                         </select>
                     </div>
+                </div>
 
-                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-top: 1rem; background: var(--item-hover); padding: 0.75rem; border-radius: 8px;">
-                        <label style="display: flex; align-items: center; gap: 0.5rem; cursor: pointer; font-size: 0.85rem; font-weight: 500;">
-                            <input type="checkbox" name="is_scheduled" id="isScheduled" onchange="toggleScheduling()"> 
-                            <span><i class="fa-solid fa-calendar-plus" style="color: var(--primary-color);"></i> Schedule Send</span>
-                        </label>
-                        <label style="display: flex; align-items: center; gap: 0.5rem; cursor: pointer; font-size: 0.85rem; font-weight: 500;">
-                            <input type="checkbox" name="no_reply" checked> 
-                            <span><i class="fa-solid fa-microphone-slash" style="color: #64748b;"></i> No-Reply Policy</span>
-                        </label>
-                    </div>
+                <!-- Global Options: Schedule & No-Reply -->
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-top: 1rem; background: var(--item-hover); padding: 0.75rem; border-radius: 8px;">
+                    <label style="display: flex; align-items: center; gap: 0.5rem; cursor: pointer; font-size: 0.85rem; font-weight: 500;">
+                        <input type="checkbox" name="is_scheduled" id="isScheduled" onchange="toggleScheduling()"> 
+                        <span><i class="fa-solid fa-calendar-plus" style="color: var(--primary-color);"></i> Schedule Send</span>
+                    </label>
+                    <label style="display: flex; align-items: center; gap: 0.5rem; cursor: pointer; font-size: 0.85rem; font-weight: 500;">
+                        <input type="checkbox" name="no_reply" checked> 
+                        <span><i class="fa-solid fa-microphone-slash" style="color: #64748b;"></i> No-Reply Policy</span>
+                    </label>
+                </div>
 
-                    <div class="form-group" id="scheduledAtInput" style="font-size: 0.9rem; margin-top: 1rem; display: none;">
-                        <label class="form-label">Schedule Date & Time</label>
-                        <input type="datetime-local" name="scheduled_at" class="form-control" style="padding: 0.75rem;">
-                    </div>
+                <div class="form-group" id="scheduledAtInput" style="font-size: 0.9rem; margin-top: 1rem; display: none;">
+                    <label class="form-label">Schedule Date & Time</label>
+                    <input type="datetime-local" name="scheduled_at" class="form-control" style="padding: 0.75rem;">
                 </div>
 
                 <div class="form-group" style="font-size: 0.9rem; margin-top: 1rem;">
@@ -100,6 +105,40 @@
         document.getElementById('broadcastOptions').style.display = type === 'broadcast' ? 'block' : 'none';
     }
 
+    function toggleGroupDropdown(event) {
+        event.stopPropagation();
+        const dropdown = document.getElementById('groupDropdownList');
+        dropdown.style.display = dropdown.style.display === 'none' ? 'flex' : 'none';
+    }
+
+    function updateGroupSelectText() {
+        const checkboxes = document.querySelectorAll('#groupDropdownList input[type="checkbox"]:checked');
+        const textSpan = document.getElementById('groupSelectText');
+        
+        if (checkboxes.length === 0) {
+            textSpan.textContent = "Select groups...";
+            textSpan.style.color = "var(--text-color)";
+        } else if (checkboxes.length === 1) {
+            textSpan.textContent = checkboxes[0].nextElementSibling.textContent;
+            textSpan.style.color = "var(--text-color)";
+        } else {
+            textSpan.textContent = `${checkboxes.length} groups selected`;
+            textSpan.style.color = "var(--primary-color)";
+            textSpan.style.fontWeight = "500";
+        }
+    }
+
+    // Close dropdown when clicking outside
+    document.addEventListener('click', function(event) {
+        const dropdown = document.getElementById('groupDropdownList');
+        const trigger = document.getElementById('customGroupSelect');
+        if (dropdown && dropdown.style.display === 'flex') {
+            if (!trigger.contains(event.target) && !dropdown.contains(event.target)) {
+                dropdown.style.display = 'none';
+            }
+        }
+    });
+
     function toggleScheduling() {
         const isScheduled = document.getElementById('isScheduled').checked;
         document.getElementById('scheduledAtInput').style.display = isScheduled ? 'block' : 'none';
@@ -115,13 +154,13 @@
         contactSelect.innerHTML = '<option value="">Choose Contact...</option>' + 
             contacts.map(c => `<option value="${c.id}">${c.name} (${c.phone_number})</option>`).join('');
 
-        const groupContainer = document.getElementById('groupCheckboxContainer');
+        const groupContainer = document.getElementById('groupDropdownList');
         if (groups.length === 0) {
             groupContainer.innerHTML = '<div style="color: var(--text-light); font-size: 0.8rem;">No groups available.</div>';
         } else {
             groupContainer.innerHTML = groups.map(g => `
-                <label style="display: flex; align-items: center; gap: 0.75rem; cursor: pointer; padding: 0.25rem 0; font-size: 0.85rem;">
-                    <input type="checkbox" name="group_ids[]" value="${g.id}">
+                <label style="display: flex; align-items: center; gap: 0.75rem; cursor: pointer; padding: 0.25rem 0; font-size: 0.85rem;" onclick="event.stopPropagation()">
+                    <input type="checkbox" name="group_ids[]" value="${g.id}" onchange="updateGroupSelectText()">
                     <span>${g.name}</span>
                 </label>
             `).join('');
@@ -154,7 +193,7 @@
                        </div>`
                     : '';
 
-                const noReplyBadge = m.no_reply && m.type === 'broadcast'
+                const noReplyBadge = m.no_reply && m.type !== 'incoming' && m.type !== 'auto_reply'
                     ? `<span style="font-size: 0.6rem; color: #64748b; margin-left: auto;">
                         <i class="fa-solid fa-microphone-slash"></i> No-Reply
                        </span>`
