@@ -30,8 +30,10 @@ class PasswordResetController extends Controller
             return back()->withErrors(['email' => 'We cannot find a user with that email address.']);
         }
 
+        // Generate a 6-digit code
         $code = str_pad(random_int(0, 999999), 6, '0', STR_PAD_LEFT);
 
+        // Store the code in password_reset_tokens table
         DB::table('password_reset_tokens')->updateOrInsert(
         ['email' => $request->email],
         [
@@ -40,7 +42,13 @@ class PasswordResetController extends Controller
         ]
         );
 
-        Mail::to($request->email)->send(new PasswordResetCode($code));
+        try {
+            // Send the code via email
+            Mail::to($request->email)->send(new PasswordResetCode($code));
+        }
+        catch (\Exception $e) {
+            return back()->withErrors(['email' => 'Failed to send email. Please try again later.']);
+        }
 
         return redirect()->route('password.verify', ['email' => $request->email])
             ->with('success', 'A 6-digit reset code has been sent to your email.');

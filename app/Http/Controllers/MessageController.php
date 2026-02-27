@@ -10,9 +10,15 @@ class MessageController extends Controller
     /**
      * Display a listing of the resource.
      */
-    public function index()
+    public function index(Request $request)
     {
-        return Message::with('recipients.contact')->latest()->get();
+        $query = Message::with('recipients.contact')->latest();
+
+        if ($request->has('type')) {
+            $query->where('type', $request->type);
+        }
+
+        return $query->get();
     }
 
     public function store(Request $request)
@@ -21,34 +27,56 @@ class MessageController extends Controller
             'content' => 'required|string',
             'type' => 'required|in:individual,broadcast',
             'contact_id' => 'required_if:type,individual|nullable|exists:contacts,id',
-            'group_id' => 'required_if:type,broadcast|nullable|exists:groups,id',
+            'group_ids' => 'required_if:type,broadcast|nullable|array',
+            'group_ids.*' => 'exists:groups,id',
+            'category' => 'required_if:type,broadcast|nullable|in:MCO CONTACTS,ADVISORY,OUTAGE,EVENTS',
+            'is_scheduled' => 'boolean',
+            'scheduled_at' => 'required_if:is_scheduled,true|nullable|date',
+            'no_reply' => 'boolean',
         ]);
 
         $message = Message::create([
             'content' => $validated['content'],
             'type' => $validated['type'],
             'user_id' => auth()->id(),
+            'category' => $validated['category'] ?? 'ADVISORY',
+            'is_scheduled' => $validated['is_scheduled'] ?? false,
+            'scheduled_at' => $validated['scheduled_at'] ?? null,
+            'no_reply' => $validated['no_reply'] ?? true,
         ]);
 
-        if ($validated['type'] === 'individual') {
-            $message->recipients()->create([
-                'contact_id' => $validated['contact_id'],
-                'status' => 'sent', // Simulated send
-            ]);
-        } elseif ($validated['type'] === 'broadcast') {
-            $group = \App\Models\Group::find($validated['group_id']);
-            foreach ($group->contacts as $contact) {
+        // Only create recipients if NOT scheduled (send immediately)
+        if (!$message->is_scheduled) {
+            if ($validated['type'] === 'individual') {
                 $message->recipients()->create([
-                    'contact_id' => $contact->id,
-                    'status' => 'sent', // Simulated send
+                    'contact_id' => $validated['contact_id'],
+                    'status' => 'sent',
                 ]);
+            }
+            elseif ($validated['type'] === 'broadcast') {
+                $contactIds = [];
+                $groups = \App\Models\Group::with('contacts')->whereIn('id', $validated['group_ids'])->get();
+
+                foreach ($groups as $group) {
+                    foreach ($group->contacts as $contact) {
+                        $contactIds[] = $contact->id;
+                    }
+                }
+
+                // Remove duplicates in case a contact is in multiple groups
+                foreach (array_unique($contactIds) as $contactId) {
+                    $message->recipients()->create([
+                        'contact_id' => $contactId,
+                        'status' => 'sent',
+                    ]);
+                }
             }
         }
 
-        $this->logUserActivity("Sent {$validated['type']} message");
+        $this->logUserActivity("Stored {$validated['type']} message" . ($message->is_scheduled ? " (Scheduled)" : ""));
 
         return response()->json([
-            'message' => 'Message sent successfully',
+            'message' => $message->is_scheduled ? 'Message scheduled successfully' : 'Message sent successfully',
             'data' => $message->load('recipients'),
         ], 201);
     }
@@ -58,7 +86,7 @@ class MessageController extends Controller
      */
     public function show(string $id)
     {
-        //
+    //
     }
 
     /**
@@ -66,7 +94,7 @@ class MessageController extends Controller
      */
     public function update(Request $request, string $id)
     {
-        //
+    //
     }
 
     /**
@@ -74,6 +102,6 @@ class MessageController extends Controller
      */
     public function destroy(string $id)
     {
-        //
+    //
     }
 }

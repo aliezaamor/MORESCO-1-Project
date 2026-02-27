@@ -7,18 +7,14 @@
     <!-- Send Message Form -->
     <div>
         <div class="card" style="padding: 1rem;">
-            <h3 style="font-size: 1rem; margin-bottom: 1rem; color: var(--moresco-blue);">Send New Message</h3>
+            <h3 id="formTitle" style="font-size: 1rem; margin-bottom: 1rem; color: var(--moresco-blue);">Send New Message</h3>
             <form id="sendMessageForm">
-                <div class="form-group">
+                <div class="form-group" id="messageTypeGroup">
                     <label class="form-label" style="font-size: 0.9rem;">Message Type</label>
-                    <div style="font-size: 0.9rem; display: flex; gap: 1.5rem; background: var(--item-hover); padding: 0.5rem; border-radius: 8px;">
-                        <label style="display: flex; align-items: center; gap: 0.5rem; cursor: pointer; font-weight: 500;">
-                            <input type="radio" name="type" value="individual" checked onchange="toggleRecipientInput()"> Individual
-                        </label>
-                        <label style="display: flex; align-items: center; gap: 0.5rem; cursor: pointer; font-weight: 500;">
-                            <input type="radio" name="type" value="broadcast" onchange="toggleRecipientInput()"> Broadcast
-                        </label>
-                    </div>
+                    <select name="type" class="form-control" onchange="toggleRecipientInput()" id="messageTypeSelect" style="padding: 0.75rem;">
+                        <option value="individual">Individual</option>
+                        <option value="broadcast">Broadcast</option>
+                    </select>
                 </div>
 
                 <div class="form-group" id="contactInput" style="font-size: 0.9rem; margin-top: 0.5rem;">
@@ -28,14 +24,44 @@
                     </select>
                 </div>
 
-                <div class="form-group" id="groupInput" style="font-size: 0.9rem; display: none; margin-top: 0.5rem;">
-                    <label class="form-label">Select Target (Group)</label>
-                    <select name="group_id" class="form-control" id="groupSelect" style="padding: 0.75rem;">
-                        <option value="">Choose Group...</option>
-                    </select>
+                <!-- Broadcast Specific Options -->
+                <div id="broadcastOptions" style="display: none;">
+                    <div class="form-group" style="font-size: 0.9rem; margin-top: 1rem;">
+                        <label class="form-label">Select Target Group/s</label>
+                        <div id="groupCheckboxContainer" style="background: white; border: 1px solid var(--border-color); border-radius: 8px; padding: 0.75rem; max-height: 150px; overflow-y: auto; display: flex; flex-direction: column; gap: 0.5rem;">
+                            <!-- Populated by JS -->
+                            <div style="color: var(--text-light); font-size: 0.8rem;">Loading groups...</div>
+                        </div>
+                        <small style="color: var(--text-light); font-size: 0.7rem; margin-top: 0.25rem; display: block;">Select one or more groups for this broadcast</small>
+                    </div>
+
+                    <div class="form-group" style="font-size: 0.9rem; margin-top: 1rem;">
+                        <label class="form-label">Message Category</label>
+                        <select name="category" class="form-control" style="padding: 0.75rem;">
+                            <option value="ADVISORY">ADVISORY</option>
+                            <option value="OUTAGE">OUTAGE</option>
+                            <option value="EVENTS">EVENTS</option>
+                        </select>
+                    </div>
+
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-top: 1rem; background: var(--item-hover); padding: 0.75rem; border-radius: 8px;">
+                        <label style="display: flex; align-items: center; gap: 0.5rem; cursor: pointer; font-size: 0.85rem; font-weight: 500;">
+                            <input type="checkbox" name="is_scheduled" id="isScheduled" onchange="toggleScheduling()"> 
+                            <span><i class="fa-solid fa-calendar-plus" style="color: var(--primary-color);"></i> Schedule Send</span>
+                        </label>
+                        <label style="display: flex; align-items: center; gap: 0.5rem; cursor: pointer; font-size: 0.85rem; font-weight: 500;">
+                            <input type="checkbox" name="no_reply" checked> 
+                            <span><i class="fa-solid fa-microphone-slash" style="color: #64748b;"></i> No-Reply Policy</span>
+                        </label>
+                    </div>
+
+                    <div class="form-group" id="scheduledAtInput" style="font-size: 0.9rem; margin-top: 1rem; display: none;">
+                        <label class="form-label">Schedule Date & Time</label>
+                        <input type="datetime-local" name="scheduled_at" class="form-control" style="padding: 0.75rem;">
+                    </div>
                 </div>
 
-                <div class="form-group" style="font-size: 0.9rem; margin-top: 0.5rem;">
+                <div class="form-group" style="font-size: 0.9rem; margin-top: 1rem;">
                     <label class="form-label">Message Content</label>
                     <textarea name="content" class="form-control" rows="6" placeholder="Write your message here..." required style="padding: 1rem; resize: none; height: 120px;"></textarea>
                 </div>
@@ -69,9 +95,14 @@
 @push('scripts')
 <script>
     function toggleRecipientInput() {
-        const type = document.querySelector('input[name="type"]:checked').value;
+        const type = document.getElementById('messageTypeSelect').value;
         document.getElementById('contactInput').style.display = type === 'individual' ? 'block' : 'none';
-        document.getElementById('groupInput').style.display = type === 'broadcast' ? 'block' : 'none';
+        document.getElementById('broadcastOptions').style.display = type === 'broadcast' ? 'block' : 'none';
+    }
+
+    function toggleScheduling() {
+        const isScheduled = document.getElementById('isScheduled').checked;
+        document.getElementById('scheduledAtInput').style.display = isScheduled ? 'block' : 'none';
     }
 
     async function loadOptions() {
@@ -84,34 +115,67 @@
         contactSelect.innerHTML = '<option value="">Choose Contact...</option>' + 
             contacts.map(c => `<option value="${c.id}">${c.name} (${c.phone_number})</option>`).join('');
 
-        const groupSelect = document.getElementById('groupSelect');
-        groupSelect.innerHTML = '<option value="">Choose Group...</option>' + 
-            groups.map(g => `<option value="${g.id}">${g.name}</option>`).join('');
+        const groupContainer = document.getElementById('groupCheckboxContainer');
+        if (groups.length === 0) {
+            groupContainer.innerHTML = '<div style="color: var(--text-light); font-size: 0.8rem;">No groups available.</div>';
+        } else {
+            groupContainer.innerHTML = groups.map(g => `
+                <label style="display: flex; align-items: center; gap: 0.75rem; cursor: pointer; padding: 0.25rem 0; font-size: 0.85rem;">
+                    <input type="checkbox" name="group_ids[]" value="${g.id}">
+                    <span>${g.name}</span>
+                </label>
+            `).join('');
+        }
     }
 
     async function loadMessages() {
         try {
-            const messages = await fetchAPI('/messages');
+            const urlParams = new URLSearchParams(window.location.search);
+            const typeParam = urlParams.get('type');
+            const endpoint = typeParam ? `/messages?type=${typeParam}` : '/messages';
+            
+            const messages = await fetchAPI(endpoint);
             const list = document.getElementById('message-list');
             list.innerHTML = messages.map(m => {
                 let badgeColor = '#64748b'; // default individual
-                if (m.type === 'broadcast') badgeColor = 'var(--primary-color)';
-                if (m.type === 'incoming') badgeColor = '#f59e0b'; // Amber for incoming
-                if (m.type === 'auto_reply') badgeColor = '#10b981'; // Green for auto-reply
+                let categoryLabel = '';
+                
+                if (m.type === 'broadcast') {
+                    badgeColor = 'var(--primary-color)';
+                    categoryLabel = `<span class="badge" style="background: #e2e8f0; color: #475569; padding: 1px 6px; border-radius: 4px; font-size: 0.6rem; margin-left: 0.5rem; border: 1px solid #cbd5e1;">${m.category}</span>`;
+                }
+                
+                if (m.type === 'incoming') badgeColor = '#f59e0b';
+                if (m.type === 'auto_reply') badgeColor = '#10b981';
+
+                const scheduledInfo = m.is_scheduled 
+                    ? `<div style="font-size: 0.65rem; color: #ef4444; margin-top: 0.25rem;">
+                        <i class="fa-solid fa-clock"></i> Scheduled for: ${new Date(m.scheduled_at).toLocaleString()}
+                       </div>`
+                    : '';
+
+                const noReplyBadge = m.no_reply && m.type === 'broadcast'
+                    ? `<span style="font-size: 0.6rem; color: #64748b; margin-left: auto;">
+                        <i class="fa-solid fa-microphone-slash"></i> No-Reply
+                       </span>`
+                    : '';
 
                 return `
                 <li style="padding: 0.75rem 1.25rem; border-bottom: 1px solid var(--border-color); ${m.type === 'incoming' ? 'background: var(--item-hover);' : ''}">
-                    <div style="display: flex; justify-content: space-between; margin-bottom: 0.25rem;">
+                    <div style="display: flex; align-items: center; margin-bottom: 0.25rem;">
                         <span class="badge" style="background: ${badgeColor}; color: white; padding: 1px 6px; border-radius: 4px; font-size: 0.65rem; text-transform: uppercase;">${m.type}</span>
-                        <span style="font-size: 0.7rem; color: var(--text-light);">${new Date(m.created_at).toLocaleString([], {year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute:'2-digit'})}</span>
+                        ${categoryLabel}
+                        ${noReplyBadge}
+                        <span style="font-size: 0.7rem; color: var(--text-light); margin-left: ${noReplyBadge ? '0.5rem' : 'auto'};">${new Date(m.created_at).toLocaleString([], {year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute:'2-digit'})}</span>
                     </div>
-                    <div style="margin-bottom: 0.25rem; color: var(--text-color); font-size: 0.8125rem; font-weight: ${m.type === 'incoming' ? '600' : '400'}; line-height: 1.3; white-space: pre-wrap;">
+                    ${scheduledInfo}
+                    <div style="margin-top: 0.4rem; margin-bottom: 0.25rem; color: var(--text-color); font-size: 0.8125rem; font-weight: ${m.type === 'incoming' ? '600' : '400'}; line-height: 1.3; white-space: pre-wrap;">
                         ${m.type === 'incoming' ? '<i class="fa-solid fa-reply-all" style="font-size: 0.7rem; color: #d97706;"></i> ' : ''}
                         ${m.content}
                     </div>
                     <div style="font-size: 0.75rem; color: var(--text-light); display: flex; align-items: center; gap: 0.4rem;">
                         <i class="fa-solid fa-user" style="font-size: 0.65rem;"></i>
-                        ${m.recipients.map(r => r.contact ? r.contact.name : 'Unknown').join(', ')}
+                        ${m.recipients.length > 0 ? m.recipients.map(r => r.contact ? r.contact.name : 'Unknown').join(', ') : (m.is_scheduled ? 'Scheduled Recipients' : 'No Recipients')}
                     </div>
                 </li>
                 `;
@@ -124,24 +188,57 @@
     document.getElementById('sendMessageForm').addEventListener('submit', async (e) => {
         e.preventDefault();
         const formData = new FormData(e.target);
+        
+        // Convert checkbox values to boolean strings for the API
         const data = Object.fromEntries(formData);
+        data.is_scheduled = formData.get('is_scheduled') === 'on' ? '1' : '0';
+        data.no_reply = formData.get('no_reply') === 'on' ? '1' : '0';
+        
+        // Handle multiple group IDs
+        if (data.type === 'broadcast') {
+            data.group_ids = formData.getAll('group_ids[]');
+        }
         
         try {
-            await fetchAPI('/messages', {
+            const response = await fetchAPI('/messages', {
                 method: 'POST',
                 body: JSON.stringify(data)
             });
+
+            // Capture current type before reset
+            const currentType = document.getElementById('messageTypeSelect').value;
+            
             e.target.reset();
-            alert('Message sent successfully!');
+            
+            // Restore type and update UI
+            document.getElementById('messageTypeSelect').value = currentType;
+            toggleRecipientInput();
+            toggleScheduling();
+            
+            alert(response.message || 'Action completed successfully!');
             loadMessages();
         } catch (err) {
-            alert('Failed to send message: ' + err.message);
+            alert('Action failed: ' + err.message);
         }
     });
 
     document.addEventListener('DOMContentLoaded', () => {
         loadOptions();
         loadMessages();
+        
+        // Handle query parameter for auto-selecting broadcast
+        const urlParams = new URLSearchParams(window.location.search);
+        const typeParam = urlParams.get('type');
+        if (typeParam) {
+            document.getElementById('messageTypeSelect').value = typeParam;
+            document.getElementById('messageTypeGroup').style.display = 'none'; // Hide selector if type is forced
+            
+            // Update Title
+            const title = typeParam === 'broadcast' ? 'Send Broadcast Message' : 'Send Individual Notification';
+            document.getElementById('formTitle').innerText = title;
+            
+            toggleRecipientInput();
+        }
     });
 </script>
 @endpush

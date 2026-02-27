@@ -50,12 +50,12 @@
                 </a>
                 <ul class="submenu" id="messagesSubmenu" style="display: {{ $isMessagesActive ? 'flex' : 'none' }}; list-style: none; padding-left: 2rem; margin-top: 0.5rem; gap: 0.5rem; flex-direction: column;">
                     <li>
-                        <a href="{{ route('view.messages.index') }}" class="nav-link {{ request()->routeIs('view.messages.*') ? 'active' : '' }}" style="padding: 0.5rem 1rem; font-size: 0.9em;">
+                        <a href="{{ route('view.messages.index', ['type' => 'individual']) }}" class="nav-link {{ request()->routeIs('view.messages.*') && request('type') === 'individual' ? 'active' : '' }}" style="padding: 0.5rem 1rem; font-size: 0.9em;">
                             <i class="fa-solid fa-user"></i> Individual Notification
                         </a>
                     </li>
                     <li>
-                        <a href="#" class="nav-link" style="padding: 0.5rem 1rem; font-size: 0.9em;">
+                        <a href="{{ route('view.messages.index', ['type' => 'broadcast']) }}" class="nav-link {{ request()->routeIs('view.messages.*') && request('type') === 'broadcast' ? 'active' : '' }}" style="padding: 0.5rem 1rem; font-size: 0.9em;">
                             <i class="fa-solid fa-bullhorn"></i> Broadcast Messages
                         </a>
                     </li>

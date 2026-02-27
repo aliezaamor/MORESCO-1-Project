@@ -6,7 +6,15 @@ use Illuminate\Database\Eloquent\Model;
 
 class Message extends Model
 {
-    protected $fillable = ['user_id', 'content', 'type'];
+    protected $fillable = [
+        'user_id',
+        'content',
+        'type',
+        'is_scheduled',
+        'scheduled_at',
+        'no_reply',
+        'category'
+    ];
 
     public function recipients()
     {
