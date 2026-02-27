@@ -4,9 +4,17 @@ namespace App\Http\Controllers;
 
 use App\Models\Message;
 use Illuminate\Http\Request;
+use App\Services\YeastarService;
+use App\Models\Contact;
 
 class MessageController extends Controller
 {
+    protected $yeastarService;
+
+    public function __construct(YeastarService $yeastarService)
+    {
+        $this->yeastarService = $yeastarService;
+    }
     /**
      * Display a listing of the resource.
      */
@@ -45,38 +53,70 @@ class MessageController extends Controller
             'no_reply' => $validated['no_reply'] ?? true,
         ]);
 
-        // Only create recipients if NOT scheduled (send immediately)
-        if (!$message->is_scheduled) {
-            if ($validated['type'] === 'individual') {
-                $message->recipients()->create([
-                    'contact_id' => $validated['contact_id'],
-                    'status' => 'sent',
-                ]);
-            }
-            elseif ($validated['type'] === 'broadcast') {
-                $contactIds = [];
-                $groups = \App\Models\Group::with('contacts')->whereIn('id', $validated['group_ids'])->get();
+        $dispatchCount = 0;
+        $successCount = 0;
 
-                foreach ($groups as $group) {
-                    foreach ($group->contacts as $contact) {
-                        $contactIds[] = $contact->id;
-                    }
-                }
+        $contactsToText = [];
+        $gsmPortToUse = null;
 
-                // Remove duplicates in case a contact is in multiple groups
-                foreach (array_unique($contactIds) as $contactId) {
-                    $message->recipients()->create([
-                        'contact_id' => $contactId,
-                        'status' => 'sent',
-                    ]);
-                }
+        if ($validated['type'] === 'individual') {
+            $gsmPortToUse = env('YEASTAR_PORT_INDIVIDUAL', 1);
+            $contact = Contact::find($validated['contact_id']);
+            if ($contact) {
+                $contactsToText[] = $contact;
             }
         }
+        elseif ($validated['type'] === 'broadcast') {
+            $gsmPortToUse = env('YEASTAR_PORT_BROADCAST', 2);
+            $groups = \App\Models\Group::with('contacts')->whereIn('id', $validated['group_ids'])->get();
 
-        $this->logUserActivity("Stored {$validated['type']} message" . ($message->is_scheduled ? " (Scheduled)" : ""));
+            // Get unique contacts across groups
+            $uniqueContacts = collect();
+            foreach ($groups as $group) {
+                foreach ($group->contacts as $contact) {
+                    $uniqueContacts->push($contact);
+                }
+            }
+            $contactsToText = $uniqueContacts->unique('id')->values()->all();
+        }
+
+        foreach ($contactsToText as $contact) {
+            $status = 'pending';
+
+            if (!$message->is_scheduled) {
+                // Determine destination number (cleaning it up if necessary)
+                $destination = preg_replace('/[^0-9+]/', '', $contact->phone_number);
+                
+                // Try sending via Yeastar using the specifically mapped port
+                $sent = $this->yeastarService->sendSms($destination, $validated['content'], $gsmPortToUse);
+                $dispatchCount++;
+                if ($sent) {
+                    $successCount++;
+                }
+                
+                $status = $sent ? 'sent' : 'failed';
+            }
+
+            $message->recipients()->create([
+                'contact_id' => $contact->id,
+                'status' => $status,
+            ]);
+        }
+
+        $logMsg = "Stored {$validated['type']} message";
+        if ($message->is_scheduled) {
+            $logMsg .= " (Scheduled)";
+        } else {
+            $logMsg .= " (Sent: {$successCount}/{$dispatchCount})";
+        }
+        $this->logUserActivity($logMsg);
+
+        $responseMsg = $message->is_scheduled 
+            ? 'Message scheduled successfully' 
+            : ($dispatchCount > 0 ? "Message sent to {$successCount} of {$dispatchCount} recipients" : 'Message sent successfully');
 
         return response()->json([
-            'message' => $message->is_scheduled ? 'Message scheduled successfully' : 'Message sent successfully',
+            'message' => $responseMsg,
             'data' => $message->load('recipients'),
         ], 201);
     }
