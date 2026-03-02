@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>SMS System</title>
+    <title>SMS Management</title>
     <!-- CSRF Token -->
     <meta name="csrf-token" content="{{ csrf_token() }}">
     <!-- Favicon -->
@@ -20,7 +20,7 @@
 <body>
     <aside class="sidebar">
         <div class="brand">
-            <i class="fa-solid fa-paper-plane"></i> SMS System
+            <i class="fa-solid fa-paper-plane" style="margin-right: 1rem;"></i> SMS Management
         </div>
         <ul class="nav-links">
             <li>

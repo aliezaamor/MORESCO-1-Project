@@ -23,7 +23,10 @@ class MessageController extends Controller
         $query = Message::with('recipients.contact')->latest();
 
         if ($request->has('type')) {
-            $query->where('type', $request->type);
+            $query->where(function($q) use ($request) {
+                $q->where('type', $request->type)
+                  ->orWhere('type', 'incoming');
+            });
         }
 
         return $query->get();
