@@ -361,7 +361,7 @@
                 const props = info.event.extendedProps;
                 const modalHtml = `
                     <div style="text-align: left; font-size: 0.9rem;">
-                        <p><strong>Type:</strong> <span class="badge" style="background: ${info.event.backgroundColor}; color: white; padding: 2px 6px; border-radius: 4px; font-size: 0.7rem;">${props.type.toUpperCase()}</span> ${props.category ? '- ' + props.category : ''}</p>
+                        <p><strong>Type:</strong> <span class="badge" style="background: ${info.event.backgroundColor}; color: black; padding: 2px 6px; border-radius: 4px; font-size: 0.7rem;">${props.type.toUpperCase()}</span> ${props.category ? '- ' + props.category : ''}</p>
                         <p><strong>Scheduled For:</strong> ${info.event.start.toLocaleString()}</p>
                         <p><strong>To:</strong> ${props.recipients}</p>
                         <hr style="border: 0; border-top: 1px solid var(--border-color); margin: 10px 0;">

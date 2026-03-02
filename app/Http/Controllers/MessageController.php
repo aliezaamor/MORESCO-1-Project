@@ -91,10 +91,19 @@ class MessageController extends Controller
             $contactsToText = $uniqueContacts->unique('id')->values()->all();
         }
 
+        $isFirst = true;
         foreach ($contactsToText as $contact) {
             $status = 'pending';
 
             if (!$message->is_scheduled) {
+                // Add 3-second gap for broadcasts after the first message
+                if ($validated['type'] === 'broadcast') {
+                    if (!$isFirst) {
+                        sleep(3);
+                    }
+                    $isFirst = false;
+                }
+
                 // Determine destination number (cleaning it up if necessary)
                 $destination = preg_replace('/[^0-9+]/', '', $contact->phone_number);
                 
