@@ -1140,3 +1140,17 @@ nav[role="navigation"] svg {
     display: flex;
     justify-content: flex-end;
 }
+
+/* Date input calendar icon visibility in dark mode */
+body.dark-mode input[type="date"] {
+    color-scheme: dark;
+    background-color: var(--input-bg) !important;
+    color: #ffffff !important;
+    border-color: var(--border-color) !important;
+}
+
+body.dark-mode input[type="date"]::-webkit-calendar-picker-indicator {
+    filter: brightness(0) invert(1) !important;
+    cursor: pointer;
+    opacity: 1 !important;
+}
