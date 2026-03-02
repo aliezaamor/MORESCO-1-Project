@@ -117,6 +117,9 @@ class ListenToYeastarAmi extends Command
         $content = $eventData['Content'] ?? null;
         
         if ($sender && $content) {
+            // Yeastar AMI sometimes URL encodes the Content field (e.g. Hello+guys%2C)
+            $content = urldecode($content);
+            
             $this->info("Received SMS from {$sender}: {$content}");
             Log::info("Yeastar AMI processing parsed SMS from {$sender}: {$content}");
             
