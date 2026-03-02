@@ -97,13 +97,13 @@
             <div style="display: flex; align-items: center; gap: 0.5rem; flex-grow: 1; min-width: 150px;" id="searchContainer">
                 <i class="fa-solid fa-magnifying-glass" style="color: var(--primary-color); font-size: 0.9rem;"></i>
                 <input type="text" id="messageSearch" placeholder="Search..." 
-                       style="padding: 0.4rem 0.75rem; border-radius: 8px; border: 1px solid var(--border-color); background: #ffffff; color: #334155; width: 100%; font-size: 0.8rem; transition: all 0.3s ease; box-shadow: var(--shadow-sm);"
+                       style="padding: 0.4rem 0.75rem; border-radius: 8px; border: 1px solid var(--border-color); background: var(--input-bg); color: var(--text-color); width: 100%; font-size: 0.8rem; transition: all 0.3s ease; box-shadow: var(--shadow-sm);"
                        oninput="filterMessages()">
             </div>
             
             <div id="calendarDatePickerContainer" style="display: none; align-items: center; gap: 0.5rem; flex-grow: 1; justify-content: flex-end;">
                 <label for="calendarJumpDate" style="font-size: 0.8rem; font-weight: 500; color: var(--text-color);">Jump to Date:</label>
-                <input type="date" id="calendarJumpDate" onchange="jumpToDate()" style="padding: 0.35rem 0.5rem; border-radius: 8px; border: 1px solid var(--border-color); font-size: 0.8rem; background: #ffffff; color: var(--text-color); box-shadow: var(--shadow-sm);">
+                <input type="date" id="calendarJumpDate" onchange="jumpToDate()" style="padding: 0.35rem 0.5rem; border-radius: 8px; border: 1px solid var(--border-color); font-size: 0.8rem; background: var(--input-bg); color: var(--text-color); box-shadow: var(--shadow-sm);">
             </div>
             
             <button class="btn" onclick="loadMessages(new URLSearchParams(window.location.search).get('scheduled') === '1')" style="background: #f1f5f9; padding: 0.4rem 0.8rem; font-size: 0.75rem; white-space: nowrap;">
@@ -340,7 +340,9 @@
                     html: modalHtml,
                     confirmButtonText: 'Close',
                     confirmButtonColor: 'var(--primary-color)',
-                    width: '500px'
+                    width: '500px',
+                    background: document.body.classList.contains('dark-mode') ? '#1e293b' : '#fff',
+                    color: document.body.classList.contains('dark-mode') ? '#fff' : '#000'
                 });
             }
         });
@@ -403,7 +405,7 @@
 
             const isProcessed = m.is_scheduled && m.recipients.length > 0 && m.recipients.every(r => r.status && r.status !== 'pending');
             const scheduledInfo = m.is_scheduled 
-                ? `<div style="font-size: 0.65rem; color: ${isProcessed ? '#10b981' : '#ef4444'}; margin-top: 0.25rem; font-weight: 500;">
+                ? `<div style="font-size: 0.65rem; color: ${isProcessed ? '#10b981' : '#ef4444'} !important; margin-top: 0.25rem; font-weight: 500;">
                     <i class="fa-solid ${isProcessed ? 'fa-check-circle' : 'fa-clock'}"></i> ${isProcessed ? 'Sent at:' : 'Scheduled for:'} ${new Date(m.scheduled_at).toLocaleString()}
                    </div>`
                 : '';

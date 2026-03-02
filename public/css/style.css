@@ -70,7 +70,7 @@ body.dark-mode .card {
 }
 
 body.dark-mode .card * {
-    color: #ffffff !important;
+    color: inherit;
 }
 
 body.dark-mode .card input,
@@ -1065,10 +1065,41 @@ body.dark-mode .form-control {
 }
 /* FullCalendar overrides */
 #calendar {
-    background: white;
+    background: var(--surface-color);
     padding: 1rem;
     border-radius: 12px;
     font-family: 'Inter', sans-serif;
+}
+
+body.dark-mode .fc {
+    color: #ffffff;
+}
+
+body.dark-mode .fc td, 
+body.dark-mode .fc th,
+body.dark-mode .fc-list-day-cushion {
+    background-color: var(--surface-color) !important;
+}
+
+body.dark-mode .fc-list-event:hover td {
+    background-color: var(--item-hover) !important;
+}
+
+body.dark-mode .fc-col-header-cell-cushion,
+body.dark-mode .fc-daygrid-day-number,
+body.dark-mode .fc-list-day-text,
+body.dark-mode .fc-list-day-side-text {
+    color: #ffffff !important;
+}
+
+/* SweetAlert2 Dark Mode Fixes */
+.swal2-popup.swal2-modal.swal2-show {
+    background: var(--surface-color) !important;
+    color: var(--text-color) !important;
+}
+
+.swal2-title, .swal2-html-container {
+    color: var(--text-color) !important;
 }
 
 .fc-event {
