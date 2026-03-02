@@ -94,11 +94,22 @@
     <div>
         <div class="header" style="margin-bottom: 1rem; display: flex; align-items: center; gap: 0.75rem; flex-wrap: wrap;">
             <h3 id="historyTitle" style="font-size: 1rem; margin: 0;">History</h3>
-            <div style="display: flex; align-items: center; gap: 0.5rem; flex-grow: 1; min-width: 150px;" id="searchContainer">
-                <i class="fa-solid fa-magnifying-glass" style="color: var(--primary-color); font-size: 0.9rem;"></i>
-                <input type="text" id="messageSearch" placeholder="Search..." 
-                       style="padding: 0.4rem 0.75rem; border-radius: 8px; border: 1px solid var(--border-color); background: var(--input-bg); color: var(--text-color); width: 100%; font-size: 0.8rem; transition: all 0.3s ease; box-shadow: var(--shadow-sm);"
-                       oninput="filterMessages()">
+            <div style="display: flex; align-items: center; gap: 0.5rem; flex-grow: 1; min-width: 150px; flex-wrap: wrap;" id="searchContainer">
+                <div style="position: relative; flex-grow: 1; display: flex; align-items: center;">
+                    <i class="fa-solid fa-magnifying-glass" style="position: absolute; left: 0.75rem; color: var(--text-light); font-size: 0.9rem;"></i>
+                    <input type="text" id="messageSearch" placeholder="Search content..." 
+                           style="padding: 0.4rem 0.75rem 0.4rem 2rem; border-radius: 8px; border: 1px solid var(--border-color); background: var(--input-bg); color: var(--text-color); width: 100%; font-size: 0.8rem; transition: all 0.3s ease; box-shadow: var(--shadow-sm);"
+                           oninput="filterMessages()">
+                </div>
+                
+                <div style="display: flex; align-items: center; gap: 0.25rem;">
+                    <input type="date" id="messageDateFilter" onchange="filterMessages()"
+                        style="padding: 0.35rem 0.5rem; border-radius: 8px; border: 1px solid var(--border-color); font-size: 0.8rem; background: var(--input-bg); color: var(--text-color); box-shadow: var(--shadow-sm); cursor: pointer;"
+                        title="Filter by Date">
+                    <button class="btn btn-icon" style="color: var(--text-light); width: 28px; height: 28px; font-size: 0.75rem; padding: 0;" onclick="clearDateFilter()" title="Clear Date Filter">
+                        <i class="fa-solid fa-xmark"></i>
+                    </button>
+                </div>
             </div>
             
             <div id="calendarDatePickerContainer" style="display: none; align-items: center; gap: 0.5rem; flex-grow: 1; justify-content: flex-end;">
@@ -361,7 +372,7 @@
                 const props = info.event.extendedProps;
                 const modalHtml = `
                     <div style="text-align: left; font-size: 0.9rem;">
-                        <p><strong>Type:</strong> <span class="badge" style="background: ${info.event.backgroundColor}; color: black; padding: 2px 6px; border-radius: 4px; font-size: 0.7rem;">${props.type.toUpperCase()}</span> ${props.category ? '- ' + props.category : ''}</p>
+                        <p><strong>Type:</strong> <span class="badge" style="background: ${info.event.backgroundColor}; color: white; padding: 2px 6px; border-radius: 4px; font-size: 0.7rem;">${props.type.toUpperCase()}</span> ${props.category ? '- ' + props.category : ''}</p>
                         <p><strong>Scheduled For:</strong> ${info.event.start.toLocaleString()}</p>
                         <p><strong>To:</strong> ${props.recipients}</p>
                         <hr style="border: 0; border-top: 1px solid var(--border-color); margin: 10px 0;">
@@ -451,7 +462,7 @@
                 : '';
 
             return `
-            <li style="padding: 0.75rem 1.25rem; border-bottom: 1px solid var(--border-color); ${m.type === 'incoming' ? 'background: var(--item-hover);' : ''}">
+            <li data-date="${new Date(m.created_at).toISOString().split('T')[0]}" style="padding: 0.75rem 1.25rem; border-bottom: 1px solid var(--border-color); ${m.type === 'incoming' ? 'background: var(--item-hover);' : ''}">
                 <div style="display: flex; align-items: center; margin-bottom: 0.25rem;">
                     <span class="badge" style="background: ${badgeColor}; color: white; padding: 1px 6px; border-radius: 4px; font-size: 0.65rem; text-transform: uppercase;">${m.type}</span>
                     ${categoryLabel}
@@ -473,15 +484,25 @@
         filterMessages(); // Apply filter after loading
     }
 
+    function clearDateFilter() {
+        document.getElementById('messageDateFilter').value = '';
+        filterMessages();
+    }
+
     function filterMessages() {
         const query = document.getElementById('messageSearch').value.toLowerCase();
+        const dateFilter = document.getElementById('messageDateFilter').value; // format: YYYY-MM-DD
         const items = document.querySelectorAll('#message-list li');
         
         items.forEach(li => {
             const text = li.textContent.toLowerCase();
-            if (text.includes(query)) {
+            const liDate = li.getAttribute('data-date'); // format: YYYY-MM-DD
+            
+            const matchesText = text.includes(query);
+            const matchesDate = !dateFilter || liDate === dateFilter;
+
+            if (matchesText && matchesDate) {
                 li.style.display = 'block';
-                // Highlight matches if possible or just show
             } else {
                 li.style.display = 'none';
             }
