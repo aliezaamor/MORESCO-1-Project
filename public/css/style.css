@@ -1126,3 +1126,14 @@ body.dark-mode .fc-list-day-side-text {
     border-color: var(--primary-dark) !important;
 }
 
+
+/* Pagination Fix - Remove oversized arrows */
+nav[role="navigation"] svg {
+    display: none !important;
+}
+
+.pagination-container {
+    margin-top: 1.5rem;
+    display: flex;
+    justify-content: flex-end;
+}

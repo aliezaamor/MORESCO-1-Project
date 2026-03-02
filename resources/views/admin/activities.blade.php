@@ -54,7 +54,7 @@
             </table>
         </div>
 
-        <div style="margin-top: 1.5rem; display: flex; justify-content: flex-end;">
+        <div class="pagination-container">
             {{ $activities->links() }}
         </div>
     </div>
