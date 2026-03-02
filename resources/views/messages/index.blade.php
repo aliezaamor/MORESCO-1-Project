@@ -2,6 +2,15 @@
 
 @section('title', 'Messages')
 
+@push('header_actions')
+<div style="position: relative; margin-left: 1rem; display: flex; align-items: center;">
+    <i class="fa-solid fa-magnifying-glass" style="position: absolute; left: 1rem; color: #94a3b8; font-size: 0.9rem; pointer-events: none;"></i>
+    <input type="text" id="messageSearch" placeholder="Search messages..." 
+           style="padding: 0.5rem 1rem 0.5rem 2.5rem; border-radius: 20px; border: 1px solid var(--border-color); background: #ffffff; color: #334155; width: 250px; font-size: 0.9rem; transition: all 0.3s ease; box-shadow: var(--shadow-sm);"
+           oninput="filterMessages()">
+</div>
+@endpush
+
 @section('content')
 <div class="grid-2" style="display: grid; grid-template-columns: 1.5fr 1fr; gap: 2rem;">
     <!-- Send Message Form -->
@@ -289,9 +298,25 @@
                 </li>
                 `;
             }).join('');
+            filterMessages(); // Apply filter after loading
         } catch (err) {
             console.error(err);
         }
+    }
+
+    function filterMessages() {
+        const query = document.getElementById('messageSearch').value.toLowerCase();
+        const items = document.querySelectorAll('#message-list li');
+        
+        items.forEach(li => {
+            const text = li.textContent.toLowerCase();
+            if (text.includes(query)) {
+                li.style.display = 'block';
+                // Highlight matches if possible or just show
+            } else {
+                li.style.display = 'none';
+            }
+        });
     }
 
     document.getElementById('sendMessageForm').addEventListener('submit', async (e) => {
