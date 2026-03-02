@@ -1063,3 +1063,35 @@ body.dark-mode .form-control {
     font-size: 0.8125rem;
     margin-bottom: -3%;
 }
+/* FullCalendar overrides */
+#calendar {
+    background: white;
+    padding: 1rem;
+    border-radius: 12px;
+    font-family: 'Inter', sans-serif;
+}
+
+.fc-event {
+    cursor: pointer;
+    border-radius: 4px;
+    padding: 2px 4px;
+    font-size: 0.8rem;
+    box-shadow: var(--shadow-sm);
+}
+
+.fc-toolbar-title {
+    font-size: 1.25rem !important;
+    font-weight: 600 !important;
+    color: var(--moresco-blue);
+}
+
+.fc-button-primary {
+    background-color: var(--primary-color) !important;
+    border-color: var(--primary-color) !important;
+}
+
+.fc-button-primary:hover {
+    background-color: var(--primary-dark) !important;
+    border-color: var(--primary-dark) !important;
+}
+

@@ -24,9 +24,17 @@ class MessageController extends Controller
 
         if ($request->has('type')) {
             $query->where(function($q) use ($request) {
-                $q->where('type', $request->type)
-                  ->orWhere('type', 'incoming');
+                $q->where('type', $request->type);
+                
+                // Keep incoming messages strictly in the "Individual Notification" tab
+                if ($request->type === 'individual' && (!$request->has('scheduled') || !$request->scheduled)) {
+                    $q->orWhere('type', 'incoming');
+                }
             });
+        }
+
+        if ($request->has('scheduled') && $request->scheduled) {
+            $query->where('is_scheduled', 1);
         }
 
         return $query->get();

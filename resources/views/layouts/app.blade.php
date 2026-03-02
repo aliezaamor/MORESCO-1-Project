@@ -16,6 +16,9 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <!-- Custom CSS -->
     <link rel="stylesheet" href="{{ asset('css/style.css') }}">
+    
+    <!-- FullCalendar -->
+    <script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.15/index.global.min.js"></script>
 </head>
 <body>
     <aside class="sidebar">
@@ -50,14 +53,32 @@
                 </a>
                 <ul class="submenu" id="messagesSubmenu" style="display: {{ $isMessagesActive ? 'flex' : 'none' }}; list-style: none; padding-left: 2rem; margin-top: 0.5rem; gap: 0.5rem; flex-direction: column;">
                     <li>
-                        <a href="{{ route('view.messages.index', ['type' => 'individual']) }}" class="nav-link {{ request()->routeIs('view.messages.*') && request('type') === 'individual' ? 'active' : '' }}" style="padding: 0.5rem 1rem; font-size: 0.9em;">
+                        <a href="{{ route('view.messages.index', ['type' => 'individual']) }}" class="nav-link {{ request()->routeIs('view.messages.*') && request('type') === 'individual' && !request('scheduled') ? 'active' : '' }}" style="padding: 0.5rem 1rem; font-size: 0.9em;">
                             <i class="fa-solid fa-user"></i> Individual Notification
                         </a>
+                        @if(request('type') === 'individual')
+                        <ul style="list-style: none; padding-left: 2.5rem; margin-top: 0.25rem; display: flex; flex-direction: column; gap: 0.25rem;">
+                            <li>
+                                <a href="{{ route('view.messages.index', ['type' => 'individual', 'scheduled' => 1]) }}" class="nav-link {{ request('scheduled') ? 'active' : '' }}" style="padding: 0.35rem 1rem; font-size: 0.8em; color: var(--text-light); border-left: 2px solid {{ request('scheduled') ? 'var(--primary-color)' : 'transparent' }};">
+                                    <i class="fa-solid fa-clock"></i> Scheduled Messages
+                                </a>
+                            </li>
+                        </ul>
+                        @endif
                     </li>
                     <li>
-                        <a href="{{ route('view.messages.index', ['type' => 'broadcast']) }}" class="nav-link {{ request()->routeIs('view.messages.*') && request('type') === 'broadcast' ? 'active' : '' }}" style="padding: 0.5rem 1rem; font-size: 0.9em;">
+                        <a href="{{ route('view.messages.index', ['type' => 'broadcast']) }}" class="nav-link {{ request()->routeIs('view.messages.*') && request('type') === 'broadcast' && !request('scheduled') ? 'active' : '' }}" style="padding: 0.5rem 1rem; font-size: 0.9em; margin-top: 0.5rem;">
                             <i class="fa-solid fa-bullhorn"></i> Broadcast Messages
                         </a>
+                        @if(request('type') === 'broadcast')
+                        <ul style="list-style: none; padding-left: 2.5rem; margin-top: 0.25rem; display: flex; flex-direction: column; gap: 0.25rem;">
+                            <li>
+                                <a href="{{ route('view.messages.index', ['type' => 'broadcast', 'scheduled' => 1]) }}" class="nav-link {{ request('scheduled') ? 'active' : '' }}" style="padding: 0.35rem 1rem; font-size: 0.8em; color: var(--text-light); border-left: 2px solid {{ request('scheduled') ? 'var(--primary-color)' : 'transparent' }};">
+                                    <i class="fa-solid fa-clock"></i> Scheduled Messages
+                                </a>
+                            </li>
+                        </ul>
+                        @endif
                     </li>
                 </ul>
             </li>
@@ -177,6 +198,10 @@
             }
         }
     </script>
+    
+    <!-- SweetAlert2 for beautiful alerts and modals -->
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    
     @stack('scripts')
 </body>
 </html>

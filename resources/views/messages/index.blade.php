@@ -5,7 +5,7 @@
 @section('content')
 <div class="grid-2" style="display: grid; grid-template-columns: 1.5fr 1fr; gap: 2rem;">
     <!-- Send Message Form -->
-    <div>
+    <div id="sendMessageContainer">
         <div class="card" style="padding: 1rem;">
             <h3 id="formTitle" style="font-size: 1rem; margin-bottom: 1rem; color: var(--moresco-blue);">Send New Message</h3>
             <form id="sendMessageForm">
@@ -93,22 +93,45 @@
     <!-- Message History -->
     <div>
         <div class="header" style="margin-bottom: 1rem; display: flex; align-items: center; gap: 0.75rem; flex-wrap: wrap;">
-            <h3 style="font-size: 1rem; margin: 0;">History</h3>
-            <div style="display: flex; align-items: center; gap: 0.5rem; flex-grow: 1; min-width: 150px;">
+            <h3 id="historyTitle" style="font-size: 1rem; margin: 0;">History</h3>
+            <div style="display: flex; align-items: center; gap: 0.5rem; flex-grow: 1; min-width: 150px;" id="searchContainer">
                 <i class="fa-solid fa-magnifying-glass" style="color: var(--primary-color); font-size: 0.9rem;"></i>
                 <input type="text" id="messageSearch" placeholder="Search..." 
                        style="padding: 0.4rem 0.75rem; border-radius: 8px; border: 1px solid var(--border-color); background: #ffffff; color: #334155; width: 100%; font-size: 0.8rem; transition: all 0.3s ease; box-shadow: var(--shadow-sm);"
                        oninput="filterMessages()">
             </div>
-            <button class="btn" onclick="loadMessages()" style="background: #f1f5f9; padding: 0.4rem 0.8rem; font-size: 0.75rem; white-space: nowrap;">
+            
+            <div id="calendarDatePickerContainer" style="display: none; align-items: center; gap: 0.5rem; flex-grow: 1; justify-content: flex-end;">
+                <label for="calendarJumpDate" style="font-size: 0.8rem; font-weight: 500; color: var(--text-color);">Jump to Date:</label>
+                <input type="date" id="calendarJumpDate" onchange="jumpToDate()" style="padding: 0.35rem 0.5rem; border-radius: 8px; border: 1px solid var(--border-color); font-size: 0.8rem; background: #ffffff; color: var(--text-color); box-shadow: var(--shadow-sm);">
+            </div>
+            
+            <button class="btn" onclick="loadMessages(new URLSearchParams(window.location.search).get('scheduled') === '1')" style="background: #f1f5f9; padding: 0.4rem 0.8rem; font-size: 0.75rem; white-space: nowrap;">
                 <i class="fa-solid fa-refresh"></i> Refresh
             </button>
         </div>
-        <div class="card" style="padding: 0;">
-            <div class="scrollable-container" style="max-height: 405px; padding: 0;">
+        <div class="card" id="historyCard" style="padding: 0; min-height: 405px;">
+            <!-- View Controls for Scheduled Messages Settings (Hidden by default) -->
+            <div id="scheduledViewControls" style="display: none; padding: 1rem 1.25rem 0 1.25rem; border-bottom: 1px solid var(--border-color); margin-bottom: 0.5rem;">
+                <div style="display: flex; gap: 1rem;">
+                    <button id="btnViewCalendar" onclick="toggleScheduledView('calendar')" style="background: none; border: none; padding: 0.5rem 1rem; border-bottom: 2px solid var(--primary-color); color: var(--primary-color); font-weight: 600; cursor: pointer; transition: all 0.2s ease;">
+                        <i class="fa-solid fa-calendar-days"></i> Calendar View
+                    </button>
+                    <button id="btnViewList" onclick="toggleScheduledView('list')" style="background: none; border: none; padding: 0.5rem 1rem; border-bottom: 2px solid transparent; color: var(--text-light); font-weight: 500; cursor: pointer; transition: all 0.2s ease;">
+                        <i class="fa-solid fa-list-ul"></i> List View
+                    </button>
+                </div>
+            </div>
+
+            <div id="historyListContainer" class="scrollable-container" style="max-height: 405px; padding: 0;">
                 <ul id="message-list" style="list-style: none; padding: 0;">
                     <!-- Populated by JS -->
                 </ul>
+            </div>
+            
+            <!-- Calendar Container, hidden by default -->
+            <div id="calendarContainer" style="display: none; padding: 1rem; width: 100%; min-height: 600px;">
+                <div id="calendar"></div>
             </div>
         </div>
     </div>
@@ -243,62 +266,175 @@
         }
     }
 
-    async function loadMessages() {
+    let calendar = null;
+
+    function initCalendar(messages) {
+        const calendarEl = document.getElementById('calendar');
+        
+        // Map messages to FullCalendar event objects
+        const events = messages.map(m => {
+            const isProcessed = m.is_scheduled && m.recipients.length > 0 && m.recipients.every(r => r.status && r.status !== 'pending');
+            let color = isProcessed ? '#10b981' : '#64748b'; // Green if sent, else default individual
+            let titleText = m.content.substring(0, 20) + '...';
+            
+            if (m.type === 'broadcast') {
+                color = isProcessed ? '#10b981' : 'var(--primary-color)';
+                const cat = m.category || 'Broadcast';
+                titleText = m.recipients.length > 0 ? `${cat} (${m.recipients.length} recipients)` : cat;
+            } else if (m.recipients.length > 0 && m.recipients[0].contact) {
+                titleText = `To: ${m.recipients[0].contact.name}`;
+            }
+
+            if (isProcessed) {
+                titleText += ' (Sent)';
+            }
+            
+            return {
+                id: m.id,
+                title: titleText,
+                start: m.scheduled_at,
+                backgroundColor: color,
+                borderColor: color,
+                extendedProps: {
+                    fullContent: m.content,
+                    type: m.type,
+                    category: m.category,
+                    recipients: m.recipients.length > 0 ? m.recipients.map(r => r.contact ? r.contact.name : 'Unknown').join(', ') : '(No Recipients Attached)',
+                    createdAt: m.created_at,
+                }
+            };
+        });
+
+        if (calendar) {
+            calendar.destroy();
+        }
+
+        calendar = new FullCalendar.Calendar(calendarEl, {
+            initialView: 'dayGridMonth',
+            headerToolbar: {
+                left: 'prev,next today',
+                center: 'title',
+                right: 'dayGridMonth,dayGridWeek,listWeek'
+            },
+            buttonText: {
+                today: 'Today',
+                month: 'Month',
+                week: 'Week',
+                list: 'List'
+            },
+            events: events,
+            eventClick: function(info) {
+                const props = info.event.extendedProps;
+                const modalHtml = `
+                    <div style="text-align: left; font-size: 0.9rem;">
+                        <p><strong>Type:</strong> <span class="badge" style="background: ${info.event.backgroundColor}; color: white; padding: 2px 6px; border-radius: 4px; font-size: 0.7rem;">${props.type.toUpperCase()}</span> ${props.category ? '- ' + props.category : ''}</p>
+                        <p><strong>Scheduled For:</strong> ${info.event.start.toLocaleString()}</p>
+                        <p><strong>To:</strong> ${props.recipients}</p>
+                        <hr style="border: 0; border-top: 1px solid var(--border-color); margin: 10px 0;">
+                        <p style="white-space: pre-wrap; font-family: 'Inter', sans-serif;">${props.fullContent}</p>
+                    </div>
+                `;
+                
+                Swal.fire({
+                    title: 'Scheduled Message Summary',
+                    html: modalHtml,
+                    confirmButtonText: 'Close',
+                    confirmButtonColor: 'var(--primary-color)',
+                    width: '500px'
+                });
+            }
+        });
+        
+        calendar.render();
+    }
+
+    async function loadMessages(forceScheduled = false) {
         try {
             const urlParams = new URLSearchParams(window.location.search);
             const typeParam = urlParams.get('type');
-            const endpoint = typeParam ? `/messages?type=${typeParam}` : '/messages';
+            const scheduledParam = urlParams.get('scheduled');
+            const isScheduledView = scheduledParam === '1' || forceScheduled;
+            
+            let endpoint = '/messages';
+            if (typeParam) {
+                endpoint += `?type=${typeParam}`;
+                if (isScheduledView) {
+                    endpoint += `&scheduled=1`;
+                }
+            } else if (isScheduledView) {
+                endpoint += `?scheduled=1`;
+            }
             
             const messages = await fetchAPI(endpoint);
-            const list = document.getElementById('message-list');
-            list.innerHTML = messages.map(m => {
-                let badgeColor = '#64748b'; // default individual
-                let categoryLabel = '';
-                
-                if (m.type === 'broadcast') {
-                    badgeColor = 'var(--primary-color)';
-                    categoryLabel = `<span class="badge" style="background: var(--moresco-dark); color: white; padding: 2px 8px; border-radius: 4px; font-size: 0.6rem; margin-left: 0.5rem; border: 1px solid var(--border-color); font-weight: 600;">${m.category}</span>`;
-                }
-                
-                if (m.type === 'incoming') badgeColor = '#f59e0b';
-                if (m.type === 'auto_reply') badgeColor = '#10b981';
-
-                const scheduledInfo = m.is_scheduled 
-                    ? `<div style="font-size: 0.65rem; color: #ef4444; margin-top: 0.25rem;">
-                        <i class="fa-solid fa-clock"></i> Scheduled for: ${new Date(m.scheduled_at).toLocaleString()}
-                       </div>`
-                    : '';
-
-                const noReplyBadge = m.no_reply && m.type !== 'incoming' && m.type !== 'auto_reply'
-                    ? `<span style="font-size: 0.6rem; color: #64748b; margin-left: auto;">
-                        <i class="fa-solid fa-microphone-slash"></i> No-Reply
-                       </span>`
-                    : '';
-
-                return `
-                <li style="padding: 0.75rem 1.25rem; border-bottom: 1px solid var(--border-color); ${m.type === 'incoming' ? 'background: var(--item-hover);' : ''}">
-                    <div style="display: flex; align-items: center; margin-bottom: 0.25rem;">
-                        <span class="badge" style="background: ${badgeColor}; color: white; padding: 1px 6px; border-radius: 4px; font-size: 0.65rem; text-transform: uppercase;">${m.type}</span>
-                        ${categoryLabel}
-                        ${noReplyBadge}
-                        <span style="font-size: 0.7rem; color: var(--text-light); margin-left: ${noReplyBadge ? '0.5rem' : 'auto'};">${new Date(m.created_at).toLocaleString([], {year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute:'2-digit'})}</span>
-                    </div>
-                    ${scheduledInfo}
-                    <div style="margin-top: 0.4rem; margin-bottom: 0.25rem; color: var(--text-color); font-size: 0.8125rem; font-weight: ${m.type === 'incoming' ? '600' : '400'}; line-height: 1.3; white-space: pre-wrap;">
-                        ${m.type === 'incoming' ? '<i class="fa-solid fa-reply-all" style="font-size: 0.7rem; color: #d97706;"></i> ' : ''}
-                        ${m.content}
-                    </div>
-                    <div style="font-size: 0.75rem; color: var(--text-light); display: flex; align-items: center; gap: 0.4rem;">
-                        <i class="fa-solid fa-user" style="font-size: 0.65rem;"></i>
-                        ${m.recipients.length > 0 ? m.recipients.map(r => r.contact ? r.contact.name : 'Unknown').join(', ') : (m.is_scheduled ? 'Scheduled Recipients' : 'No Recipients')}
-                    </div>
-                </li>
-                `;
-            }).join('');
-            filterMessages(); // Apply filter after loading
+            
+            if (isScheduledView) {
+                // Initialize calendar AND render list (so it's ready if toggled)
+                initCalendar(messages);
+                renderMessageList(messages, isScheduledView);
+            } else {
+                // Regular view
+                renderMessageList(messages, isScheduledView);
+            }
         } catch (err) {
             console.error(err);
+            document.getElementById('message-list').innerHTML = `<li style="padding: 1rem; text-align: center; color: #ef4444; font-size: 0.85rem;">Failed to load history.</li>`;
         }
+    }
+
+    function renderMessageList(messages, isScheduledView) {
+        const list = document.getElementById('message-list');
+                
+        if (messages.length === 0) {
+             list.innerHTML = `<li style="padding: 1rem; text-align: center; color: var(--text-light); font-size: 0.85rem;">No messages found.</li>`;
+             return;
+        }
+
+        list.innerHTML = messages.map(m => {
+            let badgeColor = '#64748b'; // default individual
+            let categoryLabel = '';
+            
+            if (m.type === 'broadcast') {
+                badgeColor = 'var(--primary-color)';
+                categoryLabel = `<span class="badge" style="background: var(--moresco-dark); color: white; padding: 2px 8px; border-radius: 4px; font-size: 0.6rem; margin-left: 0.5rem; border: 1px solid var(--border-color); font-weight: 600;">${m.category}</span>`;
+            }
+            
+            if (m.type === 'incoming') badgeColor = '#f59e0b';
+            if (m.type === 'auto_reply') badgeColor = '#10b981';
+
+            const isProcessed = m.is_scheduled && m.recipients.length > 0 && m.recipients.every(r => r.status && r.status !== 'pending');
+            const scheduledInfo = m.is_scheduled 
+                ? `<div style="font-size: 0.65rem; color: ${isProcessed ? '#10b981' : '#ef4444'}; margin-top: 0.25rem; font-weight: 500;">
+                    <i class="fa-solid ${isProcessed ? 'fa-check-circle' : 'fa-clock'}"></i> ${isProcessed ? 'Sent at:' : 'Scheduled for:'} ${new Date(m.scheduled_at).toLocaleString()}
+                   </div>`
+                : '';
+
+            const noReplyBadge = m.no_reply && m.type !== 'incoming' && m.type !== 'auto_reply'
+                ? `<span style="font-size: 0.6rem; color: #64748b; margin-left: auto;">
+                    <i class="fa-solid fa-microphone-slash"></i> No-Reply
+                   </span>`
+                : '';
+
+            return `
+            <li style="padding: 0.75rem 1.25rem; border-bottom: 1px solid var(--border-color); ${m.type === 'incoming' ? 'background: var(--item-hover);' : ''}">
+                <div style="display: flex; align-items: center; margin-bottom: 0.25rem;">
+                    <span class="badge" style="background: ${badgeColor}; color: white; padding: 1px 6px; border-radius: 4px; font-size: 0.65rem; text-transform: uppercase;">${m.type}</span>
+                    ${categoryLabel}
+                    ${noReplyBadge}
+                    <span style="font-size: 0.7rem; color: var(--text-light); margin-left: ${noReplyBadge ? '0.5rem' : 'auto'};">${new Date(m.created_at).toLocaleString([], {year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute:'2-digit'})}</span>
+                </div>
+                ${scheduledInfo}
+                <div style="margin-top: 0.4rem; margin-bottom: 0.25rem; color: var(--text-color); font-size: 0.8125rem; font-weight: ${m.type === 'incoming' ? '600' : '400'}; line-height: 1.3; white-space: pre-wrap;">
+                    ${m.type === 'incoming' ? '<i class="fa-solid fa-reply-all" style="font-size: 0.7rem; color: #d97706;"></i> ' : ''}
+                    ${m.content}
+                </div>
+                <div style="font-size: 0.75rem; color: var(--text-light); display: flex; align-items: center; gap: 0.4rem;">
+                    <i class="fa-solid fa-user" style="font-size: 0.65rem;"></i>
+                    ${m.recipients.length > 0 ? m.recipients.map(r => r.contact ? r.contact.name : 'Unknown').join(', ') : '(No Recipients Attached)'}
+                </div>
+            </li>
+            `;
+        }).join('');
+        filterMessages(); // Apply filter after loading
     }
 
     function filterMessages() {
@@ -357,19 +493,83 @@
         loadOptions();
         loadMessages();
         
-        // Handle query parameter for auto-selecting broadcast
+        // Handle query parameter for auto-selecting broadcast or scheduled view
         const urlParams = new URLSearchParams(window.location.search);
         const typeParam = urlParams.get('type');
+        const scheduledParam = urlParams.get('scheduled');
+        
         if (typeParam) {
             document.getElementById('messageTypeSelect').value = typeParam;
             document.getElementById('messageTypeGroup').style.display = 'none'; // Hide selector if type is forced
             
             // Update Title
-            const title = typeParam === 'broadcast' ? 'Send Broadcast Message' : 'Send Individual Notification';
-            document.getElementById('formTitle').innerText = title;
-            
-            toggleRecipientInput();
+            let title = typeParam === 'broadcast' ? 'Send Broadcast Message' : 'Send Individual Notification';
+            if (scheduledParam === '1') {
+                // Hide send form and expand history to full width
+                document.getElementById('sendMessageContainer').style.display = 'none';
+                const gridContainer = document.querySelector('.grid-2');
+                if (gridContainer) gridContainer.style.gridTemplateColumns = '1fr';
+                
+                // Show view controls
+                document.getElementById('scheduledViewControls').style.display = 'block';
+                
+                // Show list, show calendar (defaulting to calendar)
+                toggleScheduledView('calendar');
+                
+                // Update history title
+                const historyHeader = document.getElementById('historyTitle');
+                if (historyHeader) {
+                    historyHeader.innerText = 'Scheduled Messages History';
+                }
+            } else {
+                document.getElementById('formTitle').innerText = title;
+                toggleRecipientInput();
+            }
         }
     });
+
+    function jumpToDate() {
+        const dateVal = document.getElementById('calendarJumpDate').value;
+        if (dateVal && calendar) {
+            calendar.gotoDate(dateVal);
+        }
+    }
+
+    function toggleScheduledView(view) {
+        const calBtn = document.getElementById('btnViewCalendar');
+        const listBtn = document.getElementById('btnViewList');
+        
+        if (view === 'calendar') {
+            calBtn.style.borderBottomColor = 'var(--primary-color)';
+            calBtn.style.color = 'var(--primary-color)';
+            calBtn.style.fontWeight = '600';
+            
+            listBtn.style.borderBottomColor = 'transparent';
+            listBtn.style.color = 'var(--text-light)';
+            listBtn.style.fontWeight = '500';
+            
+            document.getElementById('historyListContainer').style.display = 'none';
+            document.getElementById('calendarContainer').style.display = 'block';
+            
+            document.getElementById('calendarDatePickerContainer').style.display = 'flex';
+            document.getElementById('searchContainer').style.display = 'none';
+            
+            if (calendar) calendar.render(); // Ensure correct sizing
+        } else {
+            listBtn.style.borderBottomColor = 'var(--primary-color)';
+            listBtn.style.color = 'var(--primary-color)';
+            listBtn.style.fontWeight = '600';
+            
+            calBtn.style.borderBottomColor = 'transparent';
+            calBtn.style.color = 'var(--text-light)';
+            calBtn.style.fontWeight = '500';
+            
+            document.getElementById('calendarContainer').style.display = 'none';
+            document.getElementById('historyListContainer').style.display = 'block';
+            
+            document.getElementById('calendarDatePickerContainer').style.display = 'none';
+            document.getElementById('searchContainer').style.display = 'flex';
+        }
+    }
 </script>
 @endpush
