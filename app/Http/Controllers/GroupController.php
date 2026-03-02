@@ -7,9 +7,13 @@ use Illuminate\Http\Request;
 
 class GroupController extends Controller
 {
-    public function index()
+    public function index(Request $request)
     {
-        return Group::withCount('contacts')->get();
+        $query = Group::withCount('contacts');
+        if ($request->has('source')) {
+            $query->where('source', $request->source);
+        }
+        return $query->get();
     }
 
     public function store(Request $request)

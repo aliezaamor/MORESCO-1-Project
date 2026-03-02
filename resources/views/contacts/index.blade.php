@@ -6,13 +6,25 @@
 <div class="grid-2" style="display: grid; grid-template-columns: 2fr 1fr; gap: 2rem;">
     <!-- Contacts Section -->
     <div>
-        <div class="header" style="margin-bottom: 1rem;">
-            <h2>Contacts</h2>
+        <div class="header" style="margin-bottom: 0.5rem; display: flex; justify-content: space-between; align-items: center;">
+            <div style="display: flex; gap: 1rem; border-bottom: 1px solid var(--border-color); flex-grow: 1; margin-right: 1rem;">
+                <button id="tab-app" class="source-tab" onclick="setSource('app')" style="background: none; border: none; padding: 0.5rem 1rem; border-bottom: 2px solid var(--primary-color); color: var(--primary-color); font-weight: 600; cursor: pointer; font-size: 1.1rem;">
+                    App Contacts
+                </button>
+                <button id="tab-moresco" class="source-tab" onclick="setSource('moresco')" style="background: none; border: none; padding: 0.5rem 1rem; border-bottom: 2px solid transparent; color: var(--text-light); font-weight: 500; cursor: pointer; font-size: 1.1rem;">
+                    MORESCO System Contacts
+                </button>
+            </div>
+            
             <div style="display: flex; gap: 0.5rem;">
-                <button class="btn btn-primary" onclick="openContactModal()">
+                <button class="btn btn-primary btn-add-entity" onclick="openContactModal()">
                     <i class="fa-solid fa-plus"></i> New Contact
                 </button>
             </div>
+        </div>
+        
+        <div id="sourceWarning" style="display: none; background: #fffbeb; color: #b45309; border: 1px solid #fde68a; padding: 0.75rem; border-radius: 8px; margin-bottom: 1rem; font-size: 0.85rem;">
+            <i class="fa-solid fa-circle-info"></i> <strong>Note:</strong> MORESCO System contacts and groups are synced automatically from external databases. You cannot add them manually here.
         </div>
 
         <!-- Bulk Actions Bar -->
@@ -60,7 +72,7 @@
     <div>
         <div class="header" style="margin-bottom: 1rem;">
             <h2>Groups</h2>
-            <button class="btn btn-primary" onclick="openGroupModal()">
+            <button class="btn btn-primary btn-add-entity" onclick="openGroupModal()">
                 <i class="fa-solid fa-plus"></i> New Group
             </button>
         </div>
@@ -206,14 +218,54 @@
         openModal('groupModal');
     }
 
-    // Load Data
+    // State
+    let currentSource = 'app';
     let allContacts = [];
     let allGroups = [];
     let selectedContactIds = new Set();
 
+    function setSource(source) {
+        currentSource = source;
+        
+        // Update tabs UX
+        document.querySelectorAll('.source-tab').forEach(tab => {
+            tab.style.borderBottomColor = 'transparent';
+            tab.style.color = 'var(--text-light)';
+            tab.style.fontWeight = '500';
+        });
+        
+        const activeTab = document.getElementById(`tab-${source}`);
+        if(activeTab) {
+            activeTab.style.borderBottomColor = 'var(--primary-color)';
+            activeTab.style.color = 'var(--primary-color)';
+            activeTab.style.fontWeight = '600';
+        }
+
+        // Toggle add buttons based on source (We might only want to add internal app contacts manually)
+        const addBtns = document.querySelectorAll('.btn-add-entity');
+        if (source === 'moresco') {
+            addBtns.forEach(btn => btn.style.display = 'none');
+            document.getElementById('sourceWarning').style.display = 'block';
+        } else {
+            addBtns.forEach(btn => btn.style.display = 'inline-flex');
+            document.getElementById('sourceWarning').style.display = 'none';
+        }
+
+        // Reload data
+        loadContacts();
+        loadGroups();
+    }
+
     async function loadContacts() {
-        allContacts = await fetchAPI('/contacts');
+        allContacts = await fetchAPI(`/contacts?source=${currentSource}`);
         const tbody = document.getElementById('contacts-table-body');
+        
+        if (allContacts.length === 0) {
+            tbody.innerHTML = `<tr><td colspan="6" style="text-align: center; padding: 2rem; color: var(--text-light);">No contacts found for this source.</td></tr>`;
+            clearSelection();
+            return;
+        }
+
         tbody.innerHTML = allContacts.map(c => `
             <tr style="border-bottom: 1px solid #f1f5f9;">
                 <td style="text-align: center;">
@@ -239,8 +291,15 @@
     }
 
     async function loadGroups() {
-        allGroups = await fetchAPI('/groups');
+        allGroups = await fetchAPI(`/groups?source=${currentSource}`);
         const list = document.getElementById('groups-list');
+        
+        if (allGroups.length === 0) {
+            list.innerHTML = `<li style="text-align: center; padding: 2rem; color: var(--text-light);">No groups found for this source.</li>`;
+            updateBulkSelect();
+            return;
+        }
+
         list.innerHTML = allGroups.map(g => `
             <li class="table-dense" style="padding: 0.6rem 0.75rem; border-bottom: 1px solid #f1f5f9; display: flex; justify-content: space-between; align-items: center;">
                 <div style="display: flex; gap: 1rem; align-items: center;">
@@ -261,6 +320,10 @@
             </li>
         `).join('');
 
+        updateBulkSelect();
+    }
+
+    function updateBulkSelect() {
         // Update bulk select
         const bulkSelect = document.getElementById('bulkGroupSelect');
         bulkSelect.innerHTML = '<option value="">Add to Group...</option>' + 
@@ -413,6 +476,10 @@
         const data = Object.fromEntries(formData);
         const id = data.id;
         delete data.id;
+        
+        if (!id) {
+            data.source = currentSource;
+        }
 
         try {
             if (id) {
@@ -439,6 +506,10 @@
         const data = Object.fromEntries(formData);
         const id = data.id;
         delete data.id;
+        
+        if (!id) {
+            data.source = currentSource;
+        }
 
         try {
             if (id) {
@@ -481,8 +552,7 @@
 
     // Init
     document.addEventListener('DOMContentLoaded', () => {
-        loadContacts();
-        loadGroups();
+        setSource('app');
     });
 </script>
 @endpush

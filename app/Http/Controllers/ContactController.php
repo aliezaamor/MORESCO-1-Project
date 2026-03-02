@@ -7,9 +7,13 @@ use Illuminate\Http\Request;
 
 class ContactController extends Controller
 {
-    public function index()
+    public function index(Request $request)
     {
-        return Contact::all();
+        $query = Contact::query();
+        if ($request->has('source')) {
+            $query->where('source', $request->source);
+        }
+        return $query->get();
     }
 
     public function store(Request $request)

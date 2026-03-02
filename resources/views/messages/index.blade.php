@@ -237,33 +237,67 @@
     }
 
     async function loadOptions() {
-        const [contacts, groups] = await Promise.all([
-            fetchAPI('/contacts'),
-            fetchAPI('/groups')
+        const [appContacts, morescoContacts, appGroups, morescoGroups] = await Promise.all([
+            fetchAPI('/contacts?source=app'),
+            fetchAPI('/contacts?source=moresco'),
+            fetchAPI('/groups?source=app'),
+            fetchAPI('/groups?source=moresco')
         ]);
 
         const contactContainer = document.getElementById('contactDropdownList');
-        if (contacts.length === 0) {
-            contactContainer.innerHTML = '<div style="color: var(--text-light); font-size: 0.8rem; padding: 0.5rem;">No contacts available.</div>';
-        } else {
-            contactContainer.innerHTML = contacts.map(c => `
-                <div class="contact-option" onclick="selectContact('${c.id}', '${c.name}', '${c.phone_number}')" style="padding: 0.5rem 0.75rem; cursor: pointer; border-radius: 4px; color: var(--text-color); font-size: 0.85rem;">
-                    ${c.name} (${c.phone_number})
+        let contactHtml = '';
+        
+        if (appContacts.length > 0) {
+            contactHtml += `<div style="padding: 0.25rem 0.5rem; font-size: 0.7rem; font-weight: 700; color: var(--text-light); text-transform: uppercase;">App Contacts</div>`;
+            contactHtml += appContacts.map(c => `
+                <div class="contact-option" onclick="selectContact('${c.id}', '${c.name}', '${c.phone_number}')" style="padding: 0.4rem 0.75rem; cursor: pointer; border-radius: 4px; color: var(--text-color); font-size: 0.85rem;">
+                    ${c.name} <span style="color: var(--text-light); font-size: 0.75rem;">(${c.phone_number})</span>
                 </div>
             `).join('');
         }
+        
+        if (morescoContacts.length > 0) {
+            contactHtml += `<div style="padding: 0.25rem 0.5rem; font-size: 0.7rem; font-weight: 700; color: var(--moresco-blue); text-transform: uppercase; border-top: 1px solid var(--border-color); margin-top: 0.5rem; padding-top: 0.5rem;">MORESCO System Contacts</div>`;
+            contactHtml += morescoContacts.map(c => `
+                <div class="contact-option" onclick="selectContact('${c.id}', '${c.name}', '${c.phone_number}')" style="padding: 0.4rem 0.75rem; cursor: pointer; border-radius: 4px; color: var(--text-color); font-size: 0.85rem;">
+                    ${c.name} <span style="color: var(--text-light); font-size: 0.75rem;">(${c.phone_number})</span>
+                </div>
+            `).join('');
+        }
+        
+        if (contactHtml === '') {
+            contactHtml = '<div style="color: var(--text-light); font-size: 0.8rem; padding: 0.5rem;">No contacts available.</div>';
+        }
+        contactContainer.innerHTML = contactHtml;
+
 
         const groupContainer = document.getElementById('groupDropdownList');
-        if (groups.length === 0) {
-            groupContainer.innerHTML = '<div style="color: var(--text-light); font-size: 0.8rem;">No groups available.</div>';
-        } else {
-            groupContainer.innerHTML = groups.map(g => `
-                <label style="display: flex; align-items: center; gap: 0.75rem; cursor: pointer; padding: 0.25rem 0; font-size: 0.85rem; color: var(--text-color);" onclick="event.stopPropagation()">
+        let groupHtml = '';
+
+        if (appGroups.length > 0) {
+            groupHtml += `<div style="padding: 0.25rem 0.5rem; font-size: 0.7rem; font-weight: 700; color: var(--text-light); text-transform: uppercase;">App Groups</div>`;
+            groupHtml += appGroups.map(g => `
+                <label style="display: flex; align-items: center; gap: 0.75rem; cursor: pointer; padding: 0.25rem 0.5rem; font-size: 0.85rem; color: var(--text-color);" onclick="event.stopPropagation()">
                     <input type="checkbox" name="group_ids[]" value="${g.id}" onchange="updateGroupSelectText()">
                     <span style="color: inherit;">${g.name}</span>
                 </label>
             `).join('');
         }
+
+        if (morescoGroups.length > 0) {
+            groupHtml += `<div style="padding: 0.25rem 0.5rem; font-size: 0.7rem; font-weight: 700; color: var(--moresco-blue); text-transform: uppercase; border-top: 1px solid var(--border-color); margin-top: 0.5rem; padding-top: 0.5rem;">MORESCO System Groups</div>`;
+            groupHtml += morescoGroups.map(g => `
+                <label style="display: flex; align-items: center; gap: 0.75rem; cursor: pointer; padding: 0.25rem 0.5rem; font-size: 0.85rem; color: var(--text-color);" onclick="event.stopPropagation()">
+                    <input type="checkbox" name="group_ids[]" value="${g.id}" onchange="updateGroupSelectText()">
+                    <span style="color: inherit;">${g.name}</span>
+                </label>
+            `).join('');
+        }
+
+        if (groupHtml === '') {
+            groupHtml = '<div style="color: var(--text-light); font-size: 0.8rem; padding: 0.5rem;">No groups available.</div>';
+        }
+        groupContainer.innerHTML = groupHtml;
     }
 
     let calendar = null;

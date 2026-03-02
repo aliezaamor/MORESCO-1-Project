@@ -6,7 +6,7 @@ use Illuminate\Database\Eloquent\Model;
 
 class Contact extends Model
 {
-    protected $fillable = ['name', 'phone_number', 'email', 'last_keyword_id'];
+    protected $fillable = ['source', 'name', 'phone_number', 'email', 'last_keyword_id'];
 
     public function lastKeyword()
     {
