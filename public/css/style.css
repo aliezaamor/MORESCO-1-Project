@@ -1063,6 +1063,7 @@ body.dark-mode .form-control {
     font-size: 0.8125rem;
     margin-bottom: -3%;
 }
+
 /* FullCalendar overrides */
 #calendar {
     background: var(--surface-color);
@@ -1075,7 +1076,7 @@ body.dark-mode .fc {
     color: #ffffff;
 }
 
-body.dark-mode .fc td, 
+body.dark-mode .fc td,
 body.dark-mode .fc th,
 body.dark-mode .fc-list-day-cushion {
     background-color: var(--surface-color) !important;
@@ -1098,7 +1099,8 @@ body.dark-mode .fc-list-day-side-text {
     color: var(--text-color) !important;
 }
 
-.swal2-title, .swal2-html-container {
+.swal2-title,
+.swal2-html-container {
     color: var(--text-color) !important;
 }
 
@@ -1122,8 +1124,9 @@ body.dark-mode .fc-list-day-side-text {
 }
 
 .fc-button-primary:hover {
-    background-color: var(--primary-dark) !important;
-    border-color: var(--primary-dark) !important;
+    background-color: var(--primary-hover) !important;
+    border-color: var(--primary-hover) !important;
+    color: #ffffff !important;
 }
 
 
