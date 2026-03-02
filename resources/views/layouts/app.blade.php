@@ -76,7 +76,10 @@
 
     <main class="main-content">
         <header class="header">
-            <h1 class="page-title">@yield('title')</h1>
+            <div style="display: flex; align-items: center; gap: 1rem;">
+                <h1 class="page-title" style="margin-bottom: 0;">@yield('title')</h1>
+                @stack('header_actions')
+            </div>
             <div class="profile-dropdown" id="profileDropdown">
                 <div class="profile-trigger" onclick="toggleProfileMenu(event)" title="{{ auth()->user()->name }}">
                     <div class="avatar">

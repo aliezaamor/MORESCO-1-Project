@@ -92,9 +92,15 @@
 
     <!-- Message History -->
     <div>
-        <div class="header" style="margin-bottom: 1rem;">
-            <h3 style="font-size: 1rem;">History</h3>
-            <button class="btn" onclick="loadMessages()" style="background: #f1f5f9; padding: 0.4rem 0.8rem; font-size: 0.75rem;">
+        <div class="header" style="margin-bottom: 1rem; display: flex; align-items: center; gap: 0.75rem; flex-wrap: wrap;">
+            <h3 style="font-size: 1rem; margin: 0;">History</h3>
+            <div style="display: flex; align-items: center; gap: 0.5rem; flex-grow: 1; min-width: 150px;">
+                <i class="fa-solid fa-magnifying-glass" style="color: var(--primary-color); font-size: 0.9rem;"></i>
+                <input type="text" id="messageSearch" placeholder="Search..." 
+                       style="padding: 0.4rem 0.75rem; border-radius: 8px; border: 1px solid var(--border-color); background: #ffffff; color: #334155; width: 100%; font-size: 0.8rem; transition: all 0.3s ease; box-shadow: var(--shadow-sm);"
+                       oninput="filterMessages()">
+            </div>
+            <button class="btn" onclick="loadMessages()" style="background: #f1f5f9; padding: 0.4rem 0.8rem; font-size: 0.75rem; white-space: nowrap;">
                 <i class="fa-solid fa-refresh"></i> Refresh
             </button>
         </div>
@@ -289,9 +295,25 @@
                 </li>
                 `;
             }).join('');
+            filterMessages(); // Apply filter after loading
         } catch (err) {
             console.error(err);
         }
+    }
+
+    function filterMessages() {
+        const query = document.getElementById('messageSearch').value.toLowerCase();
+        const items = document.querySelectorAll('#message-list li');
+        
+        items.forEach(li => {
+            const text = li.textContent.toLowerCase();
+            if (text.includes(query)) {
+                li.style.display = 'block';
+                // Highlight matches if possible or just show
+            } else {
+                li.style.display = 'none';
+            }
+        });
     }
 
     document.getElementById('sendMessageForm').addEventListener('submit', async (e) => {
