@@ -60,8 +60,17 @@ class DispatchScheduledMessages extends Command
                 $gsmPortToUse = env('YEASTAR_PORT_BROADCAST', 2);
             }
 
+            $isFirst = true;
             foreach ($message->recipients as $recipient) {
                 if (!$recipient->contact) continue;
+
+                // Add 3-second gap for broadcasts after the first message
+                if ($message->type === 'broadcast') {
+                    if (!$isFirst) {
+                        sleep(3);
+                    }
+                    $isFirst = false;
+                }
 
                 $destination = preg_replace('/[^0-9+]/', '', $recipient->contact->phone_number);
                 
