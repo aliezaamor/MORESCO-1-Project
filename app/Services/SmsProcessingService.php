@@ -21,10 +21,17 @@ class SmsProcessingService
     {
         return DB::transaction(function () use ($phoneNumber, $content) {
             // 1. Find or create the contact
-            $contact = Contact::firstOrCreate(
-                ['phone_number' => $phoneNumber],
-                ['name' => 'Consumer ' . substr($phoneNumber, -4)]
-            );
+            // Normalize phone number to match based on the last 10 digits (ignoring prefixes like +63 or 0)
+            $normalizedNumber = strlen($phoneNumber) >= 10 ? substr($phoneNumber, -10) : $phoneNumber;
+            
+            $contact = Contact::where('phone_number', 'like', '%' . $normalizedNumber)->first();
+
+            if (!$contact) {
+                $contact = Contact::create([
+                    'phone_number' => $phoneNumber,
+                    'name' => 'Consumer ' . substr($phoneNumber, -4)
+                ]);
+            }
 
             // 2. Create the incoming message record
             $incomingMessage = Message::create([
