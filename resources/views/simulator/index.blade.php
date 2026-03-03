@@ -14,7 +14,7 @@
             <!-- Populated by JS -->
             <div style="padding: 1rem; text-align: center; color: var(--text-light); font-size: 0.875rem;">Loading contacts...</div>
         </div>
-        <button class="btn" style="margin-top: 1rem; width: 100%; font-size: 0.875rem; background: #f8fafc;" onclick="showNewContactForm()">
+        <button class="btn" style="margin-top: 1rem; width: 100%; font-size: 0.875rem; background: var(--item-hover); color: var(--text-color); border: 1px solid var(--border-color);" onclick="showNewContactForm()">
             <i class="fa-solid fa-plus"></i> New Number
         </button>
     </div>
@@ -62,7 +62,7 @@
             <input type="text" id="newPhone" class="form-control" placeholder="e.g. 09123456789">
         </div>
         <div style="display: flex; justify-content: flex-end; gap: 1rem; margin-top: 2rem;">
-            <button class="btn" onclick="document.getElementById('newContactModal').style.display='none'">Cancel</button>
+            <button class="btn" style="background: var(--item-hover); color: var(--text-color); border: 1px solid var(--border-color);" onclick="document.getElementById('newContactModal').style.display='none'">Cancel</button>
             <button class="btn btn-primary" onclick="startNewSim()">Start Chat</button>
         </div>
     </div>
