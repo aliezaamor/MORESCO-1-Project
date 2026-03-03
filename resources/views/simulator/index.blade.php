@@ -77,8 +77,24 @@
         cursor: pointer;
         transition: background 0.2s;
     }
-    .contact-item:hover { background: #f8fafc; }
+    .contact-item:hover { background: var(--item-hover); color: var(--text-color); }
     .contact-item.active { background: var(--item-hover); border-left: 4px solid var(--primary-color); }
+    
+    /* Dark mode override for contact hover */
+    body.dark-mode .contact-item:hover {
+        background: #334155 !important;
+        color: #ffffff !important;
+    }
+    body.dark-mode .contact-item:hover div {
+        color: #ffffff !important;
+    }
+    body.dark-mode .contact-item.active {
+        background: #334155 !important;
+        color: #ffffff !important;
+    }
+    body.dark-mode .contact-item.active div {
+        color: #ffffff !important;
+    }
     
     .chat-bubble {
         max-width: 80%;
