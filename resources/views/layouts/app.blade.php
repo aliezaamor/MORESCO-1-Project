@@ -89,7 +89,7 @@
             </li>
             <li>
                 <a href="{{ route('view.simulator.index') }}" class="nav-link {{ request()->routeIs('view.simulator.*') ? 'active' : '' }}">
-                    <i class="fa-solid fa-vial"></i> Simulator
+                    <i class="fa-solid fa-comments"></i> Message Threads
                 </a>
             </li>
         </ul>
