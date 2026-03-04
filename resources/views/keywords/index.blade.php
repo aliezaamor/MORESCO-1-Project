@@ -78,8 +78,8 @@
                 </div>
             </form>
         </div>
-        <div style="display: flex; justify-content: flex-end; gap: 0.5rem; margin-top: 1.5rem; padding-top: 1rem; border-top: 1px solid #e2e8f0;">
-            <button type="button" class="btn" onclick="closeModal('keywordModal')" style="background: #e2e8f0;">Cancel</button>
+        <div style="display: flex; justify-content: flex-end; gap: 0.5rem; margin-top: 1.5rem; padding-top: 1rem; border-top: 1px solid var(--border-color);">
+            <button type="button" class="btn" onclick="closeModal('keywordModal')" style="background: var(--border-color); color: var(--text-color); border: 1px solid var(--border-color);">Cancel</button>
             <button type="submit" form="keywordForm" class="btn btn-primary">Save</button>
         </div>
     </div>
