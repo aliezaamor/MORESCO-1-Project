@@ -73,9 +73,77 @@ class SmsProcessingService
                 $hasChildren = Keyword::where('parent_id', $keywordMatch->id)->exists();
                 $contact->update(['last_keyword_id' => $hasChildren ? $keywordMatch->id : null]);
 
-                // 5. Trigger Auto-reply
+                // 5. Trigger Auto-reply based on action_type
+                $replyContent = $keywordMatch->reply_content;
+                $actionType = $keywordMatch->action_type;
+                $actionData = $keywordMatch->action_data ?? [];
+
+                switch ($actionType) {
+                    case 'billing_info':
+                        // TODO: Connect to MORESCO external system here
+                        $hasOutstandingBalance = true; // Placeholder logic
+                        $replyContent = $hasOutstandingBalance 
+                            ? ($actionData['has_balance'] ?? $replyContent) 
+                            : ($actionData['no_balance'] ?? $replyContent);
+                        break;
+                        
+                    case 'due_date_info':
+                        // TODO: Connect to MORESCO external system here
+                        $hasDueDate = true; // Placeholder logic
+                        $replyContent = $hasDueDate 
+                            ? ($actionData['has_due'] ?? $replyContent) 
+                            : ($actionData['settled'] ?? $replyContent);
+                        break;
+                        
+                    case 'payment_history':
+                        // TODO: Connect to MORESCO external system here
+                        $recordFound = true; // Placeholder logic
+                        $replyContent = $recordFound 
+                            ? ($actionData['record_found'] ?? $replyContent) 
+                            : ($actionData['no_record'] ?? $replyContent);
+                        break;
+                        
+                    case 'account_status':
+                        // TODO: Connect to MORESCO external system here
+                        $status = 'active'; // Placeholder logic: 'active', 'for_disconnection', 'disconnected'
+                        if ($status === 'active') $replyContent = $actionData['active'] ?? $replyContent;
+                        elseif ($status === 'for_disconnection') $replyContent = $actionData['for_disconnection'] ?? $replyContent;
+                        else $replyContent = $actionData['disconnected'] ?? $replyContent;
+                        break;
+
+                    case 'advisory_info':
+                        // TODO: Connect to MORESCO advisory system here
+                        $activeAdvisory = true; // Placeholder logic
+                        $replyContent = $activeAdvisory 
+                            ? ($actionData['active_advisory'] ?? $replyContent) 
+                            : ($actionData['no_advisory'] ?? $replyContent);
+                        break;
+
+                    case 'outage_report':
+                        // TODO: Connect to MORESCO outage system here
+                        $outageState = 'request_location'; // Placeholder: 'request_location', 'reported_success', 'invalid_location', 'already_reported'
+                        if ($outageState === 'reported_success') $replyContent = $actionData['reported_success'] ?? $replyContent;
+                        elseif ($outageState === 'invalid_location') $replyContent = $actionData['invalid_location'] ?? $replyContent;
+                        elseif ($outageState === 'already_reported') $replyContent = $actionData['already_reported'] ?? $replyContent;
+                        else $replyContent = $actionData['request_location'] ?? $replyContent;
+                        break;
+                        
+                    case 'events_info':
+                        // TODO: Connect to MORESCO events system here
+                        $hasEvent = true; // Placeholder logic
+                        $replyContent = $hasEvent 
+                            ? ($actionData['has_event'] ?? $replyContent) 
+                            : ($actionData['no_event'] ?? $replyContent);
+                        break;
+
+                    case 'static':
+                    default:
+                        // $replyContent is already set to the default reply_content above.
+                        break;
+                }
+
                 $autoReply = Message::create([
-                    'content' => $keywordMatch->reply_content,
+                    'content' => $replyContent,
                     'type' => 'auto_reply',
                     'user_id' => null,
                 ]);

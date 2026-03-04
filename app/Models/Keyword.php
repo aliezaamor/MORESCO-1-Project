@@ -6,7 +6,7 @@ use Illuminate\Database\Eloquent\Model;
 
 class Keyword extends Model
 {
-    protected $fillable = ['keyword', 'reply_content', 'is_active', 'parent_id'];
+    protected $fillable = ['keyword', 'reply_content', 'is_active', 'parent_id', 'action_type', 'action_data'];
 
     public function parent()
     {
@@ -20,6 +20,7 @@ class Keyword extends Model
 
     protected $casts = [
         'is_active' => 'boolean',
+        'action_data' => 'array',
     ];
     //
 }

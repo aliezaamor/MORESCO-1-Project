@@ -19,7 +19,13 @@ class KeywordController extends Controller
             'reply_content' => 'required|string',
             'is_active' => 'boolean',
             'parent_id' => 'nullable|exists:keywords,id',
+            'action_type' => 'nullable|string',
+            'action_data' => 'nullable|array',
         ]);
+
+        if (empty($validated['action_type'])) {
+            $validated['action_type'] = 'static';
+        }
 
         $keyword = Keyword::create($validated);
 
@@ -40,7 +46,13 @@ class KeywordController extends Controller
             'reply_content' => 'sometimes|required|string',
             'is_active' => 'boolean',
             'parent_id' => 'nullable|exists:keywords,id',
+            'action_type' => 'nullable|string',
+            'action_data' => 'nullable|array',
         ]);
+
+        if (array_key_exists('action_type', $validated) && empty($validated['action_type'])) {
+            $validated['action_type'] = 'static';
+        }
 
         $keyword->update($validated);
 
