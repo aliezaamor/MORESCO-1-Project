@@ -3,7 +3,7 @@
 @section('title', 'Dashboard')
 
 @section('content')
-    <div class="grid-4" style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 1rem;">
+    <div class="grid-5" style="display: grid; grid-template-columns: repeat(5, 1fr); gap: 1rem;">
         <div class="card" style="padding: 1rem;">
             <h3>Total Contacts</h3>
             <p id="total-contacts" style="font-size: 2rem; font-weight: 700; color: var(--primary-color);">...</p>
@@ -13,8 +13,12 @@
             <p id="total-groups" style="font-size: 2rem; font-weight: 700; color: #8b5cf6;">...</p>
         </div>
         <div class="card" style="padding: 1rem;">
-            <h3>Total Messages</h3>
-            <p id="total-messages" style="font-size: 2rem; font-weight: 700; color: var(--success-color);">...</p>
+            <h3>Outgoing Messages</h3>
+            <p id="total-outgoing" style="font-size: 2rem; font-weight: 700; color: var(--success-color);">...</p>
+        </div>
+        <div class="card" style="padding: 1rem;">
+            <h3>Incoming Messages</h3>
+            <p id="total-incoming" style="font-size: 2rem; font-weight: 700; color: #f59e0b;">...</p>
         </div>
         <div class="card" style="padding: 1rem;">
             <h3>Active Keywords</h3>
@@ -52,9 +56,10 @@
             ]);
 
             document.getElementById('total-contacts').textContent = contacts.length || 0;
-            document.getElementById('total-messages').textContent = messages.length || 0;
-            document.getElementById('active-keywords').textContent = keywords.filter(k => k.is_active).length || 0;
             document.getElementById('total-groups').textContent = groups.length || 0;
+            document.getElementById('total-outgoing').textContent = messages.filter(m => m.type !== 'incoming').length || 0;
+            document.getElementById('total-incoming').textContent = messages.filter(m => m.type === 'incoming').length || 0;
+            document.getElementById('active-keywords').textContent = keywords.filter(k => k.is_active).length || 0;
 
             // Prepare Chart Data
             const last7Days = [...Array(7)].map((_, i) => {
