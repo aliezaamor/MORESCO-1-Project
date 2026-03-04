@@ -56,7 +56,7 @@
                 </label>
             </div>
             <div style="display: flex; justify-content: flex-end; gap: 0.5rem; margin-top: 1.5rem;">
-                <button type="button" class="btn" onclick="closeModal('keywordModal')" style="background: #e2e8f0;">Cancel</button>
+                <button type="button" class="btn" onclick="closeModal('keywordModal')" style="background: var(--border-color); color: var(--text-color); border: 1px solid var(--border-color);">Cancel</button>
                 <button type="submit" class="btn btn-primary">Save</button>
             </div>
         </form>
@@ -115,7 +115,7 @@
                     ${k.keyword}
                 </td>
                 <td style="padding: 1rem; color: var(--text-light); font-size: 0.85rem;">
-                    ${k.parent ? `<span class="badge" style="background:#f1f5f9; color:#64748b; border:1px solid #e2e8f0;">${k.parent.keyword}</span>` : '<span style="opacity: 0.3;">-</span>'}
+                    ${k.parent ? `<span class="badge" style="background:var(--border-color); color:var(--text-color); border:1px solid var(--border-color); padding: 2px 8px; border-radius: 4px; font-size: 0.75rem;">${k.parent.keyword}</span>` : '<span style="opacity: 0.3;">-</span>'}
                 </td>
                 <td style="padding: 1rem; white-space: pre-wrap;">${k.reply_content}</td>
                 <td style="padding: 1rem;">
