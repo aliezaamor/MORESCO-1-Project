@@ -82,10 +82,26 @@
                     </li>
                 </ul>
             </li>
-            <li>
-                <a href="{{ route('view.keywords.index') }}" class="nav-link {{ request()->routeIs('view.keywords.*') ? 'active' : '' }}">
+            <li class="nav-item has-dropdown">
+                @php
+                    $isKeywordsActive = request()->routeIs('view.keywords.*') || (request()->routeIs('view.messages.*') && request('type') === 'auto_reply');
+                @endphp
+                <a href="#" class="nav-link {{ $isKeywordsActive ? 'active' : '' }}" onclick="toggleSubmenu(event, 'keywordsSubmenu')">
                     <i class="fa-solid fa-keyboard"></i> Keywords
+                    <i class="fa-solid fa-chevron-down submenu-icon" style="margin-left: auto; font-size: 0.8em; transition: transform 0.3s; transform: {{ $isKeywordsActive ? 'rotate(180deg)' : 'rotate(0deg)' }};"></i>
                 </a>
+                <ul class="submenu" id="keywordsSubmenu" style="display: {{ $isKeywordsActive ? 'flex' : 'none' }}; list-style: none; padding-left: 2rem; margin-top: 0.5rem; gap: 0.5rem; flex-direction: column;">
+                    <li>
+                        <a href="{{ route('view.keywords.index') }}" class="nav-link {{ request()->routeIs('view.keywords.index') ? 'active' : '' }}" style="padding: 0.5rem 1rem; font-size: 0.9em;">
+                            <i class="fa-solid fa-list"></i> Manage Keywords
+                        </a>
+                    </li>
+                    <li>
+                        <a href="{{ route('view.messages.index', ['type' => 'auto_reply']) }}" class="nav-link {{ request()->routeIs('view.messages.index') && request('type') === 'auto_reply' ? 'active' : '' }}" style="padding: 0.5rem 1rem; font-size: 0.9em;">
+                            <i class="fa-solid fa-clock-rotate-left"></i> Keyword History
+                        </a>
+                    </li>
+                </ul>
             </li>
             <li>
                 <a href="{{ route('view.simulator.index') }}" class="nav-link {{ request()->routeIs('view.simulator.*') ? 'active' : '' }}">

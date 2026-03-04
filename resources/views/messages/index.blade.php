@@ -464,7 +464,7 @@
             return `
             <li data-date="${new Date(m.created_at).toISOString().split('T')[0]}" style="padding: 0.75rem 1.25rem; border-bottom: 1px solid var(--border-color); ${m.type === 'incoming' ? 'background: var(--item-hover);' : ''}">
                 <div style="display: flex; align-items: center; margin-bottom: 0.25rem;">
-                    <span class="badge" style="background: ${badgeColor}; color: white; padding: 1px 6px; border-radius: 4px; font-size: 0.65rem; text-transform: uppercase;">${m.type}</span>
+                    <span class="badge" style="background: ${badgeColor}; color: white; padding: 1px 6px; border-radius: 4px; font-size: 0.65rem; text-transform: uppercase;">${m.type.replace('_', ' ')}</span>
                     ${categoryLabel}
                     ${noReplyBadge}
                     <span style="font-size: 0.7rem; color: var(--text-light); margin-left: ${noReplyBadge ? '0.5rem' : 'auto'};">${new Date(m.created_at).toLocaleString([], {year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute:'2-digit'})}</span>
@@ -556,27 +556,31 @@
         const scheduledParam = urlParams.get('scheduled');
         
         if (typeParam) {
-            document.getElementById('messageTypeSelect').value = typeParam;
-            document.getElementById('messageTypeGroup').style.display = 'none'; // Hide selector if type is forced
+            if (typeParam !== 'auto_reply') {
+                document.getElementById('messageTypeSelect').value = typeParam;
+                document.getElementById('messageTypeGroup').style.display = 'none'; // Hide selector if type is forced
+            }
             
             // Update Title
             let title = typeParam === 'broadcast' ? 'Send Broadcast Message' : 'Send Individual Notification';
-            if (scheduledParam === '1') {
+            if (scheduledParam === '1' || typeParam === 'auto_reply') {
                 // Hide send form and expand history to full width
                 document.getElementById('sendMessageContainer').style.display = 'none';
                 const gridContainer = document.querySelector('.grid-2');
                 if (gridContainer) gridContainer.style.gridTemplateColumns = '1fr';
                 
-                // Show view controls
-                document.getElementById('scheduledViewControls').style.display = 'block';
-                
-                // Show list, show calendar (defaulting to calendar)
-                toggleScheduledView('calendar');
+                if (scheduledParam === '1') {
+                    // Show view controls
+                    document.getElementById('scheduledViewControls').style.display = 'block';
+                    
+                    // Show list, show calendar (defaulting to calendar)
+                    toggleScheduledView('calendar');
+                }
                 
                 // Update history title
                 const historyHeader = document.getElementById('historyTitle');
                 if (historyHeader) {
-                    historyHeader.innerText = 'Scheduled Messages History';
+                    historyHeader.innerText = typeParam === 'auto_reply' ? 'Keyword Auto-Reply History' : 'Scheduled Messages History';
                 }
             } else {
                 document.getElementById('formTitle').innerText = title;
