@@ -47,7 +47,8 @@ class SmsProcessingService
             ]);
 
             // 3. Engine: Check for Keyword Match (Context-Aware)
-            $normalizedContent = strtolower(trim($content));
+            // Strip any leftover newlines, carriage returns, or invisible trailing spaces that Yeastar might append
+            $normalizedContent = strtolower(trim(preg_replace('/\s+/', ' ', $content)));
             $keywordMatch = null;
 
             // Try matching against sub-keywords of the last used keyword
@@ -148,13 +149,38 @@ class SmsProcessingService
                     'user_id' => null,
                 ]);
 
-                $autoReply->recipients()->create([
-                    'contact_id' => $contact->id,
-                    'status' => 'sent',
-                ]);
             } else {
                 // Reset context if no keyword matches at all
                 $contact->update(['last_keyword_id' => null]);
+
+                // --- INVALID KEYWORD FALLBACK ---
+                // If they texted us something that we don't recognize
+                $autoReply = Message::create([
+                    'content' => "MORESCO-1: Invalid keyword.\nSend HELP to view available commands.",
+                    'type' => 'auto_reply',
+                    'user_id' => null,
+                ]);
+            }
+
+            if ($autoReply) {
+                // 6. Yeastar Dispatch Integration
+                // Dispatch the SMS via the Yeastar system using the API service
+                $destination = preg_replace('/[^0-9+]/', '', $contact->phone_number);
+                $gsmPortToUse = env('YEASTAR_PORT_KEYWORD', 2); // Defaults back to port 1 for keywords
+                
+                try {
+                    $yeastarService = app(\App\Services\YeastarService::class);
+                    $sent = $yeastarService->sendSms($destination, $autoReply->content, $gsmPortToUse);
+                    $dispatchStatus = $sent ? 'sent' : 'failed';
+                } catch (\Exception $e) {
+                    \Illuminate\Support\Facades\Log::error('Yeastar Keywork Auto-reply dispatch failed: ' . $e->getMessage());
+                    $dispatchStatus = 'failed';
+                }
+
+                $autoReply->recipients()->create([
+                    'contact_id' => $contact->id,
+                    'status' => $dispatchStatus,
+                ]);
             }
 
             return [

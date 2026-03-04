@@ -49,12 +49,16 @@ class YeastarController extends Controller
             Log::info('Received Yeastar Webhook via POST: ' . $rawPayload);
 
             // Parse the raw text payload line by line
-            $lines = explode("\n", str_replace("\r", "", $rawPayload));
+            // Forcefully remove the Yeastar trailing tag before exploding
+            $cleanPayload = str_replace("--END SMS EVENT--", "", $rawPayload);
+            $cleanPayload = str_replace("\r", "", $cleanPayload);
+            
+            $lines = explode("\n", trim($cleanPayload));
             $contentLines = [];
             $isContentStarted = false;
 
             foreach ($lines as $line) {
-                if ($line === '--END SMS EVENT--' || $line === '') {
+                if ($line === '') {
                     continue;
                 }
 

@@ -120,6 +120,9 @@ class ListenToYeastarAmi extends Command
             // Yeastar AMI sometimes URL encodes the Content field (e.g. Hello+guys%2C)
             $content = urldecode($content);
             
+            $content = str_replace(['--END SMS EVENT--', "\r\n", "\n", "\r"], '', $content);
+            $content = trim($content);
+            
             $this->info("Received SMS from {$sender}: {$content}");
             Log::info("Yeastar AMI processing parsed SMS from {$sender}: {$content}");
             
