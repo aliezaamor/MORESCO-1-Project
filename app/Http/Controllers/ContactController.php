@@ -3,12 +3,27 @@
 namespace App\Http\Controllers;
 
 use App\Models\Contact;
+use App\Services\MorescoDbService;
 use Illuminate\Http\Request;
 
 class ContactController extends Controller
 {
     public function index(Request $request)
     {
+        // Serve MORESCO System contacts directly from the external SQL Server
+        if ($request->source === 'moresco') {
+            $search  = $request->get('search');
+            $perPage = (int) $request->get('per_page', 100);
+            $offset  = (int) $request->get('offset', 0);
+
+            $service = app(MorescoDbService::class);
+            return response()->json([
+                'data'  => $service->getMembers($search, $perPage, $offset),
+                'total' => $service->countMembers($search),
+            ]);
+        }
+
+        // App contacts — local DB
         $query = Contact::query();
         if ($request->has('source')) {
             $query->where('source', $request->source);

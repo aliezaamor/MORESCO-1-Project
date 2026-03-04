@@ -45,25 +45,46 @@
             </div>
         </div>
 
+        <!-- MORESCO Search bar (hidden by default, shown when source=moresco) -->
+        <div id="morescoSearchBar" style="display: none; margin-bottom: 0.75rem;">
+            <div style="position: relative; max-width: 380px;">
+                <i class="fa-solid fa-magnifying-glass" style="position: absolute; left: 0.75rem; top: 50%; transform: translateY(-50%); color: var(--text-light); font-size: 0.9rem;"></i>
+                <input type="text" id="morescoSearchInput" placeholder="Search by name, phone or email..."
+                    style="padding: 0.5rem 0.75rem 0.5rem 2.25rem; border-radius: 8px; border: 1px solid var(--border-color); background: var(--input-bg); color: var(--text-color); width: 100%; font-size: 0.85rem;"
+                    oninput="debouncedMorescoSearch()">
+            </div>
+        </div>
+
         <div class="card" style="padding: 0;">
             <div class="scrollable-container">
                 <table class="table-dense" style="width: 100%; border-collapse: collapse;">
                     <thead style="position: sticky; top: 0; background: white; z-index: 10;">
                         <tr style="text-align: left; border-bottom: 2px solid #e2e8f0;">
-                            <th style="width: 40px; text-align: center;">
+                            <th style="width: 40px; text-align: center;" id="th-checkbox">
                                 <input type="checkbox" id="selectAllContacts" onclick="toggleSelectAll(this)">
                             </th>
                             <th style="width: 40px;">ID</th>
-                            <th style="width: 200px;">Name</th>
-                            <th style="width: 150px;">Phone</th>
-                            <th>Email</th>
-                            <th style="width: 100px; text-align: center;">Actions</th>
+                            <th style="width: 180px;">Name</th>
+                            <th style="width: 140px;">Phone</th>
+                            <th class="col-email">Email</th>
+                            <th class="col-extra" style="display:none; width: 140px;">Service Area</th>
+                            <th class="col-extra" style="display:none; width: 100px;">Status</th>
+                            <th style="width: 100px; text-align: center;" id="th-actions">Actions</th>
                         </tr>
                     </thead>
                     <tbody id="contacts-table-body">
                         <!-- Populated by JS -->
                     </tbody>
                 </table>
+            </div>
+        </div>
+
+        <!-- MORESCO Pagination -->
+        <div id="morescoPageControls" style="display: none; margin-top: 1rem; display: none; gap: 0.75rem; align-items: center; justify-content: space-between;">
+            <span id="morescoPageInfo" style="font-size: 0.8rem; color: var(--text-light);"></span>
+            <div style="display: flex; gap: 0.5rem;">
+                <button id="btnPrevPage" class="btn" onclick="changeMorescoPage(-1)" style="font-size: 0.8rem; padding: 0.35rem 0.8rem;">&#8592; Prev</button>
+                <button id="btnNextPage" class="btn" onclick="changeMorescoPage(1)" style="font-size: 0.8rem; padding: 0.35rem 0.8rem;">Next &#8594;</button>
             </div>
         </div>
     </div>
@@ -223,9 +244,30 @@
     let allContacts = [];
     let allGroups = [];
     let selectedContactIds = new Set();
+    let morescoOffset = 0;
+    let morescoTotal = 0;
+    const MORESCO_PER_PAGE = 100;
+    let morescoSearchTimeout = null;
+
+    function debouncedMorescoSearch() {
+        clearTimeout(morescoSearchTimeout);
+        morescoSearchTimeout = setTimeout(() => {
+            morescoOffset = 0;
+            loadContacts();
+        }, 400);
+    }
+
+    function changeMorescoPage(direction) {
+        const newOffset = morescoOffset + direction * MORESCO_PER_PAGE;
+        if (newOffset < 0) return;
+        if (newOffset >= morescoTotal) return;
+        morescoOffset = newOffset;
+        loadContacts();
+    }
 
     function setSource(source) {
         currentSource = source;
+        morescoOffset = 0;
         
         // Update tabs UX
         document.querySelectorAll('.source-tab').forEach(tab => {
@@ -241,15 +283,17 @@
             activeTab.style.fontWeight = '600';
         }
 
-        // Toggle add buttons based on source (We might only want to add internal app contacts manually)
+        // MORESCO-specific UI toggles
+        const isMoresco = source === 'moresco';
         const addBtns = document.querySelectorAll('.btn-add-entity');
-        if (source === 'moresco') {
-            addBtns.forEach(btn => btn.style.display = 'none');
-            document.getElementById('sourceWarning').style.display = 'block';
-        } else {
-            addBtns.forEach(btn => btn.style.display = 'inline-flex');
-            document.getElementById('sourceWarning').style.display = 'none';
-        }
+        addBtns.forEach(btn => btn.style.display = isMoresco ? 'none' : 'inline-flex');
+        document.getElementById('sourceWarning').style.display = isMoresco ? 'block' : 'none';
+        document.getElementById('morescoSearchBar').style.display = isMoresco ? 'block' : 'none';
+        document.getElementById('morescoPageControls').style.display = isMoresco ? 'flex' : 'none';
+        document.querySelectorAll('.col-extra').forEach(el => el.style.display = isMoresco ? '' : 'none');
+        document.getElementById('th-actions').style.display = isMoresco ? 'none' : '';
+        document.getElementById('th-checkbox').style.display = isMoresco ? 'none' : '';
+        document.getElementById('selectAllContacts').style.display = isMoresco ? 'none' : '';
 
         // Reload data
         loadContacts();
@@ -257,8 +301,49 @@
     }
 
     async function loadContacts() {
-        allContacts = await fetchAPI(`/contacts?source=${currentSource}`);
         const tbody = document.getElementById('contacts-table-body');
+        tbody.innerHTML = `<tr><td colspan="8" style="text-align:center; padding: 2rem; color: var(--text-light);"><i class="fa-solid fa-spinner fa-spin"></i> Loading...</td></tr>`;
+
+        if (currentSource === 'moresco') {
+            const search = document.getElementById('morescoSearchInput')?.value || '';
+            const endpoint = `/contacts?source=moresco&per_page=${MORESCO_PER_PAGE}&offset=${morescoOffset}${search ? '&search=' + encodeURIComponent(search) : ''}`;
+            const response = await fetchAPI(endpoint);
+            allContacts = response.data || [];
+            morescoTotal = response.total || 0;
+
+            // Update pagination info
+            const from = morescoOffset + 1;
+            const to = Math.min(morescoOffset + MORESCO_PER_PAGE, morescoTotal);
+            document.getElementById('morescoPageInfo').innerText = `Showing ${from}–${to} of ${morescoTotal.toLocaleString()} members`;
+            document.getElementById('btnPrevPage').disabled = morescoOffset === 0;
+            document.getElementById('btnNextPage').disabled = (morescoOffset + MORESCO_PER_PAGE) >= morescoTotal;
+
+            if (allContacts.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="8" style="text-align:center; padding: 2rem; color: var(--text-light);">No MORESCO members found.</td></tr>`;
+                return;
+            }
+
+            tbody.innerHTML = allContacts.map(c => `
+                <tr style="border-bottom: 1px solid #f1f5f9;">
+                    <td style="display:none;"></td>
+                    <td style="color: var(--text-light); font-weight: 600; font-size: 0.8rem;">${c.id}</td>
+                    <td style="font-weight: 500;">${c.name || '-'}</td>
+                    <td style="white-space: nowrap;">${c.phone_number || '-'}</td>
+                    <td class="col-email" style="max-width: 150px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;" title="${c.email || ''}">${c.email || '-'}</td>
+                    <td class="col-extra" style="font-size: 0.8rem; color: var(--text-light);">${c.service_area || '-'}</td>
+                    <td class="col-extra">
+                        <span style="font-size: 0.72rem; padding: 2px 7px; border-radius: 4px; background: ${c.status === 'Active' ? '#dcfce7' : '#f1f5f9'}; color: ${c.status === 'Active' ? '#15803d' : '#64748b'}; font-weight: 600;">
+                            ${c.status || 'Unknown'}
+                        </span>
+                    </td>
+                    <td style="display:none;"></td>
+                </tr>
+            `).join('');
+            return;
+        }
+
+        // App contacts
+        allContacts = await fetchAPI(`/contacts?source=${currentSource}`);
         
         if (allContacts.length === 0) {
             tbody.innerHTML = `<tr><td colspan="6" style="text-align: center; padding: 2rem; color: var(--text-light);">No contacts found for this source.</td></tr>`;
@@ -274,7 +359,9 @@
                 <td style="color: var(--text-light); font-weight: 600;">#${c.id}</td>
                 <td style="font-weight: 500;">${c.name}</td>
                 <td style="white-space: nowrap;">${c.phone_number}</td>
-                <td style="max-width: 150px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;" title="${c.email || ''}">${c.email || '-'}</td>
+                <td class="col-email" style="max-width: 150px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;" title="${c.email || ''}">${c.email || '-'}</td>
+                <td class="col-extra" style="display:none;"></td>
+                <td class="col-extra" style="display:none;"></td>
                 <td style="text-align: center;">
                     <div style="display: flex; gap: 0.25rem; justify-content: center;">
                         <button class="btn btn-icon" style="color: var(--moresco-blue);" onclick='openContactModal(${JSON.stringify(c).replace(/'/g, "&apos;")})'>

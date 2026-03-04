@@ -101,17 +101,29 @@ return [
         'sqlsrv' => [
             'driver' => 'sqlsrv',
             'url' => env('DB_URL'),
-            'host' => env('DB_HOST', 'localhost'),
-            'port' => env('DB_PORT', '1433'),
-            'database' => env('DB_DATABASE', 'laravel'),
-            'username' => env('DB_USERNAME', 'root'),
-            'password' => env('DB_PASSWORD', ''),
-            'charset' => env('DB_CHARSET', 'utf8'),
+            'host' => env('MSDB_HOST', 'localhost'),
+            'port' => env('MSDB_PORT', '1433'),
+            'database' => env('MSDB_DATABASE', 'laravel'),
+            'username' => env('MSDB_USERNAME', 'root'),
+            'password' => env('MSDB_PASSWORD', ''),
+            'charset' => env('MSDB_CHARSET', 'utf8'),
             'prefix' => '',
             'prefix_indexes' => true,
             // 'encrypt' => env('DB_ENCRYPT', 'yes'),
             // 'trust_server_certificate' => env('DB_TRUST_SERVER_CERTIFICATE', 'false'),
         ],
+
+        // MORESCO External SQL Server via Windows Native ODBC
+        'moresco_db' => [
+            'driver'   => 'odbc',
+            'dsn'      => 'odbc:Driver={SQL Server};Server=' . env('MSDB_HOST', 'localhost') . ',' . env('MSDB_PORT', '1433') . ';Database=' . env('MSDB_DATABASE', 'laravel') . ';',
+            'database' => env('MSDB_DATABASE', ''),
+            'username' => env('MSDB_USERNAME', ''),
+            'password' => env('MSDB_PASSWORD', ''),
+            'prefix'   => '',
+        ],
+
+
 
     ],
 

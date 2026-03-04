@@ -1,0 +1,27 @@
+SELECT     a.app_ID, a.member_ID, ISNULL(b.is_individual, 0) AS is_individual, COALESCE (d.description, '') AS juridicalType, CASE WHEN b.description IN ('INDIVIDUAL', 'JOINT') THEN isnull(a.lastname, '') + ', ' + isnull(a.firstname, '') + ' ' + ISNULl(a.middlename, '') ELSE COALESCE (c.j_name, 
+                  ISNULL(isnull(a.lastname, '') + ', ' + isnull(a.firstname, '') + ' ' + ISNULl(a.middlename, ''), ''), '') END AS MemberName, CASE WHEN b.description = 'JOINT' THEN COALESCE (ISNULL(a.spouse_lastname, '') + ', ' + ISNULL(a.spouse_firstname, '') + ' ' + LEFT(ISNULL(a.spouse_middlename, 
+                  ''), 1), '') ELSE '' END AS [Joint Member], CASE WHEN b.description = 'INDIVIDUAL' THEN a.lastname + ', ' + a.firstname + ' ' + a.middlename WHEN b.description = 'JOINT' THEN a.lastname + ', ' + a.firstname + COALESCE ('/' + a.spouse_firstname, '') 
+                  + ' ' + a.middlename + COALESCE ('/' + NULLIF (a.spouse_middlename, ''), '') ELSE COALESCE (c.j_name, ISNULL(a.lastname + ', ' + a.firstname + ' ' + a.middlename, ''), '') END AS MemberName_certificate, b.Description AS membershiptype, a.status_id, a.mem_date, a.date_created, 
+                  a.resolution_No, a.OR_No, a.ContactNo, a.Province_ID, a.Municipality_ID, a.Barangay_ID, a.Cluster_ID, a.Sitio_ID, a.Pz_ID, a.Subdivision_ID, a.Phase, a.Block, a.Lot, a.Landmark, COALESCE (h.Description + ', ', '') + COALESCE ('Phase ' + NULLIF (a.Phase, ''), '') 
+                  + COALESCE ('B ' + NULLIF (a.Block, ''), '') + COALESCE ('L ' + NULLIF (a.Lot, ''), '') + COALESCE (j.Description + ', ', '') + COALESCE (i.Description + ', ', '') + COALESCE (k.Description + ', ', '') + COALESCE (g.Description + ', ', '') + COALESCE (f.Description + ', ', '') + COALESCE (e.Description, 
+                  '') AS Address, a.mtype_ID, a.spousemember_ID, a.SpouseName, a.LastName, a.FirstName, a.MiddleName, a.spouse_type, a.spouse_firstname, a.spouse_lastname, a.spouse_middlename, a.sa_id, a.created_by, m.sa_code, m.service_area, c.jtype_ID, a.o_building, 
+                  f.Description AS Municipality, f.ZipCode, e.Description AS Province, g.Description AS Barangay, COALESCE (i.Description + ', ', '') + COALESCE (k.Description + ', ', '') AS purok_sitio, a.birthdate, CASE WHEN a.profile_pic IS NOT NULL THEN 'DONE' ELSE 'EMPTY' END AS hasProfilePic, 
+                  CASE WHEN a.signature IS NOT NULL THEN 'DONE' ELSE 'EMPTY' END AS hasSignature, a.certificate_no, n.status AS membershipstatus, '0' AS certno_assigned, '0' AS cert_printed_date, c.TIN, a.profile_pic, a.MaritalStatus, c.business_style, a.remarks, a.termination_reso_no, 
+                  a.termination_date, a.inactive_date, a.reso_date_membership, a.certification_date,
+                      (SELECT     COUNT(account_id) AS Expr1
+                       FROM        dbo.account AS z
+                       WHERE     (member_id = a.member_ID)) AS total_account, a.email
+FROM        dbo.Member_Masterfile AS a LEFT OUTER JOIN
+                  dbo.MembershipTypes AS b ON b.mtype_ID = a.mtype_ID LEFT OUTER JOIN
+                  dbo.MemMast_Juridical AS c ON c.member_ID = a.member_ID LEFT OUTER JOIN
+                  dbo.Juridical_Types AS d ON d.jtype_ID = c.jtype_ID LEFT OUTER JOIN
+                  dbo.Member_Masterfile AS l ON l.member_ID = a.spousemember_ID LEFT OUTER JOIN
+                  dbo.Province AS e ON e.Province_ID = a.Province_ID LEFT OUTER JOIN
+                  dbo.Municipality AS f ON f.Municipality_ID = a.Municipality_ID LEFT OUTER JOIN
+                  dbo.Barangay AS g ON g.Barangay_ID = a.Barangay_ID LEFT OUTER JOIN
+                  dbo.Cluster AS h ON h.Cluster_ID = a.Cluster_ID LEFT OUTER JOIN
+                  dbo.Purok_Zone AS i ON i.pz_ID = a.Pz_ID LEFT OUTER JOIN
+                  dbo.Subdivision AS j ON j.Subdivision_ID = a.Subdivision_ID LEFT OUTER JOIN
+                  dbo.Sitio AS k ON k.Sitio_ID = a.Sitio_ID LEFT OUTER JOIN
+                  dbo.service_area AS m ON m.sa_id = a.sa_id LEFT OUTER JOIN
+                  dbo.status AS n ON n.status_id = a.status_id
