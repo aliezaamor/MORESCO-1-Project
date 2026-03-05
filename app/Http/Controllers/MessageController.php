@@ -55,8 +55,14 @@ class MessageController extends Controller
             'group_ids'           => 'nullable|array',
             'group_ids.*'         => 'exists:groups,id',
             // MORESCO service area groups (sa_codes from external DB)
-            'moresco_group_codes' => 'nullable|array',
-            'moresco_group_codes.*' => 'string',
+            'moresco_group_codes'    => 'nullable|array',
+            'moresco_group_codes.*'  => 'string',
+            // MORESCO municipality groups
+            'moresco_municipalities'   => 'nullable|array',
+            'moresco_municipalities.*' => 'string',
+            // MORESCO barangay groups (format: "Municipality|Barangay")
+            'moresco_barangays'       => 'nullable|array',
+            'moresco_barangays.*'     => 'string',
             'category'            => 'nullable|in:MCO CONTACTS,ADVISORY,OUTAGE,EVENTS',
             'is_scheduled'        => 'boolean',
             'scheduled_at'        => 'required_if:is_scheduled,true|nullable|date',
@@ -128,15 +134,45 @@ class MessageController extends Controller
                 foreach ($validated['moresco_group_codes'] as $saCode) {
                     $members = $morescoService->getMembersBySaCode($saCode);
                     foreach ($members as $member) {
-                        // Find or create a local stub so the FK is satisfied
                         $phone = preg_replace('/[^0-9+]/', '', $member['phone_number'] ?? '');
                         if (!$phone) continue;
                         $contact = Contact::firstOrCreate(
                             ['phone_number' => $phone],
-                            [
-                                'name'   => $member['name'] ?? 'MORESCO Consumer',
-                                'source' => 'moresco',
-                            ]
+                            ['name' => $member['name'] ?? 'MORESCO Consumer', 'source' => 'moresco']
+                        );
+                        $uniqueContacts->push($contact);
+                    }
+                }
+            }
+
+            // --- MORESCO municipality groups ---
+            if (!empty($validated['moresco_municipalities'])) {
+                $morescoService = app(MorescoDbService::class);
+                foreach ($validated['moresco_municipalities'] as $municipality) {
+                    $members = $morescoService->getMembersByMunicipality($municipality);
+                    foreach ($members as $member) {
+                        $phone = preg_replace('/[^0-9+]/', '', $member['phone_number'] ?? '');
+                        if (!$phone) continue;
+                        $contact = Contact::firstOrCreate(
+                            ['phone_number' => $phone],
+                            ['name' => $member['name'] ?? 'MORESCO Consumer', 'source' => 'moresco']
+                        );
+                        $uniqueContacts->push($contact);
+                    }
+                }
+            }
+
+            // --- MORESCO barangay groups (Municipality|Barangay) ---
+            if (!empty($validated['moresco_barangays'])) {
+                $morescoService = app(MorescoDbService::class);
+                foreach ($validated['moresco_barangays'] as $groupId) {
+                    $members = $morescoService->getMembersByBarangay($groupId);
+                    foreach ($members as $member) {
+                        $phone = preg_replace('/[^0-9+]/', '', $member['phone_number'] ?? '');
+                        if (!$phone) continue;
+                        $contact = Contact::firstOrCreate(
+                            ['phone_number' => $phone],
+                            ['name' => $member['name'] ?? 'MORESCO Consumer', 'source' => 'moresco']
                         );
                         $uniqueContacts->push($contact);
                     }

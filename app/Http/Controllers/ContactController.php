@@ -15,6 +15,17 @@ class ContactController extends Controller
             $search  = $request->get('search');
             $service = app(MorescoDbService::class);
 
+            // Group member lookups — fetch all members belonging to a specific group
+            if ($request->has('municipality')) {
+                return response()->json($service->getMembersByMunicipality($request->municipality));
+            }
+            if ($request->has('barangay')) {
+                return response()->json($service->getMembersByBarangay($request->barangay));
+            }
+            if ($request->has('sa_code')) {
+                return response()->json($service->getMembersBySaCode($request->sa_code));
+            }
+
             // picker=1 → flat array for message-form dropdowns (no pagination wrapper)
             if ($request->get('picker') == '1') {
                 $perPage = (int) $request->get('per_page', 200);

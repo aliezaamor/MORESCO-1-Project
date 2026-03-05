@@ -233,17 +233,19 @@
     }
 
     function updateGroupSelectText() {
-        const appCheckboxes = document.querySelectorAll('#groupDropdownList input[name="group_ids[]"]:checked');
-        const morescoCheckboxes = document.querySelectorAll('#groupDropdownList input[name="moresco_group_codes[]"]:checked');
-        const totalChecked = appCheckboxes.length + morescoCheckboxes.length;
+        const appCheckboxes       = document.querySelectorAll('#groupDropdownList input[name="group_ids[]"]:checked');
+        const morescoCheckboxes   = document.querySelectorAll('#groupDropdownList input[name="moresco_group_codes[]"]:checked');
+        const municipalChecks     = document.querySelectorAll('#groupDropdownList input[name="moresco_municipalities[]"]:checked');
+        const barangayChecks      = document.querySelectorAll('#groupDropdownList input[name="moresco_barangays[]"]:checked');
+        const totalChecked = appCheckboxes.length + morescoCheckboxes.length + municipalChecks.length + barangayChecks.length;
         const textSpan = document.getElementById('groupSelectText');
-        
+
         if (totalChecked === 0) {
             textSpan.textContent = "Select groups...";
             textSpan.style.color = "var(--text-color)";
         } else if (totalChecked === 1) {
-            const onlyOne = appCheckboxes.length === 1 ? appCheckboxes[0] : morescoCheckboxes[0];
-            textSpan.textContent = onlyOne.closest('label').querySelector('span').textContent;
+            const allChecked = [...appCheckboxes, ...morescoCheckboxes, ...municipalChecks, ...barangayChecks];
+            textSpan.textContent = allChecked[0].closest('label').querySelector('span').textContent;
             textSpan.style.color = "var(--text-color)";
         } else {
             textSpan.textContent = `${totalChecked} groups selected`;
@@ -363,15 +365,41 @@
     }
     // ──────────────────────────────────────────────────────────────────────────
 
+    // ── Group Dropdown Helpers ──────────────────────────────────────────────
+    function sectionHeader(label) {
+        return `<div style="padding: 0.25rem 0.5rem; font-size: 0.7rem; font-weight: 700; color: var(--moresco-blue); text-transform: uppercase; border-top: 1px solid var(--border-color); margin-top: 0.5rem; padding-top: 0.5rem;">${label}</div>`;
+    }
+
+    function buildGroupChecks(groups, inputName) {
+        return groups.map(g => `
+            <label style="display: flex; align-items: center; gap: 0.75rem; cursor: pointer; padding: 0.35rem 0.5rem; font-size: 0.85rem; color: var(--text-color);" onclick="event.stopPropagation()">
+                <input type="checkbox" name="${inputName}" value="${g.id}" onchange="updateGroupSelectText()">
+                <span style="color: inherit; flex: 1;">${g.name}</span>
+                <span style="background: var(--moresco-blue); color: #fff; font-size: 0.65rem; font-weight: 600; padding: 1px 6px; border-radius: 10px; white-space: nowrap;">${g.member_count} members</span>
+            </label>`).join('');
+    }
+
+    function toggleBarangayList() {
+        const list = document.getElementById('barangayGroupList');
+        const icon = document.getElementById('barangayToggleIcon');
+        if (!list) return;
+        const isOpen = list.style.display !== 'none';
+        list.style.display = isOpen ? 'none' : 'block';
+        if (icon) icon.textContent = isOpen ? '▼' : '▲';
+    }
+    // ──────────────────────────────────────────────────────────────────────────
+
     async function loadOptions() {
-        const [appContacts, morescoContacts, appGroups, morescoGroups] = await Promise.all([
+        const [appContacts, morescoContacts, appGroups, morescoGroups, morescoMunicipalities, morescoBarangays] = await Promise.all([
             fetchAPI('/contacts?source=app'),
             fetchAPI('/contacts?source=moresco&picker=1&per_page=300'),
             fetchAPI('/groups?source=app'),
-            fetchAPI('/groups?source=moresco')
+            fetchAPI('/groups?source=moresco'),
+            fetchAPI('/groups?source=moresco_municipality'),
+            fetchAPI('/groups?source=moresco_barangay')
         ]);
 
-        appContactsList = appContacts;
+        appContactsList     = appContacts;
         morescoContactsList = Array.isArray(morescoContacts) ? morescoContacts : (morescoContacts.data || []);
 
         const contactInner = document.getElementById('contactDropdownInner');
@@ -393,9 +421,11 @@
         contactInner.innerHTML = contactHtml;
         renderMorescoList(morescoContactsList);
 
+        // ── Build Group Dropdown ─────────────────────────────────────────────
         const groupContainer = document.getElementById('groupDropdownList');
         let groupHtml = '';
 
+        // App Groups
         if (appGroups.length > 0) {
             groupHtml += `<div style="padding: 0.25rem 0.5rem; font-size: 0.7rem; font-weight: 700; color: var(--text-light); text-transform: uppercase;">App Groups</div>`;
             groupHtml += appGroups.map(g => `
@@ -407,21 +437,30 @@
             `).join('');
         }
 
-        // morescoGroups = MORESCO service area groups from external DB
+        // MORESCO Service Areas
         if (morescoGroups.length > 0) {
-            groupHtml += `<div style="padding: 0.25rem 0.5rem; font-size: 0.7rem; font-weight: 700; color: var(--moresco-blue); text-transform: uppercase; border-top: 1px solid var(--border-color); margin-top: 0.5rem; padding-top: 0.5rem;">MORESCO Service Areas</div>`;
-            groupHtml += morescoGroups.map(g => `
-                <label style="display: flex; align-items: center; gap: 0.75rem; cursor: pointer; padding: 0.35rem 0.5rem; font-size: 0.85rem; color: var(--text-color);" onclick="event.stopPropagation()">
-                    <input type="checkbox" name="moresco_group_codes[]" value="${g.id}" onchange="updateGroupSelectText()">
-                    <span style="color: inherit; flex: 1;">${g.name}</span>
-                    <span style="background: var(--moresco-blue); color: #fff; font-size: 0.65rem; font-weight: 600; padding: 1px 6px; border-radius: 10px; white-space: nowrap;">${g.member_count} consumers</span>
-                </label>
-            `).join('');
+            groupHtml += sectionHeader('MORESCO Service Areas');
+            groupHtml += buildGroupChecks(morescoGroups, 'moresco_group_codes[]');
         }
 
-        if (groupHtml === '') {
-            groupHtml = '<div style="color: var(--text-light); font-size: 0.8rem; padding: 0.5rem;">No groups available.</div>';
+        // MORESCO Municipalities
+        if (morescoMunicipalities.length > 0) {
+            groupHtml += sectionHeader('MORESCO Municipalities');
+            groupHtml += buildGroupChecks(morescoMunicipalities, 'moresco_municipalities[]');
         }
+
+        // MORESCO Barangays — potentially many, so show inside a collapsible
+        if (morescoBarangays.length > 0) {
+            groupHtml += `
+                <div style="padding: 0.25rem 0.5rem; font-size: 0.7rem; font-weight: 700; color: var(--moresco-blue); text-transform: uppercase; border-top: 1px solid var(--border-color); margin-top: 0.5rem; padding-top: 0.5rem; display: flex; justify-content: space-between; align-items: center; cursor: pointer;" onclick="toggleBarangayList()">
+                    MORESCO Barangays
+                    <span id="barangayToggleIcon" style="font-size: 0.8rem;">▼</span>
+                </div>
+                <div id="barangayGroupList" style="display: none;">
+                    ${buildGroupChecks(morescoBarangays, 'moresco_barangays[]')}
+                </div>`;
+        }
+
         groupContainer.innerHTML = groupHtml;
     }
 
@@ -637,13 +676,16 @@
         if (!data.moresco_name) delete data.moresco_name;
         if (!data.contact_id) delete data.contact_id;
 
-        // Handle multiple group IDs (app groups + MORESCO service area codes)
+        // Handle multiple group IDs (app groups + MORESCO service area codes + municipalities + barangays)
         if (data.type === 'broadcast') {
-            data.group_ids = formData.getAll('group_ids[]');
-            data.moresco_group_codes = formData.getAll('moresco_group_codes[]');
-            // Remove empty arrays so backend ignores them cleanly
-            if (data.group_ids.length === 0) delete data.group_ids;
-            if (data.moresco_group_codes.length === 0) delete data.moresco_group_codes;
+            data.group_ids              = formData.getAll('group_ids[]');
+            data.moresco_group_codes    = formData.getAll('moresco_group_codes[]');
+            data.moresco_municipalities = formData.getAll('moresco_municipalities[]');
+            data.moresco_barangays      = formData.getAll('moresco_barangays[]');
+            if (data.group_ids.length === 0)              delete data.group_ids;
+            if (data.moresco_group_codes.length === 0)    delete data.moresco_group_codes;
+            if (data.moresco_municipalities.length === 0) delete data.moresco_municipalities;
+            if (data.moresco_barangays.length === 0)      delete data.moresco_barangays;
         }
         
         try {
