@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\Message;
 use Illuminate\Http\Request;
 use App\Services\YeastarService;
+use App\Services\MorescoDbService;
 use App\Models\Contact;
 
 class MessageController extends Controller
@@ -43,52 +44,107 @@ class MessageController extends Controller
     public function store(Request $request)
     {
         $validated = $request->validate([
-            'content' => 'required|string',
-            'type' => 'required|in:individual,broadcast',
-            'contact_id' => 'required_if:type,individual|nullable|exists:contacts,id',
-            'group_ids' => 'required_if:type,broadcast|nullable|array',
-            'group_ids.*' => 'exists:groups,id',
-            'category' => 'required_if:type,broadcast|nullable|in:MCO CONTACTS,ADVISORY,OUTAGE,EVENTS',
-            'is_scheduled' => 'boolean',
-            'scheduled_at' => 'required_if:is_scheduled,true|nullable|date',
-            'no_reply' => 'boolean',
+            'content'             => 'required|string',
+            'type'                => 'required|in:individual,broadcast',
+            // App contact (local DB)
+            'contact_id'          => 'nullable|exists:contacts,id',
+            // MORESCO consumer (external DB — phone + name passed directly)
+            'moresco_phone'       => 'nullable|string|max:30',
+            'moresco_name'        => 'nullable|string|max:255',
+            // App groups (local DB)
+            'group_ids'           => 'nullable|array',
+            'group_ids.*'         => 'exists:groups,id',
+            // MORESCO service area groups (sa_codes from external DB)
+            'moresco_group_codes' => 'nullable|array',
+            'moresco_group_codes.*' => 'string',
+            'category'            => 'nullable|in:MCO CONTACTS,ADVISORY,OUTAGE,EVENTS',
+            'is_scheduled'        => 'boolean',
+            'scheduled_at'        => 'required_if:is_scheduled,true|nullable|date',
+            'no_reply'            => 'boolean',
         ]);
 
+        // Individual notification requires either a local contact OR a MORESCO phone
+        if ($validated['type'] === 'individual') {
+            if (empty($validated['contact_id']) && empty($validated['moresco_phone'])) {
+                return response()->json(['message' => 'A contact or MORESCO phone number is required for individual messages.'], 422);
+            }
+        }
+
         $message = Message::create([
-            'content' => $validated['content'],
-            'type' => $validated['type'],
-            'user_id' => auth()->id(),
-            'category' => $validated['category'] ?? 'ADVISORY',
+            'content'      => $validated['content'],
+            'type'         => $validated['type'],
+            'user_id'      => auth()->id(),
+            'category'     => $validated['category'] ?? 'ADVISORY',
             'is_scheduled' => $validated['is_scheduled'] ?? false,
             'scheduled_at' => $validated['scheduled_at'] ?? null,
-            'no_reply' => $validated['no_reply'] ?? true,
+            'no_reply'     => $validated['no_reply'] ?? true,
         ]);
 
         $dispatchCount = 0;
-        $successCount = 0;
-
+        $successCount  = 0;
         $contactsToText = [];
-        $gsmPortToUse = null;
+        $gsmPortToUse   = null;
 
         if ($validated['type'] === 'individual') {
             $gsmPortToUse = env('YEASTAR_PORT_INDIVIDUAL', 1);
-            $contact = Contact::find($validated['contact_id']);
-            if ($contact) {
+
+            if (!empty($validated['moresco_phone'])) {
+                // MORESCO consumer — find or create a local stub so the FK is satisfied
+                $phone = preg_replace('/[^0-9+]/', '', $validated['moresco_phone']);
+                $contact = Contact::firstOrCreate(
+                    ['phone_number' => $phone],
+                    [
+                        'name'   => $validated['moresco_name'] ?? 'MORESCO Consumer',
+                        'source' => 'moresco',
+                    ]
+                );
                 $contactsToText[] = $contact;
+            } else {
+                $contact = Contact::find($validated['contact_id']);
+                if ($contact) {
+                    $contactsToText[] = $contact;
+                }
             }
         }
         elseif ($validated['type'] === 'broadcast') {
             $gsmPortToUse = env('YEASTAR_PORT_BROADCAST', 2);
-            $groups = \App\Models\Group::with('contacts')->whereIn('id', $validated['group_ids'])->get();
-
-            // Get unique contacts across groups
             $uniqueContacts = collect();
-            foreach ($groups as $group) {
-                foreach ($group->contacts as $contact) {
-                    $uniqueContacts->push($contact);
+
+            // --- App groups (local MySQL) ---
+            if (!empty($validated['group_ids'])) {
+                $groups = \App\Models\Group::with('contacts')
+                    ->whereIn('id', $validated['group_ids'])
+                    ->get();
+                foreach ($groups as $group) {
+                    foreach ($group->contacts as $contact) {
+                        $uniqueContacts->push($contact);
+                    }
                 }
             }
-            $contactsToText = $uniqueContacts->unique('id')->values()->all();
+
+            // --- MORESCO service area groups (external SQL Server) ---
+            if (!empty($validated['moresco_group_codes'])) {
+                $morescoService = app(MorescoDbService::class);
+                foreach ($validated['moresco_group_codes'] as $saCode) {
+                    $members = $morescoService->getMembersBySaCode($saCode);
+                    foreach ($members as $member) {
+                        // Find or create a local stub so the FK is satisfied
+                        $phone = preg_replace('/[^0-9+]/', '', $member['phone_number'] ?? '');
+                        if (!$phone) continue;
+                        $contact = Contact::firstOrCreate(
+                            ['phone_number' => $phone],
+                            [
+                                'name'   => $member['name'] ?? 'MORESCO Consumer',
+                                'source' => 'moresco',
+                            ]
+                        );
+                        $uniqueContacts->push($contact);
+                    }
+                }
+            }
+
+            // De-duplicate by phone number across both sources
+            $contactsToText = $uniqueContacts->unique('phone_number')->values()->all();
         }
 
         $isFirst = true;
@@ -106,20 +162,20 @@ class MessageController extends Controller
 
                 // Determine destination number (cleaning it up if necessary)
                 $destination = preg_replace('/[^0-9+]/', '', $contact->phone_number);
-                
+
                 // Try sending via Yeastar using the specifically mapped port
                 $sent = $this->yeastarService->sendSms($destination, $validated['content'], $gsmPortToUse);
                 $dispatchCount++;
                 if ($sent) {
                     $successCount++;
                 }
-                
+
                 $status = $sent ? 'sent' : 'failed';
             }
 
             $message->recipients()->create([
                 'contact_id' => $contact->id,
-                'status' => $status,
+                'status'     => $status,
             ]);
         }
 
@@ -131,19 +187,20 @@ class MessageController extends Controller
         }
         $this->logUserActivity($logMsg);
 
-        $responseMsg = $message->is_scheduled 
-            ? 'Message scheduled successfully' 
+        $responseMsg = $message->is_scheduled
+            ? 'Message scheduled successfully'
             : ($dispatchCount > 0 ? "Message sent to {$successCount} of {$dispatchCount} recipients" : 'Message sent successfully');
 
         return response()->json([
             'message' => $responseMsg,
-            'data' => $message->load('recipients'),
+            'data'    => $message->load('recipients'),
         ], 201);
     }
 
     /**
      * Display the specified resource.
      */
+
     public function show(string $id)
     {
     //

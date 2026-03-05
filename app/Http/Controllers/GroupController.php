@@ -9,6 +9,12 @@ class GroupController extends Controller
 {
     public function index(Request $request)
     {
+        // When source=moresco, return service area groups from the external SQL Server
+        if ($request->source === 'moresco') {
+            $service = app(\App\Services\MorescoDbService::class);
+            return response()->json($service->getServiceAreaGroups());
+        }
+
         $query = Group::withCount('contacts');
         if ($request->has('source')) {
             $query->where('source', $request->source);

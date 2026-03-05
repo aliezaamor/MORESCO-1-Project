@@ -20,13 +20,21 @@
                 <div class="form-group" id="contactInput" style="font-size: 0.9rem; margin-top: 0.5rem; position: relative;">
                     <label class="form-label">Select Recipient (Contact)</label>
                     <input type="hidden" name="contact_id" id="contactIdInput">
+                    <input type="hidden" name="moresco_phone" id="morescoPhoneInput">
+                    <input type="hidden" name="moresco_name" id="morescoNameInput">
                     <div id="customContactSelect" tabindex="0" class="form-control" style="padding: 0.75rem; cursor: pointer; display: flex; justify-content: space-between; align-items: center;" onclick="toggleContactDropdown(event)">
                         <span id="contactSelectText" style="color: var(--text-color);">Choose Contact...</span>
                         <i class="fa-solid fa-chevron-down" style="color: var(--text-light); font-size: 0.8em; pointer-events: none;"></i>
                     </div>
                     
-                    <div id="contactDropdownList" style="display: none; position: absolute; top: calc(100% - 0.5rem); left: 0; right: 0; border: 1px solid var(--border-color); border-radius: 8px; padding: 0.5rem; flex-direction: column; z-index: 10; box-shadow: var(--shadow-md); margin-top: 0.5rem; background: var(--input-bg); max-height: 200px; overflow-y: auto;">
-                        <div style="color: var(--text-light); font-size: 0.8rem; padding: 0.5rem;">Loading contacts...</div>
+                    <div id="contactDropdownList" style="display: none; position: absolute; top: calc(100% - 0.5rem); left: 0; right: 0; border: 1px solid var(--border-color); border-radius: 8px; z-index: 10; box-shadow: var(--shadow-md); margin-top: 0.5rem; background: var(--input-bg);">
+                        <div style="padding: 0.5rem; border-bottom: 1px solid var(--border-color);">
+                            <input type="text" id="contactSearchInput" placeholder="Search account number, name or phone..." oninput="onContactSearchInput()" onclick="event.stopPropagation()"
+                                style="width: 100%; padding: 0.4rem 0.6rem; border-radius: 6px; border: 1px solid var(--border-color); background: var(--input-bg); color: var(--text-color); font-size: 0.82rem; box-sizing: border-box;">
+                        </div>
+                        <div id="contactDropdownInner" style="max-height: 200px; overflow-y: auto; padding: 0.4rem;">
+                            <div style="color: var(--text-light); font-size: 0.8rem; padding: 0.5rem;">Loading contacts...</div>
+                        </div>
                     </div>
                 </div>
 
@@ -184,13 +192,38 @@
         const catDropdown = document.getElementById('categoryDropdownList');
         if (groupDropdown) groupDropdown.style.display = 'none';
         if (catDropdown) catDropdown.style.display = 'none';
-        dropdown.style.display = dropdown.style.display === 'none' ? 'flex' : 'none';
+        const isOpen = dropdown.style.display !== 'none' && dropdown.style.display !== '';
+        dropdown.style.display = isOpen ? 'none' : 'block';
+        if (!isOpen) {
+            // Focus search input when opening
+            const searchInput = document.getElementById('contactSearchInput');
+            if (searchInput) setTimeout(() => searchInput.focus(), 50);
+        }
     }
 
-    function selectContact(id, name, phone) {
-        document.getElementById('contactIdInput').value = id;
-        document.getElementById('contactSelectText').textContent = `${name} (${phone})`;
+    function selectContact(id, name, phone, source) {
+        // Clear both fields first
+        document.getElementById('contactIdInput').value = '';
+        document.getElementById('morescoPhoneInput').value = '';
+        document.getElementById('morescoNameInput').value = '';
+
+        if (source === 'moresco') {
+            // MORESCO consumer — pass phone & name to backend directly
+            document.getElementById('morescoPhoneInput').value = phone;
+            document.getElementById('morescoNameInput').value = name;
+            // Show name + account number + phone in trigger label
+            document.getElementById('contactSelectText').textContent = `${name} · Acct# ${id} · ${phone}`;
+        } else {
+            // App contact — pass local DB id
+            document.getElementById('contactIdInput').value = id;
+            document.getElementById('contactSelectText').textContent = `${name} (${phone})`;
+        }
+
         document.getElementById('contactDropdownList').style.display = 'none';
+    }
+
+    function filterContactDropdown() {
+        onContactSearchInput();
     }
 
     function selectCategory(value) {
@@ -200,17 +233,20 @@
     }
 
     function updateGroupSelectText() {
-        const checkboxes = document.querySelectorAll('#groupDropdownList input[type="checkbox"]:checked');
+        const appCheckboxes = document.querySelectorAll('#groupDropdownList input[name="group_ids[]"]:checked');
+        const morescoCheckboxes = document.querySelectorAll('#groupDropdownList input[name="moresco_group_codes[]"]:checked');
+        const totalChecked = appCheckboxes.length + morescoCheckboxes.length;
         const textSpan = document.getElementById('groupSelectText');
         
-        if (checkboxes.length === 0) {
+        if (totalChecked === 0) {
             textSpan.textContent = "Select groups...";
             textSpan.style.color = "var(--text-color)";
-        } else if (checkboxes.length === 1) {
-            textSpan.textContent = checkboxes[0].nextElementSibling.textContent;
+        } else if (totalChecked === 1) {
+            const onlyOne = appCheckboxes.length === 1 ? appCheckboxes[0] : morescoCheckboxes[0];
+            textSpan.textContent = onlyOne.closest('label').querySelector('span').textContent;
             textSpan.style.color = "var(--text-color)";
         } else {
-            textSpan.textContent = `${checkboxes.length} groups selected`;
+            textSpan.textContent = `${totalChecked} groups selected`;
             textSpan.style.color = "var(--primary-color)";
             textSpan.style.fontWeight = "500";
         }
@@ -235,7 +271,8 @@
                 catDropdown.style.display = 'none';
             }
         }
-        if (conDropdown && conDropdown.style.display === 'flex') {
+        // Contact dropdown: check block display (not flex) since it's a column
+        if (conDropdown && conDropdown.style.display !== 'none' && conDropdown.style.display !== '') {
             if (!conTrigger.contains(event.target) && !conDropdown.contains(event.target)) {
                 conDropdown.style.display = 'none';
             }
@@ -247,40 +284,114 @@
         document.getElementById('scheduledAtInput').style.display = isScheduled ? 'block' : 'none';
     }
 
+    // ── Contact Search (Hybrid: 300 preloaded, full DB search when typing) ───
+    let appContactsList = [];
+    let morescoContactsList = []; // pre-loaded 300
+    let morescoSearchTimer = null;
+
+    function onContactSearchInput() {
+        const query = document.getElementById('contactSearchInput').value.trim();
+
+        // Always filter app contacts client-side
+        filterAppContacts(query);
+
+        // For MORESCO: if query is empty, restore the pre-loaded 300
+        if (query.length === 0) {
+            renderMorescoList(morescoContactsList);
+            return;
+        }
+
+        // Debounce server-side search for MORESCO
+        clearTimeout(morescoSearchTimer);
+        morescoSearchTimer = setTimeout(() => searchMorescoContacts(query), 350);
+    }
+
+    function filterAppContacts(query) {
+        const q = (query || '').toLowerCase();
+        const inner = document.getElementById('contactDropdownInner');
+        inner.querySelectorAll('.app-contact-option').forEach(el => {
+            el.style.display = el.textContent.toLowerCase().includes(q) ? '' : 'none';
+        });
+        const appHeader = inner.querySelector('.app-contacts-header');
+        if (appHeader) {
+            const anyVisible = [...inner.querySelectorAll('.app-contact-option')].some(el => el.style.display !== 'none');
+            appHeader.style.display = anyVisible ? '' : 'none';
+        }
+    }
+
+    function renderMorescoList(list) {
+        const morescoSection = document.getElementById('morescoContactSection');
+        if (!morescoSection) return;
+        let html = `<div class="contact-section-header" style="padding: 0.25rem 0.5rem; font-size: 0.7rem; font-weight: 700; color: var(--moresco-blue); text-transform: uppercase; border-top: 1px solid var(--border-color); margin-top: 0.5rem; padding-top: 0.5rem;">MORESCO System Contacts</div>`;
+        if (list.length === 0) {
+            html += `<div style="color: var(--text-light); font-size: 0.8rem; padding: 0.5rem;">No MORESCO contacts available.</div>`;
+        } else {
+            html += list.map(c => {
+                const name     = (c.name||'').replace(/'/g, "&#39;");
+                const phone    = (c.phone_number||'').replace(/'/g, "&#39;");
+                const memberId = (c.id||'').toString().replace(/'/g, "&#39;");
+                return `<div class="contact-option moresco-contact-option" onclick="selectContact('${memberId}', '${name}', '${phone}', 'moresco')" style="padding: 0.4rem 0.75rem; cursor: pointer; border-radius: 4px; color: var(--text-color); font-size: 0.85rem; line-height: 1.5;">
+                    <span style="font-weight: 500;">${c.name}</span>
+                    <span style="background: var(--moresco-blue); color: #fff; font-size: 0.65rem; font-weight: 600; padding: 1px 5px; border-radius: 3px; margin-left: 0.35rem;">${c.id}</span>
+                    <span style="color: var(--text-light); font-size: 0.75rem; margin-left: 0.25rem;">${c.phone_number}</span>
+                </div>`;
+            }).join('');
+        }
+        morescoSection.innerHTML = html;
+    }
+
+    async function searchMorescoContacts(query) {
+        const morescoSection = document.getElementById('morescoContactSection');
+        if (!morescoSection) return;
+
+        // Show spinner while waiting
+        morescoSection.innerHTML = `
+            <div class="contact-section-header" style="padding: 0.25rem 0.5rem; font-size: 0.7rem; font-weight: 700; color: var(--moresco-blue); text-transform: uppercase; border-top: 1px solid var(--border-color); margin-top: 0.5rem; padding-top: 0.5rem;">MORESCO System Contacts</div>
+            <div style="color: var(--text-light); font-size: 0.78rem; padding: 0.4rem 0.75rem;"><i class="fa-solid fa-spinner fa-spin"></i> Searching...</div>`;
+
+        try {
+            const results = await fetchAPI(`/contacts?source=moresco&picker=1&per_page=50&search=${encodeURIComponent(query)}`);
+            const list = Array.isArray(results) ? results : (results.data || []);
+            renderMorescoList(list);
+            if (list.length === 50) {
+                morescoSection.insertAdjacentHTML('beforeend',
+                    `<div style="font-size: 0.72rem; color: var(--text-light); padding: 0.35rem 0.75rem; font-style: italic;">Showing top 50 — refine search for more.</div>`);
+            }
+        } catch (e) {
+            morescoSection.innerHTML = `<div style="color: #ef4444; font-size: 0.78rem; padding: 0.4rem 0.75rem;">Failed to search MORESCO contacts.</div>`;
+        }
+    }
+    // ──────────────────────────────────────────────────────────────────────────
+
     async function loadOptions() {
         const [appContacts, morescoContacts, appGroups, morescoGroups] = await Promise.all([
             fetchAPI('/contacts?source=app'),
-            fetchAPI('/contacts?source=moresco'),
+            fetchAPI('/contacts?source=moresco&picker=1&per_page=300'),
             fetchAPI('/groups?source=app'),
             fetchAPI('/groups?source=moresco')
         ]);
 
-        const contactContainer = document.getElementById('contactDropdownList');
-        let contactHtml = '';
-        
-        if (appContacts.length > 0) {
-            contactHtml += `<div style="padding: 0.25rem 0.5rem; font-size: 0.7rem; font-weight: 700; color: var(--text-light); text-transform: uppercase;">App Contacts</div>`;
-            contactHtml += appContacts.map(c => `
-                <div class="contact-option" onclick="selectContact('${c.id}', '${c.name}', '${c.phone_number}')" style="padding: 0.4rem 0.75rem; cursor: pointer; border-radius: 4px; color: var(--text-color); font-size: 0.85rem;">
-                    ${c.name} <span style="color: var(--text-light); font-size: 0.75rem;">(${c.phone_number})</span>
-                </div>
-            `).join('');
-        }
-        
-        if (morescoContacts.length > 0) {
-            contactHtml += `<div style="padding: 0.25rem 0.5rem; font-size: 0.7rem; font-weight: 700; color: var(--moresco-blue); text-transform: uppercase; border-top: 1px solid var(--border-color); margin-top: 0.5rem; padding-top: 0.5rem;">MORESCO System Contacts</div>`;
-            contactHtml += morescoContacts.map(c => `
-                <div class="contact-option" onclick="selectContact('${c.id}', '${c.name}', '${c.phone_number}')" style="padding: 0.4rem 0.75rem; cursor: pointer; border-radius: 4px; color: var(--text-color); font-size: 0.85rem;">
-                    ${c.name} <span style="color: var(--text-light); font-size: 0.75rem;">(${c.phone_number})</span>
-                </div>
-            `).join('');
-        }
-        
-        if (contactHtml === '') {
-            contactHtml = '<div style="color: var(--text-light); font-size: 0.8rem; padding: 0.5rem;">No contacts available.</div>';
-        }
-        contactContainer.innerHTML = contactHtml;
+        appContactsList = appContacts;
+        morescoContactsList = Array.isArray(morescoContacts) ? morescoContacts : (morescoContacts.data || []);
 
+        const contactInner = document.getElementById('contactDropdownInner');
+        let contactHtml = '';
+
+        if (appContacts.length > 0) {
+            contactHtml += `<div class="contact-section-header app-contacts-header" style="padding: 0.25rem 0.5rem; font-size: 0.7rem; font-weight: 700; color: var(--text-light); text-transform: uppercase;">App Contacts</div>`;
+            contactHtml += appContacts.map(c => {
+                const name = (c.name||'').replace(/'/g, "&#39;");
+                const phone = (c.phone_number||'').replace(/'/g, "&#39;");
+                return `<div class="contact-option app-contact-option" onclick="selectContact('${c.id}', '${name}', '${phone}', 'app')" style="padding: 0.4rem 0.75rem; cursor: pointer; border-radius: 4px; color: var(--text-color); font-size: 0.85rem;">
+                    ${c.name} <span style="color: var(--text-light); font-size: 0.75rem;">(${c.phone_number})</span>
+                </div>`;
+            }).join('');
+        }
+
+        // MORESCO section — pre-loaded 300, upgrades to full-DB search on typing
+        contactHtml += `<div id="morescoContactSection"></div>`;
+        contactInner.innerHTML = contactHtml;
+        renderMorescoList(morescoContactsList);
 
         const groupContainer = document.getElementById('groupDropdownList');
         let groupHtml = '';
@@ -291,16 +402,19 @@
                 <label style="display: flex; align-items: center; gap: 0.75rem; cursor: pointer; padding: 0.25rem 0.5rem; font-size: 0.85rem; color: var(--text-color);" onclick="event.stopPropagation()">
                     <input type="checkbox" name="group_ids[]" value="${g.id}" onchange="updateGroupSelectText()">
                     <span style="color: inherit;">${g.name}</span>
+                    <span style="color: var(--text-light); font-size: 0.75rem; margin-left: auto;">${g.contacts_count ?? ''} members</span>
                 </label>
             `).join('');
         }
 
+        // morescoGroups = MORESCO service area groups from external DB
         if (morescoGroups.length > 0) {
-            groupHtml += `<div style="padding: 0.25rem 0.5rem; font-size: 0.7rem; font-weight: 700; color: var(--moresco-blue); text-transform: uppercase; border-top: 1px solid var(--border-color); margin-top: 0.5rem; padding-top: 0.5rem;">MORESCO System Groups</div>`;
+            groupHtml += `<div style="padding: 0.25rem 0.5rem; font-size: 0.7rem; font-weight: 700; color: var(--moresco-blue); text-transform: uppercase; border-top: 1px solid var(--border-color); margin-top: 0.5rem; padding-top: 0.5rem;">MORESCO Service Areas</div>`;
             groupHtml += morescoGroups.map(g => `
-                <label style="display: flex; align-items: center; gap: 0.75rem; cursor: pointer; padding: 0.25rem 0.5rem; font-size: 0.85rem; color: var(--text-color);" onclick="event.stopPropagation()">
-                    <input type="checkbox" name="group_ids[]" value="${g.id}" onchange="updateGroupSelectText()">
-                    <span style="color: inherit;">${g.name}</span>
+                <label style="display: flex; align-items: center; gap: 0.75rem; cursor: pointer; padding: 0.35rem 0.5rem; font-size: 0.85rem; color: var(--text-color);" onclick="event.stopPropagation()">
+                    <input type="checkbox" name="moresco_group_codes[]" value="${g.id}" onchange="updateGroupSelectText()">
+                    <span style="color: inherit; flex: 1;">${g.name}</span>
+                    <span style="background: var(--moresco-blue); color: #fff; font-size: 0.65rem; font-weight: 600; padding: 1px 6px; border-radius: 10px; white-space: nowrap;">${g.member_count} consumers</span>
                 </label>
             `).join('');
         }
@@ -518,9 +632,18 @@
         data.is_scheduled = formData.get('is_scheduled') === 'on' ? '1' : '0';
         data.no_reply = formData.get('no_reply') === 'on' ? '1' : '0';
         
-        // Handle multiple group IDs
+        // Remove empty moresco fields so backend doesn't trip on them
+        if (!data.moresco_phone) delete data.moresco_phone;
+        if (!data.moresco_name) delete data.moresco_name;
+        if (!data.contact_id) delete data.contact_id;
+
+        // Handle multiple group IDs (app groups + MORESCO service area codes)
         if (data.type === 'broadcast') {
             data.group_ids = formData.getAll('group_ids[]');
+            data.moresco_group_codes = formData.getAll('moresco_group_codes[]');
+            // Remove empty arrays so backend ignores them cleanly
+            if (data.group_ids.length === 0) delete data.group_ids;
+            if (data.moresco_group_codes.length === 0) delete data.moresco_group_codes;
         }
         
         try {
@@ -533,6 +656,16 @@
             const currentType = document.getElementById('messageTypeSelect').value;
             
             e.target.reset();
+
+            // Reset contact picker display text and hidden values
+            document.getElementById('contactSelectText').textContent = 'Choose Contact...';
+            document.getElementById('contactIdInput').value = '';
+            document.getElementById('morescoPhoneInput').value = '';
+            document.getElementById('morescoNameInput').value = '';
+            if (document.getElementById('contactSearchInput')) {
+                document.getElementById('contactSearchInput').value = '';
+                filterContactDropdown();
+            }
             
             // Restore type and update UI
             document.getElementById('messageTypeSelect').value = currentType;
@@ -545,6 +678,7 @@
             alert('Action failed: ' + err.message);
         }
     });
+
 
     document.addEventListener('DOMContentLoaded', () => {
         loadOptions();

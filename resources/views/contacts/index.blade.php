@@ -49,7 +49,7 @@
         <div id="morescoSearchBar" style="display: none; margin-bottom: 0.75rem;">
             <div style="position: relative; max-width: 380px;">
                 <i class="fa-solid fa-magnifying-glass" style="position: absolute; left: 0.75rem; top: 50%; transform: translateY(-50%); color: var(--text-light); font-size: 0.9rem;"></i>
-                <input type="text" id="morescoSearchInput" placeholder="Search by name, phone or email..."
+                <input type="text" id="morescoSearchInput" placeholder="Search by account number, name, or phone..."
                     style="padding: 0.5rem 0.75rem 0.5rem 2.25rem; border-radius: 8px; border: 1px solid var(--border-color); background: var(--input-bg); color: var(--text-color); width: 100%; font-size: 0.85rem;"
                     oninput="debouncedMorescoSearch()">
             </div>
@@ -387,25 +387,38 @@
             return;
         }
 
-        list.innerHTML = allGroups.map(g => `
-            <li class="table-dense" style="padding: 0.6rem 0.75rem; border-bottom: 1px solid #f1f5f9; display: flex; justify-content: space-between; align-items: center;">
-                <div style="display: flex; gap: 1rem; align-items: center;">
-                    <span style="color: var(--text-light); font-weight: 600; min-width: 30px;">#${g.id}</span>
-                    <div>
-                        <strong style="cursor: pointer; color: var(--moresco-blue);" onclick="viewGroup(${g.id})">${g.name}</strong>
-                        <div style="font-size: 0.75rem; color: var(--text-light);">${g.contacts_count} members</div>
-                    </div>
-                </div>
-                <div style="display: flex; gap: 0.25rem;">
+        list.innerHTML = allGroups.map(g => {
+            const count = g.member_count ?? g.contacts_count ?? 0;
+            const isMorescoGroup = g.source === 'moresco';
+            const idLabel = isMorescoGroup
+                ? `<span style="color: var(--moresco-blue); font-weight: 700; min-width: 40px; font-size: 0.75rem;">#${g.id}</span>`
+                : `<span style="color: var(--text-light); font-weight: 600; min-width: 30px;">#${g.id}</span>`;
+            const actions = isMorescoGroup
+                ? `<span style="font-size: 0.65rem; color: var(--moresco-blue); background: #e0f0ff; padding: 2px 7px; border-radius: 10px; font-weight: 600;">Read-only</span>`
+                : `<div style="display: flex; gap: 0.25rem;">
                     <button class="btn btn-icon" style="color: var(--moresco-blue);" onclick='openGroupModal(${JSON.stringify(g).replace(/'/g, "&apos;")})'>
                         <i class="fa-solid fa-pen-to-square"></i>
                     </button>
                     <button class="btn btn-icon" style="color: var(--danger-color);" onclick="deleteGroup(${g.id})">
                         <i class="fa-solid fa-trash"></i>
                     </button>
+                   </div>`;
+            const nameClick = isMorescoGroup
+                ? `<strong style="color: var(--moresco-blue);">${g.name}</strong>`
+                : `<strong style="cursor: pointer; color: var(--moresco-blue);" onclick="viewGroup(${g.id})">${g.name}</strong>`;
+
+            return `
+            <li class="table-dense" style="padding: 0.6rem 0.75rem; border-bottom: 1px solid #f1f5f9; display: flex; justify-content: space-between; align-items: center;">
+                <div style="display: flex; gap: 1rem; align-items: center;">
+                    ${idLabel}
+                    <div>
+                        ${nameClick}
+                        <div style="font-size: 0.75rem; color: var(--text-light);">${count} members</div>
+                    </div>
                 </div>
-            </li>
-        `).join('');
+                ${actions}
+            </li>`;
+        }).join('');
 
         updateBulkSelect();
     }

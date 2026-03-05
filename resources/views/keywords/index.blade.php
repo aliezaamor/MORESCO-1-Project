@@ -71,6 +71,24 @@
                         <!-- Dynamic fields will be injected here via JS -->
                     </div>
                 </div>
+
+                <!-- Placeholder reference — shown for action types that use member data -->
+                <div id="placeholderHints" style="display: none; background: #f0f7ff; border: 1px solid #cce3ff; border-radius: 8px; padding: 0.75rem; margin-top: 0.75rem; font-size: 0.78rem;">
+                    <div style="font-weight: 700; color: var(--moresco-blue); margin-bottom: 0.4rem;">
+                        <i class="fa-solid fa-tags" style="margin-right: 0.3rem;"></i> Available Placeholders
+                    </div>
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.25rem 1rem; color: var(--text-color);">
+                        <span><code>{name}</code> — Member full name</span>
+                        <span><code>{account}</code> — Account / member ID</span>
+                        <span><code>{area}</code> — Service area</span>
+                        <span><code>{status}</code> — Membership status</span>
+                        <span><code>{municipality}</code> — Municipality</span>
+                        <span><code>{barangay}</code> — Barangay</span>
+                    </div>
+                    <div style="margin-top: 0.5rem; color: var(--text-light);">
+                        Example: <em>Hello {name}, your account {account} is currently {status}.</em>
+                    </div>
+                </div>
                 <div class="form-group">
                     <label style="display: flex; align-items: center; gap: 0.5rem; cursor: pointer;">
                         <input type="checkbox" name="is_active" id="keywordActive" value="1" checked> Active
@@ -104,62 +122,115 @@
     }
 
     const actionConfig = {
-        'static': [],
-        'billing_info': [
-            { key: 'has_balance', label: 'Reply (Has Outstanding Balance)' },
-            { key: 'no_balance', label: 'Reply (No Balance)' }
-        ],
-        'due_date_info': [
-            { key: 'has_due', label: 'Reply (Has Pending Due Date)' },
-            { key: 'settled', label: 'Reply (Account Settled)' }
-        ],
-        'payment_history': [
-            { key: 'record_found', label: 'Reply (Record Found)' },
-            { key: 'no_record', label: 'Reply (No Recent Record)' }
-        ],
-        'account_status': [
-            { key: 'active', label: 'Reply (Status: Active)' },
-            { key: 'for_disconnection', label: 'Reply (Status: For Disconnection)' },
-            { key: 'disconnected', label: 'Reply (Status: Disconnected)' }
-        ],
-        'advisory_info': [
-            { key: 'active_advisory', label: 'Reply (Active Advisory Found)' },
-            { key: 'no_advisory', label: 'Reply (No Active Advisory)' }
-        ],
-        'outage_report': [
-            { key: 'request_location', label: 'Reply (Request Location Info)' },
-            { key: 'reported_success', label: 'Reply (Reported Successfully)' },
-            { key: 'invalid_location', label: 'Reply (Location Not Recognized)' },
-            { key: 'already_reported', label: 'Reply (Outage Already Reported)' }
-        ],
-        'events_info': [
-            { key: 'has_event', label: 'Reply (Upcoming Event Found)' },
-            { key: 'no_event', label: 'Reply (No Upcoming Events)' }
-        ]
+        'static': { fields: [], placeholders: [] },
+        'billing_info': {
+            fields: [
+                { key: 'has_balance', label: 'Reply (Has Outstanding Balance)' },
+                { key: 'no_balance',  label: 'Reply (No Balance / Paid Up)' }
+            ],
+            placeholders: ['{name}', '{account}', '{bill_amount}', '{billing_period}', '{due_date}']
+        },
+        'due_date_info': {
+            fields: [
+                { key: 'has_due', label: 'Reply (Has Pending Due Date)' },
+                { key: 'settled', label: 'Reply (Account Settled)' }
+            ],
+            placeholders: ['{name}', '{account}', '{due_date}']
+        },
+        'payment_history': {
+            fields: [
+                { key: 'record_found', label: 'Reply (Record Found)' },
+                { key: 'no_record',    label: 'Reply (No Recent Record)' }
+            ],
+            placeholders: ['{name}', '{account}', '{last_payment_amount}', '{last_payment_date}', '{or_number}']
+        },
+        'account_status': {
+            fields: [
+                { key: 'active',            label: 'Reply (Status: Active)' },
+                { key: 'for_disconnection', label: 'Reply (Status: For Disconnection)' },
+                { key: 'disconnected',      label: 'Reply (Status: Disconnected)' }
+            ],
+            placeholders: ['{name}', '{account}', '{status}']
+        },
+        'advisory_info': {
+            fields: [
+                { key: 'active_advisory', label: 'Reply (Active Advisory Found)' },
+                { key: 'no_advisory',     label: 'Reply (No Active Advisory)' }
+            ],
+            placeholders: []
+        },
+        'outage_report': {
+            fields: [
+                { key: 'request_location', label: 'Reply (Request Location Info)' },
+                { key: 'reported_success', label: 'Reply (Reported Successfully)' },
+                { key: 'invalid_location', label: 'Reply (Location Not Recognized)' },
+                { key: 'already_reported', label: 'Reply (Outage Already Reported)' }
+            ],
+            placeholders: []
+        },
+        'events_info': {
+            fields: [
+                { key: 'has_event', label: 'Reply (Upcoming Event Found)' },
+                { key: 'no_event',  label: 'Reply (No Upcoming Events)' }
+            ],
+            placeholders: []
+        }
     };
+
+    // Insert a placeholder at cursor position in a textarea
+    function insertPlaceholder(textareaId, placeholder) {
+        const ta = document.getElementById(textareaId);
+        if (!ta) return;
+        const start = ta.selectionStart;
+        const end   = ta.selectionEnd;
+        ta.value = ta.value.substring(0, start) + placeholder + ta.value.substring(end);
+        ta.selectionStart = ta.selectionEnd = start + placeholder.length;
+        ta.focus();
+    }
+
+    function buildChips(placeholders, textareaId) {
+        if (!placeholders.length) return '';
+        return `<div style="margin-top: 0.35rem; display: flex; flex-wrap: wrap; gap: 0.3rem;">
+            ${placeholders.map(p => `
+                <span onclick="insertPlaceholder('${textareaId}', '${p}')"
+                      style="cursor:pointer; background:#e0f0ff; color:var(--moresco-blue); font-size:0.72rem;
+                             padding:2px 8px; border-radius:10px; font-weight:600; user-select:none;"
+                      title="Click to insert">${p}</span>
+            `).join('')}
+            <span style="font-size:0.7rem; color:var(--text-light); align-self:center;">← click to insert</span>
+        </div>`;
+    }
 
     function toggleActionFields(actionData = null) {
         const type = document.getElementById('keywordActionType').value;
         const container = document.getElementById('actionDataInputs');
         const defaultReplyContent = document.getElementById('keywordContent');
-        
+        const hintsPanel = document.getElementById('placeholderHints');
+
+        // Show generic hints panel only for member-data actions
+        const memberActions = ['billing_info', 'due_date_info', 'payment_history', 'account_status'];
+        hintsPanel.style.display = memberActions.includes(type) ? 'block' : 'none';
+
         container.innerHTML = '';
-        
+
+        const config = actionConfig[type] || { fields: [], placeholders: [] };
+
         if (type === 'static') {
             defaultReplyContent.parentElement.style.display = 'block';
             defaultReplyContent.required = true;
         } else {
             defaultReplyContent.parentElement.style.display = 'none';
             defaultReplyContent.required = false;
-            defaultReplyContent.value = 'Dynamic Response'; // Need to pass validation
-            
-            const fields = actionConfig[type] || [];
-            fields.forEach(field => {
+            defaultReplyContent.value = 'Dynamic Response';
+
+            config.fields.forEach((field, i) => {
+                const taId  = `actionTextarea_${i}`;
                 const value = actionData ? (actionData[field.key] || '') : '';
                 container.innerHTML += `
-                    <div class="form-group mt-3" style="border-left: 3px solid var(--moresc-blue); padding-left: 10px; margin-bottom: 1rem;">
+                    <div class="form-group mt-3" style="border-left: 3px solid var(--moresco-blue); padding-left: 10px; margin-bottom: 1rem;">
                         <label class="form-label">${field.label}</label>
-                        <textarea name="action_data[${field.key}]" class="form-control" rows="3" required>${value}</textarea>
+                        <textarea id="${taId}" name="action_data[${field.key}]" class="form-control" rows="3" required>${value}</textarea>
+                        ${buildChips(config.placeholders, taId)}
                     </div>
                 `;
             });

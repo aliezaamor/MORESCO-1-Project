@@ -13,10 +13,18 @@ class ContactController extends Controller
         // Serve MORESCO System contacts directly from the external SQL Server
         if ($request->source === 'moresco') {
             $search  = $request->get('search');
+            $service = app(MorescoDbService::class);
+
+            // picker=1 → flat array for message-form dropdowns (no pagination wrapper)
+            if ($request->get('picker') == '1') {
+                $perPage = (int) $request->get('per_page', 200);
+                $offset  = (int) $request->get('offset', 0);
+                return response()->json($service->getMembers($search, $perPage, $offset));
+            }
+
+            // Default: paginated response for the Contacts page
             $perPage = (int) $request->get('per_page', 100);
             $offset  = (int) $request->get('offset', 0);
-
-            $service = app(MorescoDbService::class);
             return response()->json([
                 'data'  => $service->getMembers($search, $perPage, $offset),
                 'total' => $service->countMembers($search),

@@ -24,9 +24,15 @@ class MorescoDbService
             $params = [];
 
             if ($search && strlen($search) >= 1) {
-                $whereClause = "WHERE (ContactNo is not NULL and ContactNo <> '') and (MemberName LIKE ? OR ContactNo LIKE ? OR email LIKE ?)";
-                $likeSearch = '%' . $search . '%';
-                $params = [$likeSearch, $likeSearch, $likeSearch];
+                // PDO ODBC cannot bind ? params for LIKE against SQL Server nvarchar columns
+                // (causes SQLSTATE[22018]). Safely escape and inline the value instead.
+                $escaped = str_replace("'", "''", $search);
+                $like    = "'%" . $escaped . "%'";
+                $whereClause = "WHERE (ContactNo is not NULL and ContactNo <> '')
+                    AND (MemberName LIKE {$like}
+                      OR ContactNo  LIKE {$like}
+                      OR member_ID  LIKE {$like})";
+                $params = [];
             }
 
             $sql = "
@@ -71,9 +77,10 @@ class MorescoDbService
             $params = [];
 
             if ($search && strlen($search) >= 1) {
-                $whereClause = "WHERE (MemberName LIKE ? OR ContactNo LIKE ? OR email LIKE ?)";
-                $likeSearch = '%' . $search . '%';
-                $params = [$likeSearch, $likeSearch, $likeSearch];
+                $escaped = str_replace("'", "''", $search);
+                $like    = "'%" . $escaped . "%'";
+                $whereClause = "WHERE (MemberName LIKE {$like} OR ContactNo LIKE {$like} OR email LIKE {$like})";
+                $params = [];
             }
 
             $sql = "SELECT COUNT(*) AS total FROM dbo.vw_members_list {$whereClause}";
@@ -86,6 +93,168 @@ class MorescoDbService
         } catch (\Exception $e) {
             Log::error('MorescoDbService::countMembers failed: ' . $e->getMessage());
             return 0;
+        }
+    }
+
+    /**
+     * Look up a single member by their member_ID / account number.
+     * Returns a mapped member array, or null if not found.
+     */
+    public function getMemberByAccountNumber(string $accountNumber): ?array
+    {
+        try {
+            $pdo = $this->getConnection();
+
+            $sql = "
+                SELECT
+                    member_ID, MemberName, ContactNo, email,
+                    Address, service_area, sa_code, membershipstatus, Municipality, Barangay
+                FROM dbo.vw_members_list
+                WHERE member_ID = ?
+            ";
+
+            $stmt = $pdo->prepare($sql);
+            $stmt->execute([trim($accountNumber)]);
+            $row = $stmt->fetch(\PDO::FETCH_ASSOC);
+
+            return $row ? $this->mapMember($row) : null;
+
+        } catch (\Exception $e) {
+            \Illuminate\Support\Facades\Log::error('MorescoDbService::getMemberByAccountNumber failed: ' . $e->getMessage());
+            return null;
+        }
+    }
+
+    /**
+     * Get billing / payment data for a member by account number.
+     * Returns an array with keys matching the reply placeholders:
+     *   bill_amount, billing_period, due_date,
+     *   last_payment_amount, last_payment_date, or_number
+     *
+     * TODO: Replace the query below with the correct billing view/table name
+     *       once the MORESCO billing schema is confirmed.
+     *       Example views to check: vw_billing, vw_member_bills, vw_payments
+     */
+    public function getMemberBillingData(string $accountNumber): array
+    {
+        $empty = [
+            'bill_amount'          => 'N/A',
+            'billing_period'       => 'N/A',
+            'due_date'             => 'N/A',
+            'last_payment_amount'  => 'N/A',
+            'last_payment_date'    => 'N/A',
+            'or_number'            => 'N/A',
+        ];
+
+        try {
+            $pdo = $this->getConnection();
+
+            // TODO: Replace 'dbo.vw_billing'/'dbo.vw_payments' with the real view/table names.
+            // The column names below are also guesses — adjust once confirmed.
+            /*
+            $stmt = $pdo->prepare("
+                SELECT TOP 1
+                    b.BillAmount         AS bill_amount,
+                    b.BillingPeriod      AS billing_period,
+                    b.DueDate            AS due_date,
+                    p.PaymentAmount      AS last_payment_amount,
+                    p.PaymentDate        AS last_payment_date,
+                    p.ORNumber           AS or_number
+                FROM dbo.vw_billing b
+                LEFT JOIN dbo.vw_payments p ON p.member_ID = b.member_ID
+                WHERE b.member_ID = ?
+                ORDER BY b.DueDate DESC
+            ");
+            $stmt->execute([trim($accountNumber)]);
+            $row = $stmt->fetch(\PDO::FETCH_ASSOC);
+
+            if ($row) {
+                return [
+                    'bill_amount'         => '₱' . number_format((float)$row['bill_amount'], 2),
+                    'billing_period'      => $row['billing_period'] ?? 'N/A',
+                    'due_date'            => $row['due_date']        ?? 'N/A',
+                    'last_payment_amount' => '₱' . number_format((float)$row['last_payment_amount'], 2),
+                    'last_payment_date'   => $row['last_payment_date'] ?? 'N/A',
+                    'or_number'           => $row['or_number']          ?? 'N/A',
+                ];
+            }
+            */
+
+            // ← Remove the comment block above and uncomment when the real table/view is confirmed.
+            return $empty;
+
+        } catch (\Exception $e) {
+            \Illuminate\Support\Facades\Log::error('MorescoDbService::getMemberBillingData failed: ' . $e->getMessage());
+            return $empty;
+        }
+    }
+
+    /**
+     * Get distinct service areas with member counts — used as "groups" in the broadcast picker.
+     * Returns array of: [ id (sa_code), name, member_count ]
+     */
+    public function getServiceAreaGroups(): array
+    {
+        try {
+            $pdo = $this->getConnection();
+
+            $sql = "
+                SELECT
+                    sa_code,
+                    service_area,
+                    COUNT(*) AS member_count
+                FROM dbo.vw_members_list
+                WHERE ContactNo IS NOT NULL AND ContactNo <> ''
+                  AND sa_code IS NOT NULL AND sa_code <> ''
+                GROUP BY sa_code, service_area
+                ORDER BY service_area
+            ";
+
+            $stmt = $pdo->prepare($sql);
+            $stmt->execute();
+            $rows = $stmt->fetchAll(\PDO::FETCH_ASSOC);
+
+            return array_map(fn($row) => [
+                'id'           => $this->toUtf8(trim($row['sa_code'] ?? '')),
+                'name'         => $this->toUtf8(trim(($row['sa_code'] ?? '') . ' - ' . ($row['service_area'] ?? ''))),
+                'member_count' => (int) ($row['member_count'] ?? 0),
+                'source'       => 'moresco',
+            ], $rows);
+
+        } catch (\Exception $e) {
+            Log::error('MorescoDbService::getServiceAreaGroups failed: ' . $e->getMessage());
+            return [];
+        }
+    }
+
+    /**
+     * Fetch all members belonging to a given sa_code (service area).
+     * Used by MessageController for broadcast to MORESCO service area groups.
+     */
+    public function getMembersBySaCode(string $saCode): array
+    {
+        try {
+            $pdo = $this->getConnection();
+
+            $sql = "
+                SELECT
+                    member_ID, MemberName, ContactNo, email,
+                    Address, service_area, sa_code, membershipstatus, Municipality, Barangay
+                FROM dbo.vw_members_list
+                WHERE ContactNo IS NOT NULL AND ContactNo <> ''
+                  AND sa_code = ?
+                ORDER BY MemberName
+            ";
+
+            $stmt = $pdo->prepare($sql);
+            $stmt->execute([$saCode]);
+            $rows = $stmt->fetchAll(\PDO::FETCH_ASSOC);
+
+            return array_map(fn($row) => $this->mapMember($row), $rows);
+
+        } catch (\Exception $e) {
+            Log::error('MorescoDbService::getMembersBySaCode failed: ' . $e->getMessage());
+            return [];
         }
     }
 
