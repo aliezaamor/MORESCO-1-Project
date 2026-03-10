@@ -509,7 +509,7 @@
                 <strong style="color: var(--moresco-blue);">${g.name}</strong>
                 <div style="font-size: 0.75rem; color: var(--text-light);">${count} members</div>
             </div>
-            <span style="font-size: 0.65rem; color: var(--moresco-blue); background: #e0f0ff; padding: 2px 7px; border-radius: 10px; font-weight: 600; white-space: nowrap;">
+            <span class="badge badge-info" style="white-space: nowrap;">
                 <i class="fa-solid fa-eye" style="margin-right: 2px;"></i> View
             </span>
         </li>`;
