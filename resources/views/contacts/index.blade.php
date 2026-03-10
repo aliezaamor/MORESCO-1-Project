@@ -185,6 +185,33 @@
         </div>
     </div>
 </div>
+<!-- MORESCO Group Members Modal -->
+<div id="morescoGroupModal" class="modal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); align-items: center; justify-content: center; z-index: 1001;">
+    <div class="card" style="width: 640px; max-width: 95%; max-height: 88vh; display: flex; flex-direction: column;">
+        <div style="display: flex; justify-content: space-between; align-items: center; padding-bottom: 1rem; border-bottom: 1px solid #f1f5f9;">
+            <div>
+                <h3 id="morescoGroupModalTitle" style="margin: 0; color: var(--moresco-blue);">Group Members</h3>
+                <div id="morescoGroupModalSub" style="font-size: 0.8rem; color: var(--text-light); margin-top: 0.2rem;"></div>
+            </div>
+            <button class="btn" style="padding: 0.5rem;" onclick="closeModal('morescoGroupModal')"><i class="fa-solid fa-xmark"></i></button>
+        </div>
+
+        <!-- Filter input -->
+        <div style="padding: 0.75rem 0; border-bottom: 1px solid #f1f5f9;">
+            <div style="position: relative;">
+                <i class="fa-solid fa-magnifying-glass" style="position: absolute; left: 0.75rem; top: 50%; transform: translateY(-50%); color: var(--text-light); font-size: 0.85rem;"></i>
+                <input type="text" id="morescoGroupMemberSearch" placeholder="Filter by name, account #, or phone..."
+                    style="width: 100%; padding: 0.45rem 0.75rem 0.45rem 2.25rem; border-radius: 8px; border: 1px solid var(--border-color); background: var(--input-bg); color: var(--text-color); font-size: 0.83rem; box-sizing: border-box;"
+                    oninput="filterMorescoGroupMembers()">
+            </div>
+        </div>
+
+        <!-- Members list -->
+        <div id="morescoGroupMembersList" style="flex-grow: 1; overflow-y: auto; padding: 0;">
+            <div style="text-align: center; padding: 2rem; color: var(--text-light);"><i class="fa-solid fa-spinner fa-spin"></i> Loading...</div>
+        </div>
+    </div>
+</div>
 
 @endsection
 
@@ -377,9 +404,60 @@
     }
 
     async function loadGroups() {
-        allGroups = await fetchAPI(`/groups?source=${currentSource}`);
         const list = document.getElementById('groups-list');
-        
+
+        if (currentSource === 'moresco') {
+            // Fetch all three MORESCO group types in parallel
+            const [serviceAreas, municipalities, barangays] = await Promise.all([
+                fetchAPI('/groups?source=moresco'),
+                fetchAPI('/groups?source=moresco_municipality'),
+                fetchAPI('/groups?source=moresco_barangay'),
+            ]);
+
+            // allGroups = service areas only (for bulk-select compat, kept simple)
+            allGroups = serviceAreas;
+
+            let html = '';
+
+            // ── Service Areas ───────────────────────────────────────────────
+            if (serviceAreas.length > 0) {
+                html += groupSectionHeader('Service Areas', serviceAreas.length);
+                html += serviceAreas.map(g => morescoGroupRow(g, 'sa')).join('');
+            }
+
+            // ── Municipalities ──────────────────────────────────────────────
+            if (municipalities.length > 0) {
+                html += groupSectionHeader('Municipalities', municipalities.length);
+                html += municipalities.map(g => morescoGroupRow(g, 'municipality')).join('');
+            }
+
+            // ── Barangays (collapsible) ──────────────────────────────────────
+            if (barangays.length > 0) {
+                html += `
+                <li style="padding: 0.5rem 0.75rem; border-bottom: 1px solid #f1f5f9; background: var(--item-hover); display: flex; justify-content: space-between; align-items: center; cursor: pointer;" onclick="toggleContactsBarangayList()">
+                    <span style="font-size: 0.72rem; font-weight: 700; text-transform: uppercase; color: var(--moresco-blue); letter-spacing: 0.05em;">
+                        <i class="fa-solid fa-map-pin" style="margin-right: 0.35rem;"></i>Barangays
+                        <span style="font-weight: 400; color: var(--text-light);">(${barangays.length})</span>
+                    </span>
+                    <span id="brgyToggleIcon" style="font-size: 0.75rem; color: var(--text-light);">▼ expand</span>
+                </li>
+                <div id="barangayGroupRows" style="display: none;">
+                    ${barangays.map(g => morescoGroupRow(g, 'barangay')).join('')}
+                </div>`;
+            }
+
+            if (html === '') {
+                html = `<li style="text-align: center; padding: 2rem; color: var(--text-light);">No MORESCO groups found.</li>`;
+            }
+
+            list.innerHTML = html;
+            updateBulkSelect();
+            return;
+        }
+
+        // ── App groups ───────────────────────────────────────────────────────
+        allGroups = await fetchAPI(`/groups?source=${currentSource}`);
+
         if (allGroups.length === 0) {
             list.innerHTML = `<li style="text-align: center; padding: 2rem; color: var(--text-light);">No groups found for this source.</li>`;
             updateBulkSelect();
@@ -388,39 +466,65 @@
 
         list.innerHTML = allGroups.map(g => {
             const count = g.member_count ?? g.contacts_count ?? 0;
-            const isMorescoGroup = g.source === 'moresco';
-            const idLabel = isMorescoGroup
-                ? `<span style="color: var(--moresco-blue); font-weight: 700; min-width: 40px; font-size: 0.75rem;">#${g.id}</span>`
-                : `<span style="color: var(--text-light); font-weight: 600; min-width: 30px;">#${g.id}</span>`;
-            const actions = isMorescoGroup
-                ? `<span class="badge badge-info">Read-only</span>`
-                : `<div style="display: flex; gap: 0.25rem;">
+            return `
+            <li class="table-dense" style="padding: 0.6rem 0.75rem; border-bottom: 1px solid #f1f5f9; display: flex; justify-content: space-between; align-items: center;">
+                <div style="display: flex; gap: 1rem; align-items: center;">
+                    <span style="color: var(--text-light); font-weight: 600; min-width: 30px;">#${g.id}</span>
+                    <div>
+                        <strong style="cursor: pointer; color: var(--moresco-blue);" onclick="viewGroup(${g.id})">${g.name}</strong>
+                        <div style="font-size: 0.75rem; color: var(--text-light);">${count} members</div>
+                    </div>
+                </div>
+                <div style="display: flex; gap: 0.25rem;">
                     <button class="btn btn-icon" style="color: var(--moresco-blue);" onclick='openGroupModal(${JSON.stringify(g).replace(/'/g, "&apos;")})'>
                         <i class="fa-solid fa-pen-to-square"></i>
                     </button>
                     <button class="btn btn-icon" style="color: var(--danger-color);" onclick="deleteGroup(${g.id})">
                         <i class="fa-solid fa-trash"></i>
                     </button>
-                   </div>`;
-            const nameClick = isMorescoGroup
-                ? `<strong style="color: var(--moresco-blue);">${g.name}</strong>`
-                : `<strong style="cursor: pointer; color: var(--moresco-blue);" onclick="viewGroup(${g.id})">${g.name}</strong>`;
-
-            return `
-            <li class="table-dense" style="padding: 0.6rem 0.75rem; border-bottom: 1px solid #f1f5f9; display: flex; justify-content: space-between; align-items: center;">
-                <div style="display: flex; gap: 1rem; align-items: center;">
-                    ${idLabel}
-                    <div>
-                        ${nameClick}
-                        <div style="font-size: 0.75rem; color: var(--text-light);">${count} members</div>
-                    </div>
                 </div>
-                ${actions}
             </li>`;
         }).join('');
 
         updateBulkSelect();
     }
+
+    function groupSectionHeader(label, count) {
+        return `<li style="padding: 0.5rem 0.75rem; border-bottom: 1px solid #f1f5f9; background: var(--item-hover);">
+            <span style="font-size: 0.72rem; font-weight: 700; text-transform: uppercase; color: var(--moresco-blue); letter-spacing: 0.05em;">
+                <i class="fa-solid fa-layer-group" style="margin-right: 0.35rem;"></i>${label}
+                <span style="font-weight: 400; color: var(--text-light);">(${count})</span>
+            </span>
+        </li>`;
+    }
+
+    function morescoGroupRow(g, type) {
+        const count = g.member_count ?? 0;
+        const encodedId   = encodeURIComponent(g.id).replace(/'/g, "&#39;");
+        const escapedName = (g.name || '').replace(/'/g, "&#39;");
+        return `
+        <li class="table-dense" style="padding: 0.6rem 0.75rem; border-bottom: 1px solid #f1f5f9; display: flex; justify-content: space-between; align-items: center; cursor: pointer;"
+            onclick="viewMorescoGroup('${type}', '${g.id.replace(/'/g, "\\'") }', '${escapedName}')">
+            <div>
+                <strong style="color: var(--moresco-blue);">${g.name}</strong>
+                <div style="font-size: 0.75rem; color: var(--text-light);">${count} members</div>
+            </div>
+            <span style="font-size: 0.65rem; color: var(--moresco-blue); background: #e0f0ff; padding: 2px 7px; border-radius: 10px; font-weight: 600; white-space: nowrap;">
+                <i class="fa-solid fa-eye" style="margin-right: 2px;"></i> View
+            </span>
+        </li>`;
+    }
+
+    function toggleContactsBarangayList() {
+        const rows = document.getElementById('barangayGroupRows');
+        const icon = document.getElementById('brgyToggleIcon');
+        if (!rows) return;
+        const isOpen = rows.style.display !== 'none';
+        rows.style.display = isOpen ? 'none' : 'block';
+        if (icon) icon.textContent = isOpen ? '▼ expand' : '▲ collapse';
+    }
+
+
 
     function updateBulkSelect() {
         // Update bulk select
@@ -648,6 +752,68 @@
             alert('Failed to delete group: ' + err.message);
         }
     }
+
+    // ── MORESCO Group Members Modal ──────────────────────────────────────────
+    let morescoGroupMembersCache = [];
+
+    async function viewMorescoGroup(type, id, label) {
+        document.getElementById('morescoGroupModalTitle').textContent = label;
+        document.getElementById('morescoGroupModalSub').textContent = 'Loading members...';
+        document.getElementById('morescoGroupMemberSearch').value = '';
+        document.getElementById('morescoGroupMembersList').innerHTML =
+            `<div style="text-align:center;padding:2rem;color:var(--text-light);"><i class="fa-solid fa-spinner fa-spin"></i> Loading...</div>`;
+        openModal('morescoGroupModal');
+
+        let endpoint = '/contacts?source=moresco';
+        if (type === 'sa')          endpoint += `&sa_code=${encodeURIComponent(id)}`;
+        if (type === 'municipality') endpoint += `&municipality=${encodeURIComponent(id)}`;
+        if (type === 'barangay')    endpoint += `&barangay=${encodeURIComponent(id)}`;
+
+        try {
+            const members = await fetchAPI(endpoint);
+            morescoGroupMembersCache = Array.isArray(members) ? members : (members.data || []);
+            document.getElementById('morescoGroupModalSub').textContent =
+                `${morescoGroupMembersCache.length.toLocaleString()} member${morescoGroupMembersCache.length !== 1 ? 's' : ''}`;
+            renderMorescoGroupMembers(morescoGroupMembersCache);
+        } catch (e) {
+            document.getElementById('morescoGroupMembersList').innerHTML =
+                `<div style="text-align:center;padding:2rem;color:#ef4444;">Failed to load members.</div>`;
+        }
+    }
+
+    function renderMorescoGroupMembers(list) {
+        const container = document.getElementById('morescoGroupMembersList');
+        if (list.length === 0) {
+            container.innerHTML = `<div style="text-align:center;padding:2rem;color:var(--text-light);">No members found.</div>`;
+            return;
+        }
+        container.innerHTML = `<table style="width:100%;border-collapse:collapse;">
+            <thead style="position:sticky;top:0;background:white;z-index:1;">
+                <tr style="text-align:left;border-bottom:2px solid #e2e8f0;font-size:0.75rem;color:var(--text-light);text-transform:uppercase;">
+                    <th style="padding:0.5rem 1rem;">Name</th>
+                    <th style="padding:0.5rem;">Acct #</th>
+                    <th style="padding:0.5rem;">Phone</th>
+                </tr>
+            </thead>
+            <tbody>
+                ${list.map(m => `
+                <tr class="moresco-member-row" style="border-bottom:1px solid #f1f5f9;font-size:0.83rem;"
+                    data-search="${(m.name||'').toLowerCase()} ${(m.id||'')} ${(m.phone_number||'')}">
+                    <td style="padding:0.55rem 1rem;font-weight:500;">${m.name || '-'}</td>
+                    <td style="padding:0.55rem;color:var(--moresco-blue);font-weight:600;font-size:0.78rem;white-space:nowrap;">${m.id || '-'}</td>
+                    <td style="padding:0.55rem;white-space:nowrap;">${m.phone_number || '-'}</td>
+                </tr>`).join('')}
+            </tbody>
+        </table>`;
+    }
+
+    function filterMorescoGroupMembers() {
+        const q = document.getElementById('morescoGroupMemberSearch').value.toLowerCase();
+        document.querySelectorAll('.moresco-member-row').forEach(row => {
+            row.style.display = row.dataset.search.includes(q) ? '' : 'none';
+        });
+    }
+    // ────────────────────────────────────────────────────────────────────────
 
     // Init
     document.addEventListener('DOMContentLoaded', () => {

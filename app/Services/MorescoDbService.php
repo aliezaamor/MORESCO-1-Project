@@ -228,6 +228,140 @@ class MorescoDbService
     }
 
     /**
+     * Get distinct municipalities with member counts.
+     */
+    public function getMunicipalityGroups(): array
+    {
+        try {
+            $pdo = $this->getConnection();
+
+            $sql = "
+                SELECT
+                    Municipality,
+                    COUNT(*) AS member_count
+                FROM dbo.vw_members_list
+                WHERE ContactNo IS NOT NULL AND ContactNo <> ''
+                  AND Municipality IS NOT NULL AND Municipality <> ''
+                GROUP BY Municipality
+                ORDER BY Municipality
+            ";
+
+            $stmt = $pdo->prepare($sql);
+            $stmt->execute();
+            $rows = $stmt->fetchAll(\PDO::FETCH_ASSOC);
+
+            return array_map(fn($row) => [
+                'id'           => $this->toUtf8(trim($row['Municipality'] ?? '')),
+                'name'         => $this->toUtf8(trim($row['Municipality'] ?? '')),
+                'member_count' => (int) ($row['member_count'] ?? 0),
+                'source'       => 'moresco',
+            ], $rows);
+
+        } catch (\Exception $e) {
+            Log::error('MorescoDbService::getMunicipalityGroups failed: ' . $e->getMessage());
+            return [];
+        }
+    }
+
+    /**
+     * Get distinct barangays with member counts.
+     */
+    public function getBarangayGroups(): array
+    {
+        try {
+            $pdo = $this->getConnection();
+
+            $sql = "
+                SELECT
+                    Barangay,
+                    Municipality,
+                    COUNT(*) AS member_count
+                FROM dbo.vw_members_list
+                WHERE ContactNo IS NOT NULL AND ContactNo <> ''
+                  AND Barangay IS NOT NULL AND Barangay <> ''
+                GROUP BY Barangay, Municipality
+                ORDER BY Municipality, Barangay
+            ";
+
+            $stmt = $pdo->prepare($sql);
+            $stmt->execute();
+            $rows = $stmt->fetchAll(\PDO::FETCH_ASSOC);
+
+            return array_map(fn($row) => [
+                'id'           => $this->toUtf8(trim($row['Municipality'] ?? '') . '|' . trim($row['Barangay'] ?? '')),
+                'name'         => $this->toUtf8(trim($row['Barangay'] ?? '') . ' — ' . trim($row['Municipality'] ?? '')),
+                'member_count' => (int) ($row['member_count'] ?? 0),
+                'source'       => 'moresco',
+            ], $rows);
+
+        } catch (\Exception $e) {
+            Log::error('MorescoDbService::getBarangayGroups failed: ' . $e->getMessage());
+            return [];
+        }
+    }
+
+    /**
+     * Fetch all members in a given municipality.
+     */
+    public function getMembersByMunicipality(string $municipality): array
+    {
+        try {
+            $pdo     = $this->getConnection();
+            $escaped = str_replace("'", "''", $municipality);
+
+            $sql = "
+                SELECT member_ID, MemberName, ContactNo, email,
+                       Address, service_area, sa_code, membershipstatus, Municipality, Barangay
+                FROM dbo.vw_members_list
+                WHERE ContactNo IS NOT NULL AND ContactNo <> ''
+                  AND Municipality = '{$escaped}'
+                ORDER BY MemberName
+            ";
+
+            $stmt = $pdo->prepare($sql);
+            $stmt->execute();
+            return array_map(fn($row) => $this->mapMember($row), $stmt->fetchAll(\PDO::FETCH_ASSOC));
+
+        } catch (\Exception $e) {
+            Log::error('MorescoDbService::getMembersByMunicipality failed: ' . $e->getMessage());
+            return [];
+        }
+    }
+
+    /**
+     * Fetch all members in a given barangay within a municipality.
+     * $groupId format: "Municipality|Barangay"
+     */
+    public function getMembersByBarangay(string $groupId): array
+    {
+        try {
+            $parts      = explode('|', $groupId, 2);
+            $municipality = str_replace("'", "''", $parts[0] ?? '');
+            $barangay     = str_replace("'", "''", $parts[1] ?? '');
+            $pdo          = $this->getConnection();
+
+            $sql = "
+                SELECT member_ID, MemberName, ContactNo, email,
+                       Address, service_area, sa_code, membershipstatus, Municipality, Barangay
+                FROM dbo.vw_members_list
+                WHERE ContactNo IS NOT NULL AND ContactNo <> ''
+                  AND Municipality = '{$municipality}'
+                  AND Barangay = '{$barangay}'
+                ORDER BY MemberName
+            ";
+
+            $stmt = $pdo->prepare($sql);
+            $stmt->execute();
+            return array_map(fn($row) => $this->mapMember($row), $stmt->fetchAll(\PDO::FETCH_ASSOC));
+
+        } catch (\Exception $e) {
+            Log::error('MorescoDbService::getMembersByBarangay failed: ' . $e->getMessage());
+            return [];
+        }
+    }
+
+
+    /**
      * Fetch all members belonging to a given sa_code (service area).
      * Used by MessageController for broadcast to MORESCO service area groups.
      */

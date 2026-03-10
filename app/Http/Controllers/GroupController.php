@@ -15,6 +15,16 @@ class GroupController extends Controller
             return response()->json($service->getServiceAreaGroups());
         }
 
+        if ($request->source === 'moresco_municipality') {
+            $service = app(\App\Services\MorescoDbService::class);
+            return response()->json($service->getMunicipalityGroups());
+        }
+
+        if ($request->source === 'moresco_barangay') {
+            $service = app(\App\Services\MorescoDbService::class);
+            return response()->json($service->getBarangayGroups());
+        }
+
         $query = Group::withCount('contacts');
         if ($request->has('source')) {
             $query->where('source', $request->source);
