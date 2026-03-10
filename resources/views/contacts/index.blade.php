@@ -23,12 +23,12 @@
             </div>
         </div>
         
-        <div id="sourceWarning" style="display: none; background: #fffbeb; color: #b45309; border: 1px solid #fde68a; padding: 0.75rem; border-radius: 8px; margin-bottom: 1rem; font-size: 0.85rem;">
+        <div id="sourceWarning" class="alert-warning" style="display: none;">
             <i class="fa-solid fa-circle-info"></i> <strong>Note:</strong> MORESCO System contacts and groups are synced automatically from external databases. You cannot add them manually here.
         </div>
 
         <!-- Bulk Actions Bar -->
-        <div id="bulkActionsBar" class="card" style="display: none; padding: 0.75rem 1.5rem; margin-bottom: 1rem; background: #f0f7ff; border: 1px solid #cce3ff; flex-direction: row; align-items: center; justify-content: space-between;">
+        <div id="bulkActionsBar" class="card bulk-actions-bar" style="display: none;">
             <div style="font-size: 0.875rem; color: var(--moresco-blue); font-weight: 600;">
                 <span id="selectedCount">0</span> contacts selected
             </div>
@@ -59,7 +59,7 @@
             <div class="scrollable-container">
                 <table class="table-dense" style="width: 100%; border-collapse: collapse;">
                     <thead style="position: sticky; top: 0; background: white; z-index: 10;">
-                        <tr style="text-align: left; border-bottom: 2px solid #e2e8f0;">
+                        <tr style="text-align: left; border-bottom: 2px solid var(--border-color);">
                             <th style="width: 40px; text-align: center;" id="th-checkbox">
                                 <input type="checkbox" id="selectAllContacts" onclick="toggleSelectAll(this)">
                             </th>
@@ -79,12 +79,11 @@
             </div>
         </div>
 
-        <!-- MORESCO Pagination -->
         <div id="morescoPageControls" style="display: none; margin-top: 1rem; display: none; gap: 0.75rem; align-items: center; justify-content: space-between;">
             <span id="morescoPageInfo" style="font-size: 0.8rem; color: var(--text-light);"></span>
             <div style="display: flex; gap: 0.5rem;">
-                <button id="btnPrevPage" class="btn" onclick="changeMorescoPage(-1)" style="font-size: 0.8rem; padding: 0.35rem 0.8rem;">&#8592; Prev</button>
-                <button id="btnNextPage" class="btn" onclick="changeMorescoPage(1)" style="font-size: 0.8rem; padding: 0.35rem 0.8rem;">Next &#8594;</button>
+                <button id="btnPrevPage" class="btn btn-secondary" onclick="changeMorescoPage(-1)" style="font-size: 0.8rem; padding: 0.35rem 0.8rem;">&#8592; Prev</button>
+                <button id="btnNextPage" class="btn btn-secondary" onclick="changeMorescoPage(1)" style="font-size: 0.8rem; padding: 0.35rem 0.8rem;">Next &#8594;</button>
             </div>
         </div>
     </div>
@@ -126,7 +125,7 @@
                 <input type="email" name="email" id="contactEmail" class="form-control">
             </div>
             <div style="display: flex; justify-content: flex-end; gap: 0.5rem; margin-top: 1.5rem;">
-                <button type="button" class="btn" onclick="closeModal('contactModal')" style="background: #e2e8f0;">Cancel</button>
+                <button type="button" class="btn btn-secondary" onclick="closeModal('contactModal')">Cancel</button>
                 <button type="submit" class="btn btn-primary">Save</button>
             </div>
         </form>
@@ -148,7 +147,7 @@
                 <textarea name="description" id="groupDescription" class="form-control"></textarea>
             </div>
             <div style="display: flex; justify-content: flex-end; gap: 0.5rem; margin-top: 1.5rem;">
-                <button type="button" class="btn" onclick="closeModal('groupModal')" style="background: #e2e8f0;">Cancel</button>
+                <button type="button" class="btn btn-secondary" onclick="closeModal('groupModal')">Cancel</button>
                 <button type="submit" class="btn btn-primary">Save</button>
             </div>
         </form>
@@ -332,7 +331,7 @@
                     <td class="col-email" style="max-width: 150px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;" title="${c.email || ''}">${c.email || '-'}</td>
                     <td class="col-extra" style="font-size: 0.8rem; color: var(--text-light);">${c.service_area || '-'}</td>
                     <td class="col-extra">
-                        <span style="font-size: 0.72rem; padding: 2px 7px; border-radius: 4px; background: ${c.status === 'Active' ? '#dcfce7' : '#f1f5f9'}; color: ${c.status === 'Active' ? '#15803d' : '#64748b'}; font-weight: 600;">
+                        <span class="badge ${c.status === 'Active' ? 'badge-success' : 'badge-muted'}">
                             ${c.status || 'Unknown'}
                         </span>
                     </td>
@@ -394,7 +393,7 @@
                 ? `<span style="color: var(--moresco-blue); font-weight: 700; min-width: 40px; font-size: 0.75rem;">#${g.id}</span>`
                 : `<span style="color: var(--text-light); font-weight: 600; min-width: 30px;">#${g.id}</span>`;
             const actions = isMorescoGroup
-                ? `<span style="font-size: 0.65rem; color: var(--moresco-blue); background: #e0f0ff; padding: 2px 7px; border-radius: 10px; font-weight: 600;">Read-only</span>`
+                ? `<span class="badge badge-info">Read-only</span>`
                 : `<div style="display: flex; gap: 0.25rem;">
                     <button class="btn btn-icon" style="color: var(--moresco-blue);" onclick='openGroupModal(${JSON.stringify(g).replace(/'/g, "&apos;")})'>
                         <i class="fa-solid fa-pen-to-square"></i>
