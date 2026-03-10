@@ -43,6 +43,11 @@
                     <i class="fa-solid fa-address-book"></i> Contacts & Groups
                 </a>
             </li>
+            <li>
+                <a href="{{ route('accounts.index') }}" class="nav-link {{ request()->routeIs('accounts.*') ? 'active' : '' }}">
+                    <i class="fa-solid fa-users-viewfinder"></i> Accounts Master List
+                </a>
+            </li>
             <li class="nav-item has-dropdown">
                 @php
                     $isMessagesActive = request()->routeIs('view.messages.*') || request()->routeIs('view.broadcasts.*');

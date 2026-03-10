@@ -141,20 +141,26 @@ class SmsProcessingService
                     }
                 }
 
+                // ── Pre-fetch Billing Data ──────────────────────────────────────
+                $billing = null;
+                if ($member && in_array($actionType, ['billing_info', 'due_date_info', 'payment_history', 'account_status'])) {
+                    $billing = $morescoService->getMemberBillingData($accountNumber);
+                }
+
                 // ── Action processing ─────────────────────────────────────────
                 switch ($actionType) {
 
                     case 'billing_info':
-                        $status     = strtolower($member['status'] ?? '');
-                        $hasBalance = !in_array($status, ['paid', 'settled', 'current']);
+                        $rawBalance = str_replace(['₱', ',', ' '], '', $billing['balance'] ?? '0');
+                        $hasBalance = (float)$rawBalance > 0.0;
                         $replyContent = $hasBalance
                             ? ($actionData['has_balance'] ?? $replyContent)
                             : ($actionData['no_balance']  ?? $replyContent);
                         break;
 
                     case 'due_date_info':
-                        $status = strtolower($member['status'] ?? '');
-                        $hasDue = str_contains($status, 'due') || str_contains($status, 'unpaid');
+                        $rawBalance = str_replace(['₱', ',', ' '], '', $billing['balance'] ?? '0');
+                        $hasDue = (float)$rawBalance > 0.0;
                         $replyContent = $hasDue
                             ? ($actionData['has_due'] ?? $replyContent)
                             : ($actionData['settled']  ?? $replyContent);
@@ -166,8 +172,7 @@ class SmsProcessingService
 
                     case 'account_status':
                         // Fetch the actual billing status string (Active, Disconnected, etc) and default to active if not tracked
-                        $billingInfo = $morescoService->getMemberBillingData($accountNumber);
-                        $accStatus   = strtolower($billingInfo['account_status'] ?? 'active');
+                        $accStatus   = strtolower($billing['account_status'] ?? 'active');
 
                         if (str_contains($accStatus, 'active')) {
                             $replyContent = $actionData['active']           ?? $replyContent;
@@ -221,8 +226,7 @@ class SmsProcessingService
                 }
 
                 // Billing/payment placeholders — fetched for relevant action types
-                if ($member && in_array($actionType, ['billing_info', 'due_date_info', 'payment_history', 'account_status'])) {
-                    $billing = $morescoService->getMemberBillingData($accountNumber);
+                if ($billing) {
                     $replyContent = str_replace(
                         ['{bill_amount}',                   '{billing_period}',                   '{due_date}',                   '{balance}',                   '{last_payment_amount}',                   '{last_payment_date}',                   '{or_number}',                   '{account_status}'           ],
                         [$billing['bill_amount'] ?? 'N/A',  $billing['billing_period'] ?? 'N/A',  $billing['due_date'] ?? 'N/A',  $billing['balance'] ?? 'N/A',  $billing['last_payment_amount'] ?? 'N/A',  $billing['last_payment_date'] ?? 'N/A',  $billing['or_number'] ?? 'N/A',  $billing['account_status'] ?? 'N/A'],

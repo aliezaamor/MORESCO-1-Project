@@ -100,11 +100,22 @@ class MorescoDbService
      * Look up a single member by their member_ID / account number.
      * Returns a mapped member array, or null if not found.
      */
-    public function getMemberByAccountNumber(string $accountNumber): ?array
+    public function getMemberByAccountNumber(string $accountNo): ?array
     {
         try {
             $pdo = $this->getConnection();
+            $escaped = trim($accountNo);
 
+            // 1. Resolve member_id from dbo.account
+            $stmtMap = $pdo->prepare("SELECT member_id FROM dbo.account WHERE account_no = ?");
+            $stmtMap->execute([$escaped]);
+            $accountRecord = $stmtMap->fetch(\PDO::FETCH_ASSOC);
+
+            if (!$accountRecord) {
+                return null;
+            }
+
+            // 2. Query vw_members_list using the resolved member_id
             $sql = "
                 SELECT
                     member_ID, MemberName, ContactNo, email,
@@ -114,13 +125,42 @@ class MorescoDbService
             ";
 
             $stmt = $pdo->prepare($sql);
-            $stmt->execute([trim($accountNumber)]);
+            $stmt->execute([$accountRecord['member_id']]);
             $row = $stmt->fetch(\PDO::FETCH_ASSOC);
 
             return $row ? $this->mapMember($row) : null;
 
         } catch (\Exception $e) {
             \Illuminate\Support\Facades\Log::error('MorescoDbService::getMemberByAccountNumber failed: ' . $e->getMessage());
+            return null;
+        }
+    }
+
+    /**
+     * Get member details by Member ID directly from vw_members_list
+     */
+    public function getMemberById(string $memberId): ?array
+    {
+        try {
+            $pdo = $this->getConnection();
+            $stmt = $pdo->prepare("SELECT TOP 1 * FROM dbo.vw_members_list WHERE member_ID = ?");
+            $stmt->execute([$memberId]);
+            $member = $stmt->fetch(\PDO::FETCH_ASSOC);
+
+            if (!$member) {
+                return null;
+            }
+
+            return [
+                'id'           => $this->toUtf8($member['member_ID']),
+                'name'         => $this->toUtf8($member['MemberName'] ?? ''),
+                'sa_code'      => $this->toUtf8($member['sa_code'] ?? ''),
+                'status'       => $this->toUtf8($member['membershipstatus'] ?? ''),
+                'address'      => $this->toUtf8($member['service_area'] ?? ''),
+            ];
+
+        } catch (\Exception $e) {
+            \Illuminate\Support\Facades\Log::error('MorescoDbService::getMemberById failed: ' . $e->getMessage());
             return null;
         }
     }
@@ -136,7 +176,7 @@ class MorescoDbService
      *   last_payment_date   — date of most recent payment
      *   or_number           — Official Receipt of most recent payment
      */
-    public function getMemberBillingData(string $accountNumber): array
+    public function getMemberBillingData(string $accountNo): array
     {
         $empty = [
             'bill_amount'          => 'N/A',
@@ -151,27 +191,7 @@ class MorescoDbService
 
         try {
             $pdo     = $this->getConnection();
-            $escaped = trim($accountNumber);
-
-            // ── 0. Fast Lookup: Map member_ID to padded account_no ────────────
-            // The billing views store padded account numbers (e.g. 08050560).
-            // This query fetches all exact padded account numbers tied to the member.
-            $stmtMap = $pdo->prepare("
-                SELECT account_no
-                FROM dbo.account
-                WHERE member_id = ?
-            ");
-            $stmtMap->execute([$escaped]);
-            $mappedRows = $stmtMap->fetchAll(\PDO::FETCH_ASSOC);
-            $mappedAccounts = array_map(fn($r) => $r['account_no'], $mappedRows);
-
-            // If the member doesn't have an entry in dbo.account, fallback to exact string
-            if (empty($mappedAccounts)) {
-                $mappedAccounts = [$escaped];
-            }
-
-            // Create placeholders for the IN clause (e.g., ?, ?, ?)
-            $inPlaceholders = str_repeat('?,', count($mappedAccounts) - 1) . '?';
+            $escaped = trim($accountNo);
 
             // ── Latest account info (due date, status) ──────────────────────
             $stmtAcc = $pdo->prepare("
@@ -179,40 +199,42 @@ class MorescoDbService
                     due_date,
                     status_id
                 FROM dbo.VW_ACCOUNTS_METER_READING
-                WHERE account_no IN ($inPlaceholders)
+                WHERE account_no = ?
                 ORDER BY billmo DESC, rdng_date DESC
             ");
-            $stmtAcc->execute($mappedAccounts);
+            $stmtAcc->execute([$escaped]);
             $acc = $stmtAcc->fetch(\PDO::FETCH_ASSOC);
 
-            // ── Latest bill (debit row) ───────────────────────────────────────
+            // ── Latest bill (credit row with no OR) ─────────────────────────
             $stmtBill = $pdo->prepare("
                 SELECT TOP 1
-                    debit       AS bill_amount,
+                    credit      AS bill_amount,
                     balance     AS balance,
                     trans_date  AS bill_date
                 FROM dbo.vw_AccountTransactions
-                WHERE account_no IN ($inPlaceholders)
-                  AND debit > 0
+                WHERE account_no = ?
+                  AND credit > 0
+                  AND [official_receipt] IS NULL
                   AND (isReversed IS NULL OR isReversed = 0)
                 ORDER BY trans_date DESC
             ");
-            $stmtBill->execute($mappedAccounts);
+            $stmtBill->execute([$escaped]);
             $bill = $stmtBill->fetch(\PDO::FETCH_ASSOC);
 
-            // ── Latest payment (credit row) ───────────────────────────────────
+            // ── Latest payment (debit row with OR) ────────────────────────
             $stmtPay = $pdo->prepare("
                 SELECT TOP 1
-                    credit              AS payment_amount,
+                    debit               AS payment_amount,
                     trans_date          AS payment_date,
                     [official_receipt]  AS or_number
                 FROM dbo.vw_AccountTransactions
-                WHERE account_no IN ($inPlaceholders)
-                  AND credit > 0
+                WHERE account_no = ?
+                  AND debit > 0
+                  AND [official_receipt] IS NOT NULL
                   AND (isReversed IS NULL OR isReversed = 0)
                 ORDER BY trans_date DESC
             ");
-            $stmtPay->execute($mappedAccounts);
+            $stmtPay->execute([$escaped]);
             $pay = $stmtPay->fetch(\PDO::FETCH_ASSOC);
 
             if (!$bill && !$pay) {
@@ -507,31 +529,23 @@ class MorescoDbService
      * @param string|null $saCode The service area code (e.g. OSA, JSA)
      * @return array|null 
      */
-    public function getMemberOutageData(string $memberId, ?string $saCode = null): ?array
+    public function getMemberOutageData(string $accountNo, ?string $saCode = null): ?array
     {
         try {
             $pdo = $this->getConnection();
-            
-            // 1. Map member_ID to padded account_no(s)
-            $stmtMap = $pdo->prepare("SELECT account_no FROM dbo.account WHERE member_id = ?");
-            $stmtMap->execute([$memberId]);
-            $rows = $stmtMap->fetchAll(\PDO::FETCH_ASSOC);
-            $mapped = array_map(fn($r) => $r['account_no'], $rows);
-            if (empty($mapped)) $mapped = [$memberId];
-
-            $inPlaceholders = implode(',', array_fill(0, count($mapped), '?'));
+            $escaped = trim($accountNo);
             
             // 2. Check for Individual Outage / Workorder
             $sqlIndividual = "
                 SELECT TOP 1 *
                 FROM dbo.VW_WORKORDERS_LIST 
-                WHERE Account_no IN ($inPlaceholders)
+                WHERE Account_no = ?
                   AND status NOT LIKE '%DONE%'
                   AND status NOT LIKE '%CANCEL%'
                 ORDER BY date_created DESC
             ";
             $stmtInd = $pdo->prepare($sqlIndividual);
-            $stmtInd->execute($mapped);
+            $stmtInd->execute([$escaped]);
             $individualRow = $stmtInd->fetch(\PDO::FETCH_ASSOC);
 
             if ($individualRow) {
@@ -645,5 +659,96 @@ class MorescoDbService
 
         // Final safety net: strip any remaining invalid bytes
         return mb_convert_encoding($converted, 'UTF-8', 'UTF-8');
+    }
+
+    /**
+     * Get paginated account records joined with their member details
+     */
+    public function getAccounts(string $search = null, int $limit = 100, int $offset = 0): array
+    {
+        try {
+            $pdo = $this->getConnection();
+
+            $whereClause = "";
+            $params = [];
+
+            if ($search) {
+                // Using parameterized queries for LIKE '%search%'
+                $escaped = str_replace("'", "''", $search);
+                $like    = "'%" . $escaped . "%'";
+                $whereClause = "WHERE (m.MemberName LIKE {$like} OR a.member_id IN (SELECT member_id FROM dbo.account WHERE account_no LIKE {$like}))";
+            }
+
+            // Notice we order by a.member_id
+            $sql = "
+                SELECT
+                    a.member_id,
+                    MAX(m.MemberName) as MemberName,
+                    MAX(m.membershipstatus) as membershipstatus,
+                    MAX(m.service_area) as service_area
+                FROM dbo.account a
+                LEFT JOIN dbo.vw_members_list m ON a.member_id = m.member_ID
+                {$whereClause}
+                GROUP BY a.member_id
+                ORDER BY a.member_id
+                OFFSET {$offset} ROWS
+                FETCH NEXT {$limit} ROWS ONLY
+            ";
+
+            $stmt = $pdo->prepare($sql);
+            $stmt->execute($params);
+
+            $results = $stmt->fetchAll(\PDO::FETCH_ASSOC);
+
+            return array_map(function($row) {
+                return [
+                    'account_no'       => $this->toUtf8($row['account_no'] ?? ''),
+                    'member_id'        => $this->toUtf8($row['member_id'] ?? ''),
+                    'MemberName'       => $this->toUtf8($row['MemberName'] ?? ''),
+                    'membershipstatus' => $this->toUtf8($row['membershipstatus'] ?? ''),
+                    'service_area'     => $this->toUtf8($row['service_area'] ?? ''),
+                ];
+            }, $results);
+
+        } catch (\Exception $e) {
+            \Illuminate\Support\Facades\Log::error('MorescoDbService::getAccounts failed: ' . $e->getMessage());
+            return [];
+        }
+    }
+
+    /**
+     * Get the total count of accounts for pagination
+     */
+    public function countAccounts(string $search = null): int
+    {
+        try {
+            $pdo = $this->getConnection();
+
+            $whereClause = "";
+            $params = [];
+
+            if ($search) {
+                $escaped = str_replace("'", "''", $search);
+                $like    = "'%" . $escaped . "%'";
+                $whereClause = "WHERE (m.MemberName LIKE {$like} OR a.member_id IN (SELECT member_id FROM dbo.account WHERE account_no LIKE {$like}))";
+            }
+
+            $sql = "
+                SELECT COUNT(DISTINCT a.member_id) AS total
+                FROM dbo.account a
+                LEFT JOIN dbo.vw_members_list m ON a.member_id = m.member_ID
+                {$whereClause}
+            ";
+
+            $stmt = $pdo->prepare($sql);
+            $stmt->execute($params);
+            $result = $stmt->fetch(\PDO::FETCH_ASSOC);
+
+            return (int) ($result['total'] ?? 0);
+
+        } catch (\Exception $e) {
+            \Illuminate\Support\Facades\Log::error('MorescoDbService::countAccounts failed: ' . $e->getMessage());
+            return 0;
+        }
     }
 }

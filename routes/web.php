@@ -38,6 +38,10 @@ Route::middleware('auth')->group(function () {
         }
         )->name('view.contacts.index');
 
+        Route::get('/accounts', [\App\Http\Controllers\AccountController::class, 'index'])->name('accounts.index');
+        Route::get('/accounts/data', [\App\Http\Controllers\AccountController::class, 'data'])->name('accounts.data');
+        Route::get('/accounts/{account}', [\App\Http\Controllers\AccountController::class, 'show'])->name('accounts.show');
+
         Route::get('/messages', function () {
             return view('messages.index');
         }
@@ -61,25 +65,26 @@ Route::middleware('auth')->group(function () {
                 $service = app(\App\Services\MorescoDbService::class);
                 
                 $pdo = $service->getConnection();
-                $stmtMem = $pdo->prepare("SELECT MemberName FROM dbo.vw_members_list WHERE member_ID = ?");
-                $stmtMem->execute([$account]);
-                $memberRaw = $stmtMem->fetch(\PDO::FETCH_ASSOC);
-                $memberName = $memberRaw ? $memberRaw['MemberName'] : 'Not Found';
-            
-                $stmtMap = $pdo->prepare("SELECT account_no FROM dbo.account WHERE member_id = ?");
+                $stmtMap = $pdo->prepare("SELECT member_id FROM dbo.account WHERE account_no = ?");
                 $stmtMap->execute([$account]);
-                $mappedRows = $stmtMap->fetchAll(\PDO::FETCH_ASSOC);
-                $mapped = array_map(fn($r) => $r['account_no'], $mappedRows);
+                $accountRecord = $stmtMap->fetch(\PDO::FETCH_ASSOC);
                 
-                if (empty($mapped)) $mapped = [$account];
-                $inPlaceholders = str_repeat('?,', count($mapped) - 1) . '?';
+                $memberRaw = null;
+                $memberName = 'Not Found';
+                
+                if ($accountRecord) {
+                    $stmtMem = $pdo->prepare("SELECT MemberName, sa_code FROM dbo.vw_members_list WHERE member_ID = ?");
+                    $stmtMem->execute([$accountRecord['member_id']]);
+                    $memberRaw = $stmtMem->fetch(\PDO::FETCH_ASSOC);
+                    $memberName = $memberRaw ? $memberRaw['MemberName'] : 'Not Found';
+                }
             
-                $stmtAcc = $pdo->prepare("SELECT TOP 5 * FROM dbo.VW_ACCOUNTS_METER_READING WHERE account_no IN ($inPlaceholders) ORDER BY billmo DESC, rdng_date DESC");
-                $stmtAcc->execute($mapped);
+                $stmtAcc = $pdo->prepare("SELECT TOP 5 * FROM dbo.VW_ACCOUNTS_METER_READING WHERE account_no = ? ORDER BY billmo DESC, rdng_date DESC");
+                $stmtAcc->execute([$account]);
                 $metering = $stmtAcc->fetchAll(\PDO::FETCH_ASSOC);
                 
-                $stmtBill = $pdo->prepare("SELECT TOP 5 * FROM dbo.vw_AccountTransactions WHERE account_no IN ($inPlaceholders) ORDER BY trans_date DESC");
-                $stmtBill->execute($mapped);
+                $stmtBill = $pdo->prepare("SELECT TOP 5 * FROM dbo.vw_AccountTransactions WHERE account_no = ? ORDER BY trans_date DESC");
+                $stmtBill->execute([$account]);
                 $ledger = $stmtBill->fetchAll(\PDO::FETCH_ASSOC);
                 
                 $billing = $service->getMemberBillingData($account);
@@ -91,7 +96,7 @@ Route::middleware('auth')->group(function () {
                 return view('test_billing', [
                     'member' => ['name' => $memberName],
                     'member_raw' => $memberRaw,
-                    'mapped' => $mapped,
+                    'mapped' => [$account],
                     'billing' => $billing,
                     'outage' => $outage,
                     'metering' => $metering,
