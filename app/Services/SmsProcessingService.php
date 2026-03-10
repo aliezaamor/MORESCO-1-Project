@@ -49,32 +49,54 @@ class SmsProcessingService
                 'status'     => 'sent',
             ]);
 
-            // ── 3. Parse KEYWORD [ACCOUNT_NUMBER] ────────────────────────────
-            //   "BILL 987987"  → keywordText = "bill",  accountNumber = "987987"
-            //   "HELP"         → keywordText = "help",  accountNumber = null
-            $normalized    = strtolower(trim(preg_replace('/\s+/', ' ', $content)));
-            $parts         = explode(' ', $normalized, 2);
-            $keywordText   = $parts[0];
-            $accountNumber = isset($parts[1]) ? trim($parts[1]) : null;
+            $normalizedContent = strtolower(trim(preg_replace('/\s+/', ' ', $content)));
+            
+            // ── 3. Find Longest Matching Keyword ──────────────────────────────
+            // To support multi-word keywords (e.g., "LAST PAY 50560"), we need to check
+            // if the message starts with any of our active keywords.
+            $activeKeywords = Keyword::where('is_active', true)
+                ->orderByRaw('LENGTH(keyword) DESC') // Check longest first
+                ->get();
 
-            // ── 4. Match keyword (context-aware) ──────────────────────────────
             $keywordMatch = null;
+            $keywordText = '';
+            $accountNumber = null;
 
-            // Try sub-keyword of last used keyword first
+            // First check context (sub-keywords)
             if ($contact->last_keyword_id) {
-                $keywordMatch = Keyword::where('is_active', true)
-                    ->where('parent_id', $contact->last_keyword_id)
-                    ->whereRaw('LOWER(keyword) = ?', [$keywordText])
-                    ->first();
+                foreach ($activeKeywords->where('parent_id', $contact->last_keyword_id) as $kw) {
+                    $trigger = strtolower($kw->keyword);
+                    if ($normalizedContent === $trigger || str_starts_with($normalizedContent, $trigger . ' ')) {
+                        $keywordMatch = $kw;
+                        $keywordText = $trigger;
+                        break;
+                    }
+                }
             }
 
-            // Fall back to global / top-level keyword
+            // Fallback to global keywords
             if (!$keywordMatch) {
-                $keywordMatch = Keyword::where('is_active', true)
-                    ->whereNull('parent_id')
-                    ->whereRaw('LOWER(keyword) = ?', [$keywordText])
-                    ->first();
+                foreach ($activeKeywords->whereNull('parent_id') as $kw) {
+                    $trigger = strtolower($kw->keyword);
+                    if ($normalizedContent === $trigger || str_starts_with($normalizedContent, $trigger . ' ')) {
+                        $keywordMatch = $kw;
+                        $keywordText = $trigger;
+                        break;
+                    }
+                }
             }
+
+            // Extract the remaining text as the account number
+            if ($keywordMatch) {
+                $remainder = trim(substr($normalizedContent, strlen($keywordText)));
+                $accountNumber = $remainder !== '' ? $remainder : null;
+            } else {
+                // If no match at all, fallback to the old split logic just to record it
+                $parts         = explode(' ', $normalizedContent, 2);
+                $keywordText   = $parts[0];
+                $accountNumber = isset($parts[1]) ? trim($parts[1]) : null;
+            }
+
 
             // ── 5. Build auto-reply ───────────────────────────────────────────
             $autoReply = null;
@@ -95,6 +117,8 @@ class SmsProcessingService
                     'due_date_info',
                     'payment_history',
                     'account_status',
+                    'outage_info',
+                    'outage_report'
                 ]);
 
                 $member = null;
@@ -141,10 +165,13 @@ class SmsProcessingService
                         break;
 
                     case 'account_status':
-                        $status = strtolower($member['status'] ?? '');
-                        if (str_contains($status, 'active')) {
+                        // Fetch the actual billing status string (Active, Disconnected, etc) and default to active if not tracked
+                        $billingInfo = $morescoService->getMemberBillingData($accountNumber);
+                        $accStatus   = strtolower($billingInfo['account_status'] ?? 'active');
+
+                        if (str_contains($accStatus, 'active')) {
                             $replyContent = $actionData['active']           ?? $replyContent;
-                        } elseif (str_contains($status, 'disconn')) {
+                        } elseif (str_contains($accStatus, 'disconn')) {
                             $replyContent = $actionData['disconnected']     ?? $replyContent;
                         } else {
                             $replyContent = $actionData['for_disconnection'] ?? $replyContent;
@@ -159,13 +186,14 @@ class SmsProcessingService
                             : ($actionData['no_advisory']     ?? $replyContent);
                         break;
 
+                    case 'outage_info':
                     case 'outage_report':
-                        // TODO: connect to MORESCO outage system
-                        $outageState = 'request_location';
-                        if ($outageState === 'reported_success')   $replyContent = $actionData['reported_success']   ?? $replyContent;
-                        elseif ($outageState === 'invalid_location')  $replyContent = $actionData['invalid_location']  ?? $replyContent;
-                        elseif ($outageState === 'already_reported')  $replyContent = $actionData['already_reported']  ?? $replyContent;
-                        else                                          $replyContent = $actionData['request_location']  ?? $replyContent;
+                        $outage = $morescoService->getMemberOutageData($accountNumber, $member['sa_code'] ?? null);
+                        if ($outage) {
+                            $replyContent = $actionData['has_outage'] ?? $replyContent;
+                        } else {
+                            $replyContent = $actionData['no_outage'] ?? $replyContent;
+                        }
                         break;
 
                     case 'events_info':
@@ -193,11 +221,21 @@ class SmsProcessingService
                 }
 
                 // Billing/payment placeholders — fetched for relevant action types
-                if ($member && in_array($actionType, ['billing_info', 'due_date_info', 'payment_history'])) {
+                if ($member && in_array($actionType, ['billing_info', 'due_date_info', 'payment_history', 'account_status'])) {
                     $billing = $morescoService->getMemberBillingData($accountNumber);
                     $replyContent = str_replace(
-                        ['{bill_amount}',                   '{billing_period}',                   '{due_date}',                   '{last_payment_amount}',                   '{last_payment_date}',                   '{or_number}'                 ],
-                        [$billing['bill_amount'] ?? 'N/A',  $billing['billing_period'] ?? 'N/A',  $billing['due_date'] ?? 'N/A',  $billing['last_payment_amount'] ?? 'N/A',  $billing['last_payment_date'] ?? 'N/A',  $billing['or_number'] ?? 'N/A'],
+                        ['{bill_amount}',                   '{billing_period}',                   '{due_date}',                   '{balance}',                   '{last_payment_amount}',                   '{last_payment_date}',                   '{or_number}',                   '{account_status}'           ],
+                        [$billing['bill_amount'] ?? 'N/A',  $billing['billing_period'] ?? 'N/A',  $billing['due_date'] ?? 'N/A',  $billing['balance'] ?? 'N/A',  $billing['last_payment_amount'] ?? 'N/A',  $billing['last_payment_date'] ?? 'N/A',  $billing['or_number'] ?? 'N/A',  $billing['account_status'] ?? 'N/A'],
+                        $replyContent
+                    );
+                }
+
+                // Outage placeholders
+                if ($member && in_array($actionType, ['outage_info', 'outage_report'])) {
+                    $outage = $morescoService->getMemberOutageData($accountNumber, $member['sa_code'] ?? null);
+                    $replyContent = str_replace(
+                        ['{work_name}',                   '{work_status}',                   '{date_created}',                   '{power_interruption}',                   '{remarks}'           ],
+                        [$outage['work_name'] ?? 'N/A',   $outage['work_status'] ?? 'N/A',   $outage['date_created'] ?? 'N/A',   $outage['power_interruption'] ?? 'N/A',   $outage['remarks'] ?? 'N/A'],
                         $replyContent
                     );
                 }

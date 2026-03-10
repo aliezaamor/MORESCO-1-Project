@@ -53,6 +53,55 @@ Route::middleware('auth')->group(function () {
         }
         )->name('view.simulator.index');
 
+        Route::get('/test-billing', function (\Illuminate\Http\Request $request) {
+            $account = $request->get('account');
+            if (!$account) return view('test_billing');
+            
+            try {
+                $service = app(\App\Services\MorescoDbService::class);
+                
+                $pdo = $service->getConnection();
+                $stmtMem = $pdo->prepare("SELECT MemberName FROM dbo.vw_members_list WHERE member_ID = ?");
+                $stmtMem->execute([$account]);
+                $memberRaw = $stmtMem->fetch(\PDO::FETCH_ASSOC);
+                $memberName = $memberRaw ? $memberRaw['MemberName'] : 'Not Found';
+            
+                $stmtMap = $pdo->prepare("SELECT account_no FROM dbo.account WHERE member_id = ?");
+                $stmtMap->execute([$account]);
+                $mappedRows = $stmtMap->fetchAll(\PDO::FETCH_ASSOC);
+                $mapped = array_map(fn($r) => $r['account_no'], $mappedRows);
+                
+                if (empty($mapped)) $mapped = [$account];
+                $inPlaceholders = str_repeat('?,', count($mapped) - 1) . '?';
+            
+                $stmtAcc = $pdo->prepare("SELECT TOP 5 * FROM dbo.VW_ACCOUNTS_METER_READING WHERE account_no IN ($inPlaceholders) ORDER BY billmo DESC, rdng_date DESC");
+                $stmtAcc->execute($mapped);
+                $metering = $stmtAcc->fetchAll(\PDO::FETCH_ASSOC);
+                
+                $stmtBill = $pdo->prepare("SELECT TOP 5 * FROM dbo.vw_AccountTransactions WHERE account_no IN ($inPlaceholders) ORDER BY trans_date DESC");
+                $stmtBill->execute($mapped);
+                $ledger = $stmtBill->fetchAll(\PDO::FETCH_ASSOC);
+                
+                $billing = $service->getMemberBillingData($account);
+                
+                // Get Outage Info
+                $saCode = $memberRaw ? $memberRaw['sa_code'] : null;
+                $outage = $service->getMemberOutageData($account, $saCode);
+            
+                return view('test_billing', [
+                    'member' => ['name' => $memberName],
+                    'member_raw' => $memberRaw,
+                    'mapped' => $mapped,
+                    'billing' => $billing,
+                    'outage' => $outage,
+                    'metering' => $metering,
+                    'ledger' => $ledger
+                ]);
+            } catch (\Exception $e) {
+                return view('test_billing', ['error' => $e->getMessage()]);
+            }
+        });
+
 
         Route::get('/profile', [ProfileController::class , 'edit'])->name('profile.edit');
         Route::put('/profile', [ProfileController::class , 'update'])->name('profile.update');

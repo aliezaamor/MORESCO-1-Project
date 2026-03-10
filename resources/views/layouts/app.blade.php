@@ -108,6 +108,11 @@
                     <i class="fa-solid fa-comments"></i> Message Threads
                 </a>
             </li>
+            <li>
+                <a href="{{ url('/test-billing') }}" class="nav-link {{ request()->is('test-billing') ? 'active' : '' }}">
+                    <i class="fa-solid fa-file-invoice-dollar"></i> Billing Tester
+                </a>
+            </li>
         </ul>
     </aside>
 

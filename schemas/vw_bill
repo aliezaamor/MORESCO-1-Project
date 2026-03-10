@@ -1,0 +1,33 @@
+CREATE VIEW [dbo].[vw_AccountTransactions]
+AS
+SELECT 
+    [account_no],
+    [bl_id] AS [transaction_id],
+    [trans_date],
+    [debit],
+    [credit],
+    [balance],
+    [or] AS [official_receipt],
+    [payment_mode],
+    [referenceid],
+    [item_id],
+    [status_id],
+    [isReversed]
+FROM 
+    [dbo].[bill_ledger];
+GO
+
+-- ─────────────────────────────────────────────────────────────────────────────
+-- Column mapping used by MorescoDbService::getMemberBillingData()
+-- ─────────────────────────────────────────────────────────────────────────────
+-- account_no       → linked to vw_members_list.member_ID (account number)
+-- debit            → bill charge amount          → {bill_amount} placeholder
+-- credit           → payment amount              → {last_payment_amount} placeholder
+-- balance          → running account balance     → {balance} placeholder
+-- official_receipt → OR number of payment        → {or_number} placeholder
+-- trans_date       → used for {billing_period}, {due_date}, {last_payment_date}
+-- isReversed       → rows with isReversed = 1 are excluded (voided transactions)
+--
+-- Query strategy:
+--   Bill info   → TOP 1 WHERE debit > 0  ORDER BY trans_date DESC
+--   Payment info → TOP 1 WHERE credit > 0 ORDER BY trans_date DESC

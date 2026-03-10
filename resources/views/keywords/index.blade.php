@@ -56,7 +56,7 @@
                         <option value="payment_history">Payment History (Record Found / No Record)</option>
                         <option value="account_status">Account Status (Active / For Disconnection / Disconnected)</option>
                         <option value="advisory_info">Advisory Info (Active Advisory / No Advisory)</option>
-                        <option value="outage_report">Outage Report (Request Location / Reported Successfully / Invalid Location / Already Reported)</option>
+                        <option value="outage_info">Outage Info (Active Outage / No Active Outage)</option>
                         <option value="events_info">Events Info (Has Event / No Event)</option>
                     </select>
                     <small style="color: var(--text-light); font-size: 0.75rem;">Select the behavior for this keyword.</small>
@@ -84,6 +84,18 @@
                         <span><code>{status}</code> — Membership status</span>
                         <span><code>{municipality}</code> — Municipality</span>
                         <span><code>{barangay}</code> — Barangay</span>
+                        <span><code>{bill_amount}</code> — Latest bill charge</span>
+                        <span><code>{billing_period}</code> — Bill month/year</span>
+                        <span><code>{due_date}</code> — Estimated due date</span>
+                        <span><code>{balance}</code> — Current balance</span>
+                        <span><code>{last_payment_amount}</code> — Last payment amount</span>
+                        <span><code>{last_payment_date}</code> — Last payment date</span>
+                        <span><code>{or_number}</code> — Official Receipt No.</span>
+                        <span><code>{work_name}</code> — Outage Reason/Type</span>
+                        <span><code>{work_status}</code> — Outage Resolution Status</span>
+                        <span><code>{date_created}</code> — Date outage reported</span>
+                        <span><code>{power_interruption}</code> — Outage Interruption Type</span>
+                        <span><code>{remarks}</code> — Outage Remarks</span>
                     </div>
                     <div style="margin-top: 0.5rem; color: var(--text-light);">
                         Example: <em>Hello {name}, your account {account} is currently {status}.</em>
@@ -128,7 +140,7 @@
                 { key: 'has_balance', label: 'Reply (Has Outstanding Balance)' },
                 { key: 'no_balance',  label: 'Reply (No Balance / Paid Up)' }
             ],
-            placeholders: ['{name}', '{account}', '{bill_amount}', '{billing_period}', '{due_date}']
+            placeholders: ['{name}', '{account}', '{bill_amount}', '{billing_period}', '{due_date}', '{balance}', '{or_number}']
         },
         'due_date_info': {
             fields: [
@@ -150,7 +162,7 @@
                 { key: 'for_disconnection', label: 'Reply (Status: For Disconnection)' },
                 { key: 'disconnected',      label: 'Reply (Status: Disconnected)' }
             ],
-            placeholders: ['{name}', '{account}', '{status}']
+            placeholders: ['{name}', '{account}', '{status}', '{balance}', '{last_payment_amount}', '{last_payment_date}', '{or_number}']
         },
         'advisory_info': {
             fields: [
@@ -159,14 +171,12 @@
             ],
             placeholders: []
         },
-        'outage_report': {
+        'outage_info': {
             fields: [
-                { key: 'request_location', label: 'Reply (Request Location Info)' },
-                { key: 'reported_success', label: 'Reply (Reported Successfully)' },
-                { key: 'invalid_location', label: 'Reply (Location Not Recognized)' },
-                { key: 'already_reported', label: 'Reply (Outage Already Reported)' }
+                { key: 'has_outage', label: 'Reply (Active Outage Found)' },
+                { key: 'no_outage',  label: 'Reply (No Active Outage)' }
             ],
-            placeholders: []
+            placeholders: ['{name}', '{account}', '{work_name}', '{work_status}', '{date_created}', '{power_interruption}', '{remarks}']
         },
         'events_info': {
             fields: [
@@ -208,7 +218,7 @@
         const hintsPanel = document.getElementById('placeholderHints');
 
         // Show generic hints panel only for member-data actions
-        const memberActions = ['billing_info', 'due_date_info', 'payment_history', 'account_status'];
+        const memberActions = ['billing_info', 'due_date_info', 'payment_history', 'account_status', 'outage_info'];
         hintsPanel.style.display = memberActions.includes(type) ? 'block' : 'none';
 
         container.innerHTML = '';

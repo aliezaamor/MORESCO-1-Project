@@ -1,0 +1,74 @@
+CREATE VIEW [dbo].[VW_WORKORDERS_LIST]
+AS
+SELECT
+  A.wo_ID,
+  A.name,
+  IIF(A.account_id IS NOT NULL, H.account_no, A.account_no) Account_no,
+  A.app_ID,
+  A.member_ID,
+  B.work_ID,
+  B.description AS work_name,
+  A.ServMemoMast_ID,
+  C.description AS work_type,
+  A.date_created,
+  A.completed_date,
+  A.deadline,
+  A.status_id,
+  A.remarks,
+  D.status,
+  E.connection_type,
+  A.sa_id,
+  A.received_by,
+  A.address,
+  A.account_id,
+  F.sa_code,
+  F.service_area,
+  G.FullName AS issued_by,
+  A.meter_serial_no,
+  A.contact_no,
+  A.remarks AS Expr1,
+  A.landmark,
+  A.received_date,
+  A.issued_date,
+  A.work_done,
+  A.issued_by AS issudedBy,
+  A.issued_by As issuedBy,
+  I.ins_brand,
+  I.ins_serial,
+  I.ins_read_rate,
+  I.po_ID,
+  I.po_brand,
+  I.po_seal,
+  A.crew_status,
+  A.crew_remarks,
+  A.crew_complete_date,
+  A.mode,
+  A.is_forwarded,
+  K.FullName as done_by,
+  A.power_interruption,
+  A.priority_no,
+  A.mode_of_update
+FROM dbo.Workorders AS A WITH (NOLOCK)
+LEFT JOIN dbo.Work_Masterfile AS B WITH (NOLOCK)
+  ON B.work_ID = A.work_ID
+LEFT JOIN dbo.WorkorderTypes AS C WITH (NOLOCK)
+  ON C.wo_type_ID = A.wo_type_ID
+LEFT JOIN dbo.status AS D WITH (NOLOCK)
+  ON D.status_id = A.status_id
+LEFT OUTER JOIN dbo.location_inspection AS E WITH (NOLOCK)
+  ON E.wo_ID = A.wo_ID
+LEFT OUTER JOIN dbo.service_area AS F WITH (NOLOCK)
+  ON F.sa_id = A.sa_id
+LEFT OUTER JOIN dbo.User_Profile AS G WITH (NOLOCK)
+  ON G.username = A.issued_by
+LEFT OUTER JOIN dbo.account AS H WITH (NOLOCK)
+  ON H.account_id = A.account_id
+LEFT OUTER JOIN dbo.WorkorderReplacements AS I WITH (NOLOCK)
+  ON I.wo_ID = A.wo_ID
+LEFT OUTER JOIN dbo.User_Profile AS K WITH (NOLOCK)
+  ON K.username = A.done_by
+
+
+
+GO
+

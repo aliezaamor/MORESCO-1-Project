@@ -127,13 +127,14 @@ class MorescoDbService
 
     /**
      * Get billing / payment data for a member by account number.
-     * Returns an array with keys matching the reply placeholders:
-     *   bill_amount, billing_period, due_date,
-     *   last_payment_amount, last_payment_date, or_number
-     *
-     * TODO: Replace the query below with the correct billing view/table name
-     *       once the MORESCO billing schema is confirmed.
-     *       Example views to check: vw_billing, vw_member_bills, vw_payments
+     * Queries dbo.vw_AccountTransactions (from bill_ledger) to return:
+     *   bill_amount       — latest debit (charge) amount
+     *   billing_period    — month/year of the latest bill
+     *   due_date          — estimated due date (15th of billing month)
+     *   balance           — current running balance
+     *   last_payment_amount — most recent credit (payment) amount
+     *   last_payment_date   — date of most recent payment
+     *   or_number           — Official Receipt of most recent payment
      */
     public function getMemberBillingData(string $accountNumber): array
     {
@@ -141,47 +142,153 @@ class MorescoDbService
             'bill_amount'          => 'N/A',
             'billing_period'       => 'N/A',
             'due_date'             => 'N/A',
+            'balance'              => 'N/A',
             'last_payment_amount'  => 'N/A',
             'last_payment_date'    => 'N/A',
             'or_number'            => 'N/A',
+            'account_status'       => 'N/A',
         ];
 
         try {
-            $pdo = $this->getConnection();
+            $pdo     = $this->getConnection();
+            $escaped = trim($accountNumber);
 
-            // TODO: Replace 'dbo.vw_billing'/'dbo.vw_payments' with the real view/table names.
-            // The column names below are also guesses — adjust once confirmed.
-            /*
-            $stmt = $pdo->prepare("
-                SELECT TOP 1
-                    b.BillAmount         AS bill_amount,
-                    b.BillingPeriod      AS billing_period,
-                    b.DueDate            AS due_date,
-                    p.PaymentAmount      AS last_payment_amount,
-                    p.PaymentDate        AS last_payment_date,
-                    p.ORNumber           AS or_number
-                FROM dbo.vw_billing b
-                LEFT JOIN dbo.vw_payments p ON p.member_ID = b.member_ID
-                WHERE b.member_ID = ?
-                ORDER BY b.DueDate DESC
+            // ── 0. Fast Lookup: Map member_ID to padded account_no ────────────
+            // The billing views store padded account numbers (e.g. 08050560).
+            // This query fetches all exact padded account numbers tied to the member.
+            $stmtMap = $pdo->prepare("
+                SELECT account_no
+                FROM dbo.account
+                WHERE member_id = ?
             ");
-            $stmt->execute([trim($accountNumber)]);
-            $row = $stmt->fetch(\PDO::FETCH_ASSOC);
+            $stmtMap->execute([$escaped]);
+            $mappedRows = $stmtMap->fetchAll(\PDO::FETCH_ASSOC);
+            $mappedAccounts = array_map(fn($r) => $r['account_no'], $mappedRows);
 
-            if ($row) {
-                return [
-                    'bill_amount'         => '₱' . number_format((float)$row['bill_amount'], 2),
-                    'billing_period'      => $row['billing_period'] ?? 'N/A',
-                    'due_date'            => $row['due_date']        ?? 'N/A',
-                    'last_payment_amount' => '₱' . number_format((float)$row['last_payment_amount'], 2),
-                    'last_payment_date'   => $row['last_payment_date'] ?? 'N/A',
-                    'or_number'           => $row['or_number']          ?? 'N/A',
-                ];
+            // If the member doesn't have an entry in dbo.account, fallback to exact string
+            if (empty($mappedAccounts)) {
+                $mappedAccounts = [$escaped];
             }
-            */
 
-            // ← Remove the comment block above and uncomment when the real table/view is confirmed.
-            return $empty;
+            // Create placeholders for the IN clause (e.g., ?, ?, ?)
+            $inPlaceholders = str_repeat('?,', count($mappedAccounts) - 1) . '?';
+
+            // ── Latest account info (due date, status) ──────────────────────
+            $stmtAcc = $pdo->prepare("
+                SELECT TOP 1
+                    due_date,
+                    status_id
+                FROM dbo.VW_ACCOUNTS_METER_READING
+                WHERE account_no IN ($inPlaceholders)
+                ORDER BY billmo DESC, rdng_date DESC
+            ");
+            $stmtAcc->execute($mappedAccounts);
+            $acc = $stmtAcc->fetch(\PDO::FETCH_ASSOC);
+
+            // ── Latest bill (debit row) ───────────────────────────────────────
+            $stmtBill = $pdo->prepare("
+                SELECT TOP 1
+                    debit       AS bill_amount,
+                    balance     AS balance,
+                    trans_date  AS bill_date
+                FROM dbo.vw_AccountTransactions
+                WHERE account_no IN ($inPlaceholders)
+                  AND debit > 0
+                  AND (isReversed IS NULL OR isReversed = 0)
+                ORDER BY trans_date DESC
+            ");
+            $stmtBill->execute($mappedAccounts);
+            $bill = $stmtBill->fetch(\PDO::FETCH_ASSOC);
+
+            // ── Latest payment (credit row) ───────────────────────────────────
+            $stmtPay = $pdo->prepare("
+                SELECT TOP 1
+                    credit              AS payment_amount,
+                    trans_date          AS payment_date,
+                    [official_receipt]  AS or_number
+                FROM dbo.vw_AccountTransactions
+                WHERE account_no IN ($inPlaceholders)
+                  AND credit > 0
+                  AND (isReversed IS NULL OR isReversed = 0)
+                ORDER BY trans_date DESC
+            ");
+            $stmtPay->execute($mappedAccounts);
+            $pay = $stmtPay->fetch(\PDO::FETCH_ASSOC);
+
+            if (!$bill && !$pay) {
+                return $empty;
+            }
+
+            // ── Format bill fields ────────────────────────────────────────────
+            $billAmount     = 'N/A';
+            $billingPeriod  = 'N/A';
+            $dueDate        = 'N/A';
+            $balance        = 'N/A';
+
+            if ($bill) {
+                $billAmount    = '₱' . number_format((float)($bill['bill_amount'] ?? 0), 2);
+                $balance       = '₱' . number_format((float)($bill['balance']    ?? 0), 2);
+                $billDateRaw   = $bill['bill_date'] ?? null;
+                if ($billDateRaw) {
+                    try {
+                        $dt            = new \DateTime($billDateRaw);
+                        $billingPeriod = $dt->format('F Y');           // e.g. "February 2026"
+                        $dueDate       = $dt->format('F') . ' 15, ' . $dt->format('Y'); // e.g. "February 15, 2026"
+                    } catch (\Exception $ignored) {}
+                }
+            }
+
+            // ── Format payment fields ─────────────────────────────────────────
+            $lastPaymentAmount = 'N/A';
+            $lastPaymentDate   = 'N/A';
+            $orNumber          = 'N/A';
+            $accountStatus     = 'N/A';
+
+            if ($pay) {
+                $lastPaymentAmount = '₱' . number_format((float)($pay['payment_amount'] ?? 0), 2);
+                $payDateRaw        = $pay['payment_date'] ?? null;
+                if ($payDateRaw) {
+                    try {
+                        $lastPaymentDate = (new \DateTime($payDateRaw))->format('F d, Y');
+                    } catch (\Exception $ignored) {}
+                }
+                $orNumber = $this->toUtf8(trim($pay['or_number'] ?? 'N/A'));
+            }
+
+            // ── Account status from VW_ACCOUNTS_METER_READING ────────────────
+            if ($acc) {
+                // Use the real due date if available
+                $accDueDateRaw = $acc['due_date'] ?? null;
+                if ($accDueDateRaw) {
+                    try {
+                        $dueDate = (new \DateTime($accDueDateRaw))->format('F d, Y');
+                    } catch (\Exception $ignored) {}
+                }
+
+                // Map status_id to a readable string if possible
+                // For now, we'll return it as-is or map common ones if known.
+                // If status_id is just a number, we'll label it.
+                $sid = $acc['status_id'] ?? null;
+                if ($sid !== null) {
+                    $accountStatus = match((int)$sid) {
+                        1       => 'Active',
+                        2       => 'Disconnected',
+                        3       => 'For Disconnection',
+                        default => 'Status ' . $sid
+                    };
+                }
+            }
+
+            return [
+                'bill_amount'          => $billAmount,
+                'billing_period'       => $billingPeriod,
+                'due_date'             => $dueDate,
+                'balance'              => $balance,
+                'last_payment_amount'  => $lastPaymentAmount,
+                'last_payment_date'    => $lastPaymentDate,
+                'or_number'            => $orNumber,
+                'account_status'       => $accountStatus,
+            ];
 
         } catch (\Exception $e) {
             \Illuminate\Support\Facades\Log::error('MorescoDbService::getMemberBillingData failed: ' . $e->getMessage());
@@ -393,9 +500,94 @@ class MorescoDbService
     }
 
     /**
+     * Fetch the most relevant active outage for a member.
+     * Checks for specific account outages first, then falls back to area-wide outages.
+     * 
+     * @param string $memberId The 5-digit member_ID
+     * @param string|null $saCode The service area code (e.g. OSA, JSA)
+     * @return array|null 
+     */
+    public function getMemberOutageData(string $memberId, ?string $saCode = null): ?array
+    {
+        try {
+            $pdo = $this->getConnection();
+            
+            // 1. Map member_ID to padded account_no(s)
+            $stmtMap = $pdo->prepare("SELECT account_no FROM dbo.account WHERE member_id = ?");
+            $stmtMap->execute([$memberId]);
+            $rows = $stmtMap->fetchAll(\PDO::FETCH_ASSOC);
+            $mapped = array_map(fn($r) => $r['account_no'], $rows);
+            if (empty($mapped)) $mapped = [$memberId];
+
+            $inPlaceholders = implode(',', array_fill(0, count($mapped), '?'));
+            
+            // 2. Check for Individual Outage / Workorder
+            $sqlIndividual = "
+                SELECT TOP 1 *
+                FROM dbo.VW_WORKORDERS_LIST 
+                WHERE Account_no IN ($inPlaceholders)
+                  AND status NOT LIKE '%DONE%'
+                  AND status NOT LIKE '%CANCEL%'
+                ORDER BY date_created DESC
+            ";
+            $stmtInd = $pdo->prepare($sqlIndividual);
+            $stmtInd->execute($mapped);
+            $individualRow = $stmtInd->fetch(\PDO::FETCH_ASSOC);
+
+            if ($individualRow) {
+                return [
+                    'type'               => 'individual',
+                    'work_name'          => $this->toUtf8($individualRow['work_name'] ?? 'Unknown Work'),
+                    'work_status'        => $this->toUtf8($individualRow['status'] ?? 'PENDING'),
+                    'date_created'       => $individualRow['date_created'] ?? 'Unknown Date',
+                    'power_interruption' => $this->toUtf8($individualRow['power_interruption'] ?? 'N/A'),
+                    'remarks'            => $this->toUtf8($individualRow['remarks'] ?? 'None'),
+                ];
+            }
+
+            // 3. Fallback: Check for Area-Wide Outage using sa_code
+            if ($saCode) {
+                // Ensure saCode doesn't have extra appended text like "OSA OPOL", just "OSA"
+                $saCodeParts = explode(' ', $saCode);
+                $cleanSaCode = $saCodeParts[0];
+
+                $sqlGrouped = "
+                    SELECT TOP 1 *
+                    FROM dbo.VW_WORKORDERS_LIST
+                    WHERE account_id IS NULL 
+                      AND sa_code = ?
+                      AND status NOT LIKE '%DONE%'
+                      AND status NOT LIKE '%CANCEL%'
+                    ORDER BY date_created DESC
+                ";
+                $stmtGroup = $pdo->prepare($sqlGrouped);
+                $stmtGroup->execute([$cleanSaCode]);
+                $groupRow = $stmtGroup->fetch(\PDO::FETCH_ASSOC);
+
+                if ($groupRow) {
+                    return [
+                        'type'               => 'grouped',
+                        'work_name'          => $this->toUtf8($groupRow['work_name'] ?? 'Area Outage'),
+                        'work_status'        => $this->toUtf8($groupRow['status'] ?? 'PENDING'),
+                        'date_created'       => $groupRow['date_created'] ?? 'Unknown Date',
+                        'power_interruption' => $this->toUtf8($groupRow['power_interruption'] ?? 'N/A'),
+                        'remarks'            => $this->toUtf8($groupRow['remarks'] ?? 'None'),
+                    ];
+                }
+            }
+
+            return null; // No active outage found
+
+        } catch (\Exception $e) {
+            Log::error('MorescoDbService::getMemberOutageData failed: ' . $e->getMessage());
+            return null;
+        }
+    }
+
+    /**
      * Get a raw PDO connection to the MORESCO SQL Server via ODBC.
      */
-    private function getConnection(): \PDO
+    public function getConnection(): \PDO
     {
         $host     = env('MSDB_HOST', 'localhost');
         $port     = env('MSDB_PORT', '1433');

@@ -1,0 +1,18 @@
+CREATE VIEW [dbo].[VW_ACCOUNTS_METER_READING]
+AS
+SELECT        a.meter_reading_id, a.mh_id, a.pres_rdng, a.prev_rdng, ISNULL(a.kwhr,0) kwhr, isNULL(a.computed_kwhr,0) computed_kwhr, a.demand, a.computed_demand, a.billmo, d.amount, a.rdng_date, a.userInfo, a.due_date, 
+							a.is_manual_bill, a.is_lifeline, a.status_id, 
+                         d.account_no, d.account_id, a.is_reading_reset, a.reset_reading, a.rdng_date_received, a.updated_by, d.surcharge, d.discount, d.deposit, d.bh_id, 
+						 COALESCE (c.[route], LEFT(c.account_no, 4)) AS [route], COALESCE (d.sa, e.sa_code) AS sa_code, 1 AS rn,
+						 a.is_average, a.average_remarks, f.serialno, d.account_type, d.conn_class, a.multiplier, a.energy_multiplier, a.power_factor, a.power_factor2
+FROM            dbo.meter_reading AS a INNER JOIN
+                         dbo.meter_history AS b ON b.mh_id = a.mh_id INNER JOIN
+                         dbo.account AS c ON c.account_id = b.account_id LEFT OUTER JOIN
+                         dbo.bill_history AS d ON d.account_id = c.account_id AND d.billmo = a.billmo INNER JOIN
+                         dbo.service_area AS e ON e.sa_id = c.sa_id LEFT JOIN 
+						 dbo.meter_make as f on f.meter_id = b.meter_id
+						 where a.status_id not in(0,7) 
+							and d.status_id not in(0,7)
+
+
+GO
