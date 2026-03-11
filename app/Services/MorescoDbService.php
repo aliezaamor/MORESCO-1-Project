@@ -555,6 +555,7 @@ class MorescoDbService
                     'work_status'        => $this->toUtf8($individualRow['status'] ?? 'PENDING'),
                     'date_created'       => $individualRow['date_created'] ?? 'Unknown Date',
                     'power_interruption' => $this->toUtf8($individualRow['power_interruption'] ?? 'N/A'),
+                    'location'           => $this->toUtf8($individualRow['address'] ?? 'Unknown Location'),
                     'remarks'            => $this->toUtf8($individualRow['remarks'] ?? 'None'),
                 ];
             }
@@ -585,6 +586,7 @@ class MorescoDbService
                         'work_status'        => $this->toUtf8($groupRow['status'] ?? 'PENDING'),
                         'date_created'       => $groupRow['date_created'] ?? 'Unknown Date',
                         'power_interruption' => $this->toUtf8($groupRow['power_interruption'] ?? 'N/A'),
+                        'location'           => $this->toUtf8($groupRow['address'] ?? 'Area-wide'),
                         'remarks'            => $this->toUtf8($groupRow['remarks'] ?? 'None'),
                     ];
                 }
@@ -669,28 +671,26 @@ class MorescoDbService
         try {
             $pdo = $this->getConnection();
 
-            $whereClause = "";
+            $whereClause = "WHERE EXISTS (SELECT 1 FROM dbo.account a WHERE a.member_id = m.member_ID)";
             $params = [];
 
             if ($search) {
                 // Using parameterized queries for LIKE '%search%'
                 $escaped = str_replace("'", "''", $search);
                 $like    = "'%" . $escaped . "%'";
-                $whereClause = "WHERE (m.MemberName LIKE {$like} OR a.member_id IN (SELECT member_id FROM dbo.account WHERE account_no LIKE {$like}))";
+                $whereClause .= " AND (m.MemberName LIKE {$like} OR m.member_ID IN (SELECT member_id FROM dbo.account WHERE account_no LIKE {$like}))";
             }
 
-            // Notice we order by a.member_id
+            // Grouping by a.member_id is no longer needed since we are querying from vw_members_list
             $sql = "
                 SELECT
-                    a.member_id,
-                    MAX(m.MemberName) as MemberName,
-                    MAX(m.membershipstatus) as membershipstatus,
-                    MAX(m.service_area) as service_area
-                FROM dbo.account a
-                LEFT JOIN dbo.vw_members_list m ON a.member_id = m.member_ID
+                    m.member_ID as member_id,
+                    m.MemberName,
+                    m.membershipstatus,
+                    m.service_area
+                FROM dbo.vw_members_list m
                 {$whereClause}
-                GROUP BY a.member_id
-                ORDER BY a.member_id
+                ORDER BY m.member_ID
                 OFFSET {$offset} ROWS
                 FETCH NEXT {$limit} ROWS ONLY
             ";
@@ -702,7 +702,7 @@ class MorescoDbService
 
             return array_map(function($row) {
                 return [
-                    'account_no'       => $this->toUtf8($row['account_no'] ?? ''),
+                    'account_no'       => '', // No longer part of the top-level row, frontend uses inspect
                     'member_id'        => $this->toUtf8($row['member_id'] ?? ''),
                     'MemberName'       => $this->toUtf8($row['MemberName'] ?? ''),
                     'membershipstatus' => $this->toUtf8($row['membershipstatus'] ?? ''),
@@ -716,27 +716,23 @@ class MorescoDbService
         }
     }
 
-    /**
-     * Get the total count of accounts for pagination
-     */
     public function countAccounts(string $search = null): int
     {
         try {
             $pdo = $this->getConnection();
 
-            $whereClause = "";
+            $whereClause = "WHERE EXISTS (SELECT 1 FROM dbo.account a WHERE a.member_id = m.member_ID)";
             $params = [];
 
             if ($search) {
                 $escaped = str_replace("'", "''", $search);
                 $like    = "'%" . $escaped . "%'";
-                $whereClause = "WHERE (m.MemberName LIKE {$like} OR a.member_id IN (SELECT member_id FROM dbo.account WHERE account_no LIKE {$like}))";
+                $whereClause .= " AND (m.MemberName LIKE {$like} OR m.member_ID IN (SELECT member_id FROM dbo.account WHERE account_no LIKE {$like}))";
             }
 
             $sql = "
-                SELECT COUNT(DISTINCT a.member_id) AS total
-                FROM dbo.account a
-                LEFT JOIN dbo.vw_members_list m ON a.member_id = m.member_ID
+                SELECT COUNT(*) AS total
+                FROM dbo.vw_members_list m
                 {$whereClause}
             ";
 

@@ -228,13 +228,22 @@
 
                     let outageHtml = '';
                     if (out && out.work_status && out.work_status !== 'N/A') {
+                        const outLocation = out.location ? escapeHtml(out.location) : 'Unknown Location';
+                        const outRemarks = out.remarks ? escapeHtml(out.remarks) : '';
+                        
                         outageHtml = `
                             <div style="margin-top: 1rem; background: #fef2f2; border: 1px solid #f87171; border-radius: 8px; padding: 1rem;">
                                 <div style="display: flex; align-items: flex-start; gap: 0.75rem;">
                                     <i class="fa-solid fa-triangle-exclamation" style="color: #ef4444; font-size: 1.25rem; margin-top: 0.1rem;"></i>
                                     <div>
                                         <div style="font-weight: 600; color: #ef4444; margin-bottom: 0.25rem;">Active Outage Detected</div>
-                                        <div style="font-size: 0.85rem; color: #7f1d1d;">${escapeHtml(out.work_name)}. Status: ${escapeHtml(out.work_status)}. Type: ${escapeHtml(out.power_interruption)}.</div>
+                                        <div style="font-size: 0.85rem; color: #7f1d1d; margin-bottom: 0.25rem;">
+                                            <strong>${escapeHtml(out.work_name)}</strong> &mdash; Status: ${escapeHtml(out.work_status)}
+                                        </div>
+                                        <div style="font-size: 0.85rem; color: #991b1b;">
+                                            <i class="fa-solid fa-location-dot" style="margin-right: 0.2rem;"></i> <strong>Location:</strong> ${outLocation}
+                                        </div>
+                                        ${outRemarks ? `<div style="font-size: 0.8rem; color: #7f1d1d; margin-top: 0.25rem; opacity: 0.8;"><em>Remarks: ${outRemarks}</em></div>` : ''}
                                     </div>
                                 </div>
                             </div>
