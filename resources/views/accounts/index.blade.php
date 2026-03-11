@@ -58,14 +58,17 @@
 
 <!-- Account Details Modal -->
 <div class="modal-overlay" id="accountDetailsModal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); align-items: center; justify-content: center; z-index: 1001; padding: 1rem; flex-direction: column;">
-    <div class="modal" style="width: 700px; max-width: 95%; max-height: 90vh; display: flex; flex-direction: column;">
-        <div class="modal-header">
-            <h3><i class="fa-solid fa-file-invoice-dollar" style="color: var(--primary-color);"></i> Account Details</h3>
-            <button class="modal-close" onclick="closeAccountDetailsModal()">&times;</button>
+    <div class="modal" style="width: 700px; max-width: 95%; max-height: 90vh; display: flex; flex-direction: column; background: var(--secondary-color); border: 1px solid var(--border-color); border-radius: 12px; overflow: hidden; box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.3);">
+        <div class="modal-header" style="background: var(--item-hover); padding: 1.25rem 1.5rem; border-bottom: 1px solid var(--border-color); display: flex; justify-content: space-between; align-items: center;">
+            <h3 style="margin: 0; display: flex; align-items: center; gap: 0.75rem; color: var(--text-color); font-size: 1.25rem;">
+                <i class="fa-solid fa-file-invoice-dollar" style="color: var(--primary-color);"></i> 
+                Account Details
+            </h3>
+            <button class="modal-close" onclick="closeAccountDetailsModal()" style="background: none; border: none; color: var(--text-color); font-size: 1.5rem; cursor: pointer; opacity: 0.6; transition: opacity 0.2s; line-height: 1;">&times;</button>
         </div>
-        <div class="modal-body" style="background: var(--bg-color); border-radius: 8px; padding: 1.5rem; border: 1px solid var(--border-color); position: relative;">
+        <div class="modal-body" style="background: transparent; padding: 1.5rem; position: relative; color: var(--text-color); overflow-y: auto;">
             
-            <div id="accountLoading" style="position: absolute; inset: 0; background: rgba(255,255,255,0.8); z-index: 10; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 1rem; border-radius: 8px;">
+            <div id="accountLoading" style="position: absolute; inset: 0; background: var(--secondary-color); opacity: 0.9; z-index: 10; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 1rem; border-radius: 8px;">
                 <div class="spinner" style="width: 40px; height: 40px; border: 4px solid var(--border-color); border-top-color: var(--primary-color); border-radius: 50%; animation: spin 1s linear infinite;"></div>
                 <div style="font-weight: 600; color: var(--primary-color);">Fetching Live External Data...</div>
             </div>
@@ -77,8 +80,8 @@
                         AA
                     </div>
                     <div>
-                        <div id="mcName" style="font-weight: 600; font-size: 1.1rem; color: var(--text-dark);">John Doe</div>
-                        <div style="font-size: 0.85rem; color: var(--text-light);">Member ID: <strong id="mcMemberId">0000</strong></div>
+                        <div id="mcName" style="font-weight: 600; font-size: 1.1rem; color: var(--text-color);">John Doe</div>
+                        <div style="font-size: 0.85rem; color: var(--text-light);">Member ID: <strong id="mcMemberId" style="color: var(--text-color);">0000</strong></div>
                     </div>
                 </div>
 
@@ -88,9 +91,8 @@
 
             </div>
         </div>
-        <div class="modal-footer" style="padding-top: 1rem; border-top: 1px solid var(--border-color); background: #f8fafc; border-radius: 0 0 8px 8px;">
-            <button class="btn btn-secondary" onclick="closeAccountDetailsModal()">Close</button>
-            <button class="btn btn-primary" onclick="window.location.href='/simulator'" style="display: flex; align-items: center; gap: 0.5rem;">
+        <div class="modal-footer" style="padding: 1.25rem; border-top: 1px solid var(--border-color); background: var(--item-hover); border-radius: 0 0 12px 12px; display: flex; justify-content: center;">
+            <button class="btn btn-primary" onclick="window.location.href='/simulator'" style="display: flex; align-items: center; gap: 0.75rem; padding: 0.75rem 2rem; font-weight: 600; border-radius: 8px; box-shadow: 0 4px 6px -1px rgba(59, 130, 246, 0.2);">
                 <i class="fa-solid fa-comment-sms"></i> Text Simulator
             </button>
         </div>
@@ -219,11 +221,11 @@
                     const out = acc.outage || {};
                     
                     const status = (bill.account_status || 'UNKNOWN').toUpperCase();
-                    let badgeStyles = 'background: #f1f5f9; color: #64748b;';
+                    let badgeStyles = 'background: rgba(100, 116, 139, 0.1); color: #64748b; border: 1px solid rgba(100, 116, 139, 0.2);';
                     if (status.includes('ACTIVE')) {
-                        badgeStyles = 'background: #dcfce7; color: #166534;'; // success colors
+                        badgeStyles = 'background: rgba(16, 185, 129, 0.15); color: #10b981; border: 1px solid rgba(16, 185, 129, 0.3);'; // Emerald/Success
                     } else if (status.includes('DISCONNECT')) {
-                        badgeStyles = 'background: #fee2e2; color: #991b1b;'; // danger colors
+                        badgeStyles = 'background: rgba(239, 68, 68, 0.15); color: #ef4444; border: 1px solid rgba(239, 68, 68, 0.3);'; // Red/Danger
                     }
 
                     let outageHtml = '';
@@ -232,18 +234,18 @@
                         const outRemarks = out.remarks ? escapeHtml(out.remarks) : '';
                         
                         outageHtml = `
-                            <div style="margin-top: 1rem; background: #fef2f2; border: 1px solid #f87171; border-radius: 8px; padding: 1rem;">
+                            <div style="margin-top: 1rem; background: rgba(239, 68, 68, 0.1); border: 1px solid rgba(239, 68, 68, 0.4); border-radius: 8px; padding: 1rem;">
                                 <div style="display: flex; align-items: flex-start; gap: 0.75rem;">
                                     <i class="fa-solid fa-triangle-exclamation" style="color: #ef4444; font-size: 1.25rem; margin-top: 0.1rem;"></i>
                                     <div>
                                         <div style="font-weight: 600; color: #ef4444; margin-bottom: 0.25rem;">Active Outage Detected</div>
-                                        <div style="font-size: 0.85rem; color: #7f1d1d; margin-bottom: 0.25rem;">
-                                            <strong>${escapeHtml(out.work_name)}</strong> &mdash; Status: ${escapeHtml(out.work_status)}
+                                        <div style="font-size: 0.85rem; color: var(--text-color); margin-bottom: 0.25rem;">
+                                            <strong>${escapeHtml(out.work_name)}</strong> &mdash; Status: <span style="color: #ef4444; font-weight: 600;">${escapeHtml(out.work_status)}</span>
                                         </div>
-                                        <div style="font-size: 0.85rem; color: #991b1b;">
-                                            <i class="fa-solid fa-location-dot" style="margin-right: 0.2rem;"></i> <strong>Location:</strong> ${outLocation}
+                                        <div style="font-size: 0.85rem; color: var(--text-light);">
+                                            <i class="fa-solid fa-location-dot" style="margin-right: 0.2rem;"></i> <strong>Location:</strong> <span style="color: #ef4444;">${outLocation}</span>
                                         </div>
-                                        ${outRemarks ? `<div style="font-size: 0.8rem; color: #7f1d1d; margin-top: 0.25rem; opacity: 0.8;"><em>Remarks: ${outRemarks}</em></div>` : ''}
+                                        ${outRemarks ? `<div style="font-size: 0.8rem; color: var(--text-light); margin-top: 0.25rem; opacity: 0.8;"><em>Remarks: ${outRemarks}</em></div>` : ''}
                                     </div>
                                 </div>
                             </div>
@@ -251,9 +253,9 @@
                     }
 
                     accountsHtml += `
-                    <div style="border: 1px solid var(--border-color); border-radius: 12px; padding: 1.25rem; background: #fafbfc;">
+                    <div style="border: 1px solid var(--border-color); border-radius: 12px; padding: 1.25rem; background: var(--background-color);">
                         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
-                            <h4 style="margin: 0; display: flex; align-items: center; gap: 0.5rem; color: var(--moresco-dark);">
+                            <h4 style="margin: 0; display: flex; align-items: center; gap: 0.5rem; color: var(--text-color);">
                                 <i class="fa-solid fa-plug" style="color: var(--primary-color);"></i>
                                 Account: <span style="font-family: monospace;">${escapeHtml(acc.account_no)}</span>
                             </h4>
@@ -264,33 +266,33 @@
                         
                         <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
                             <!-- Billing Widget -->
-                            <div style="background: white; border: 1px solid var(--border-color); border-radius: 8px; overflow: hidden; box-shadow: 0 2px 4px -1px rgba(0,0,0,0.05);">
-                                <div style="background: #f8fafc; padding: 0.5rem 0.75rem; border-bottom: 1px solid var(--border-color); font-weight: 600; font-size: 0.8rem; display: flex; justify-content: space-between;">
+                            <div style="background: var(--secondary-color); border: 1px solid var(--border-color); border-radius: 8px; overflow: hidden; box-shadow: 0 2px 4px -1px rgba(0,0,0,0.05);">
+                                <div style="background: var(--item-hover); padding: 0.5rem 0.75rem; border-bottom: 1px solid var(--border-color); font-weight: 600; font-size: 0.8rem; display: flex; justify-content: space-between; color: var(--text-color);">
                                     <span><i class="fa-solid fa-file-invoice" style="margin-right: 0.3rem;"></i> Latest Bill</span>
                                     <span style="color: var(--primary-color);">${escapeHtml(bill.billing_period || '-')}</span>
                                 </div>
                                 <div style="padding: 0.75rem;">
-                                    <div style="font-size: 1.25rem; font-weight: bold; color: var(--text-dark); margin-bottom: 0.25rem;">₱${escapeHtml(bill.bill_amount || '0.00')}</div>
+                                    <div style="font-size: 1.25rem; font-weight: bold; color: var(--text-color); margin-bottom: 0.25rem;">${escapeHtml(bill.bill_amount || '0.00')}</div>
                                     <div style="font-size: 0.75rem; color: var(--text-light);"><i class="fa-regular fa-calendar" style="margin-right: 0.2rem;"></i> Due: <span style="color: var(--danger-color); font-weight: 500;">${escapeHtml(bill.due_date || '-')}</span></div>
                                 </div>
-                                <div style="padding: 0.4rem 0.75rem; border-top: 1px dashed var(--border-color); background: #f8fafc; font-size: 0.75rem; display: flex; justify-content: space-between;">
-                                    <span style="color: var(--text-light);">Running Balance:</span>
-                                    <span style="font-weight: 600;">₱${escapeHtml(bill.balance || '0.00')}</span>
+                                <div style="padding: 0.4rem 0.75rem; border-top: 1px dashed var(--border-color); background: var(--item-hover); font-size: 0.75rem; display: flex; justify-content: space-between; color: var(--text-light);">
+                                    <span>Running Balance:</span>
+                                    <span style="font-weight: 600; color: var(--text-color);">${escapeHtml(bill.balance || '0.00')}</span>
                                 </div>
                             </div>
 
                             <!-- Payment Widget -->
-                            <div style="background: white; border: 1px solid var(--border-color); border-radius: 8px; overflow: hidden; box-shadow: 0 2px 4px -1px rgba(0,0,0,0.05);">
-                                <div style="background: #f8fafc; padding: 0.5rem 0.75rem; border-bottom: 1px solid var(--border-color); font-weight: 600; font-size: 0.8rem;">
+                            <div style="background: var(--secondary-color); border: 1px solid var(--border-color); border-radius: 8px; overflow: hidden; box-shadow: 0 2px 4px -1px rgba(0,0,0,0.05);">
+                                <div style="background: var(--item-hover); padding: 0.5rem 0.75rem; border-bottom: 1px solid var(--border-color); font-weight: 600; font-size: 0.8rem; color: var(--text-color);">
                                     <i class="fa-solid fa-receipt" style="margin-right: 0.3rem;"></i> Last Payment
                                 </div>
                                 <div style="padding: 0.75rem;">
-                                    <div style="font-size: 1.25rem; font-weight: bold; color: #166534; margin-bottom: 0.25rem;">₱${escapeHtml(bill.last_payment_amount || '0.00')}</div>
+                                    <div style="font-size: 1.25rem; font-weight: bold; color: #10b981; margin-bottom: 0.25rem;">${escapeHtml(bill.last_payment_amount || '0.00')}</div>
                                     <div style="font-size: 0.75rem; color: var(--text-light);"><i class="fa-regular fa-calendar-check" style="margin-right: 0.2rem;"></i> ${escapeHtml(bill.last_payment_date || '-')}</div>
                                 </div>
-                                <div style="padding: 0.4rem 0.75rem; border-top: 1px dashed var(--border-color); background: #f8fafc; font-size: 0.75rem; display: flex; justify-content: space-between;">
-                                    <span style="color: var(--text-light);">OR Number:</span>
-                                    <span style="font-weight: 600; font-family: monospace;">${escapeHtml(bill.or_number || '-')}</span>
+                                <div style="padding: 0.4rem 0.75rem; border-top: 1px dashed var(--border-color); background: var(--item-hover); font-size: 0.75rem; display: flex; justify-content: space-between; color: var(--text-light);">
+                                    <span>OR Number:</span>
+                                    <span style="font-weight: 600; font-family: monospace; color: var(--text-color);">${escapeHtml(bill.or_number || '-')}</span>
                                 </div>
                             </div>
                         </div>
