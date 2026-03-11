@@ -58,7 +58,7 @@
 
 <!-- Account Details Modal -->
 <div class="modal-overlay" id="accountDetailsModal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); align-items: center; justify-content: center; z-index: 1001; padding: 1rem; flex-direction: column;">
-    <div class="modal" style="width: 700px; max-width: 95%; max-height: 90vh; display: flex; flex-direction: column; background: var(--secondary-color); border: 1px solid var(--border-color); border-radius: 12px; overflow: hidden; box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.3);">
+    <div class="modal" style="width: 700px; max-width: 95%; max-height: 90vh; display: flex; flex-direction: column; background: var(--surface-color); border: 1px solid var(--border-color); border-radius: 12px; overflow: hidden; box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.3);">
         <div class="modal-header" style="background: var(--item-hover); padding: 1.25rem 1.5rem; border-bottom: 1px solid var(--border-color); display: flex; justify-content: space-between; align-items: center;">
             <h3 style="margin: 0; display: flex; align-items: center; gap: 0.75rem; color: var(--text-color); font-size: 1.25rem;">
                 <i class="fa-solid fa-file-invoice-dollar" style="color: var(--primary-color);"></i> 
@@ -68,7 +68,7 @@
         </div>
         <div class="modal-body" style="background: transparent; padding: 1.5rem; position: relative; color: var(--text-color); overflow-y: auto;">
             
-            <div id="accountLoading" style="position: absolute; inset: 0; background: var(--secondary-color); opacity: 0.9; z-index: 10; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 1rem; border-radius: 8px;">
+            <div id="accountLoading" style="position: absolute; inset: 0; background: var(--surface-color); opacity: 0.9; z-index: 10; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 1rem; border-radius: 8px;">
                 <div class="spinner" style="width: 40px; height: 40px; border: 4px solid var(--border-color); border-top-color: var(--primary-color); border-radius: 50%; animation: spin 1s linear infinite;"></div>
                 <div style="font-weight: 600; color: var(--primary-color);">Fetching Live External Data...</div>
             </div>
@@ -266,7 +266,7 @@
                         
                         <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
                             <!-- Billing Widget -->
-                            <div style="background: var(--secondary-color); border: 1px solid var(--border-color); border-radius: 8px; overflow: hidden; box-shadow: 0 2px 4px -1px rgba(0,0,0,0.05);">
+                            <div style="background: var(--surface-color); border: 1px solid var(--border-color); border-radius: 8px; overflow: hidden; box-shadow: 0 2px 4px -1px rgba(0,0,0,0.05);">
                                 <div style="background: var(--item-hover); padding: 0.5rem 0.75rem; border-bottom: 1px solid var(--border-color); font-weight: 600; font-size: 0.8rem; display: flex; justify-content: space-between; color: var(--text-color);">
                                     <span><i class="fa-solid fa-file-invoice" style="margin-right: 0.3rem;"></i> Latest Bill</span>
                                     <span style="color: var(--primary-color);">${escapeHtml(bill.billing_period || '-')}</span>
@@ -282,7 +282,7 @@
                             </div>
 
                             <!-- Payment Widget -->
-                            <div style="background: var(--secondary-color); border: 1px solid var(--border-color); border-radius: 8px; overflow: hidden; box-shadow: 0 2px 4px -1px rgba(0,0,0,0.05);">
+                            <div style="background: var(--surface-color); border: 1px solid var(--border-color); border-radius: 8px; overflow: hidden; box-shadow: 0 2px 4px -1px rgba(0,0,0,0.05);">
                                 <div style="background: var(--item-hover); padding: 0.5rem 0.75rem; border-bottom: 1px solid var(--border-color); font-weight: 600; font-size: 0.8rem; color: var(--text-color);">
                                     <i class="fa-solid fa-receipt" style="margin-right: 0.3rem;"></i> Last Payment
                                 </div>
