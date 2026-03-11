@@ -11,27 +11,27 @@
 
 @section('content')
 
-<div class="content-card">
+<div class="card">
     <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem;">
-        <h2 style="font-size: 1.25rem; font-weight: 600; color: var(--text-dark); margin: 0;">External Accounts</h2>
+        <h2 style="font-size: 1.25rem; font-weight: 600; color: var(--text-color); margin: 0;">External Accounts</h2>
         <div style="display: flex; gap: 1rem;">
             <div style="position: relative;">
-                <input type="text" id="accountsSearch" placeholder="Search account or name..." class="search-input" style="padding-left: 2.5rem; width: 300px;">
+                <input type="text" id="accountsSearch" placeholder="Search account or name..." class="form-control" style="padding-left: 2.5rem; width: 300px;">
                 <i class="fa-solid fa-search" style="position: absolute; left: 1rem; top: 50%; transform: translateY(-50%); color: var(--text-light);"></i>
             </div>
         </div>
     </div>
 
     <!-- Accounts Table (MORESCO SQL Server) -->
-    <div class="table-container shadow-sm mt-3" style="border: 1px solid var(--border-color); border-radius: 8px;">
-        <table class="data-table" id="accountsTable">
+    <div class="table-container" style="border: 1px solid var(--border-color); border-radius: 8px; overflow: hidden;">
+        <table class="table-dense" id="accountsTable" style="width: 100%; border-collapse: collapse;">
             <thead>
-                <tr>
-                    <th>Member ID</th>
-                    <th>Member Name</th>
-                    <th>Status</th>
-                    <th>Service Area</th>
-                    <th style="text-align: right;">Actions</th>
+                <tr style="text-align: left; border-bottom: 2px solid var(--border-color); background: var(--item-hover);">
+                    <th style="padding: 0.75rem 1rem;">Member ID</th>
+                    <th style="padding: 0.75rem 1rem;">Member Name</th>
+                    <th style="padding: 0.75rem 1rem;">Status</th>
+                    <th style="padding: 0.75rem 1rem;">Service Area</th>
+                    <th style="padding: 0.75rem 1rem; text-align: right;">Actions</th>
                 </tr>
             </thead>
             <tbody id="accountsTableBody">
@@ -43,13 +43,13 @@
     <!-- Pagination -->
     <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 1.5rem; padding-top: 1rem; border-top: 1px solid var(--border-color);">
         <div style="color: var(--text-light); font-size: 0.875rem;" id="accountsPaginationInfo">
-            Showing <span id="accountsStartIdx" style="font-weight: 600; color: var(--text-dark);">0</span> to <span id="accountsEndIdx" style="font-weight: 600; color: var(--text-dark);">0</span> of <span id="accountsTotalCount" style="font-weight: 600; color: var(--text-dark);">0</span> entries
+            Showing <span id="accountsStartIdx" style="font-weight: 600; color: var(--text-color);">0</span> to <span id="accountsEndIdx" style="font-weight: 600; color: var(--text-color);">0</span> of <span id="accountsTotalCount" style="font-weight: 600; color: var(--text-color);">0</span> entries
         </div>
         <div style="display: flex; gap: 0.5rem;" id="accountsPaginationControls">
-            <button class="btn btn-secondary" onclick="changeAccountPage('prev')" id="accountsPrevBtn" disabled>
+            <button class="btn btn-secondary" onclick="changeAccountPage('prev')" id="accountsPrevBtn" disabled style="padding: 0.4rem 0.8rem; font-size: 0.8rem;">
                 <i class="fa-solid fa-chevron-left"></i> Previous
             </button>
-            <button class="btn btn-secondary" onclick="changeAccountPage('next')" id="accountsNextBtn" disabled>
+            <button class="btn btn-secondary" onclick="changeAccountPage('next')" id="accountsNextBtn" disabled style="padding: 0.4rem 0.8rem; font-size: 0.8rem;">
                 Next <i class="fa-solid fa-chevron-right"></i>
             </button>
         </div>
@@ -163,18 +163,18 @@
         }
 
         tbody.innerHTML = rows.map(acc => `
-            <tr>
-                <td style="font-family: monospace; font-size: 1.05em; color: var(--text-light);">#${escapeHtml(acc.member_id || '-')}</td>
-                <td style="font-weight: 600; color: var(--moresco-blue);">${escapeHtml(acc.MemberName || '-')}</td>
-                <td>
+            <tr style="border-bottom: 1px solid var(--border-color);">
+                <td style="padding: 0.75rem 1rem; font-family: monospace; font-size: 0.9rem; color: var(--text-light);">#${escapeHtml(acc.member_id || '-')}</td>
+                <td style="padding: 0.75rem 1rem; font-weight: 600; color: var(--moresco-blue);">${escapeHtml(acc.MemberName || '-')}</td>
+                <td style="padding: 0.75rem 1rem;">
                     <span class="badge ${getStatusBadge(acc.membershipstatus)}">
                         ${escapeHtml(acc.membershipstatus || 'UNKNOWN')}
                     </span>
                 </td>
-                <td style="color: var(--text-light); font-size: 0.9em;">${escapeHtml(acc.service_area || '-')}</td>
-                <td style="text-align: right;">
-                    <button class="action-btn view-btn" title="Inspect Accounts" onclick="inspectAccount('${escapeHtml(acc.member_id)}')">
-                        <i class="fa-solid fa-magnifying-glass"></i> Inspect
+                <td style="padding: 0.75rem 1rem; color: var(--text-light); font-size: 0.85rem;">${escapeHtml(acc.service_area || '-')}</td>
+                <td style="padding: 0.75rem 1rem; text-align: right;">
+                    <button class="btn btn-icon" title="Inspect Accounts" onclick="inspectAccount('${escapeHtml(acc.member_id)}')" style="color: var(--moresco-blue);">
+                        <i class="fa-solid fa-magnifying-glass"></i>
                     </button>
                 </td>
             </tr>
