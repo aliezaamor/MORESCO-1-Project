@@ -95,6 +95,7 @@
                         <span><code>{work_status}</code> — Outage Resolution Status</span>
                         <span><code>{date_created}</code> — Date outage reported</span>
                         <span><code>{power_interruption}</code> — Outage Interruption Type</span>
+                        <span><code>{location}</code> — Outage Location</span>
                         <span><code>{remarks}</code> — Outage Remarks</span>
                     </div>
                     <div style="margin-top: 0.5rem; color: var(--text-light);">
@@ -176,7 +177,7 @@
                 { key: 'has_outage', label: 'Reply (Active Outage Found)' },
                 { key: 'no_outage',  label: 'Reply (No Active Outage)' }
             ],
-            placeholders: ['{name}', '{account}', '{work_name}', '{work_status}', '{date_created}', '{power_interruption}', '{remarks}']
+            placeholders: ['{name}', '{account}', '{work_name}', '{work_status}', '{date_created}', '{power_interruption}', '{location}', '{remarks}']
         },
         'events_info': {
             fields: [

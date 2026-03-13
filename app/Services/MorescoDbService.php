@@ -241,15 +241,25 @@ class MorescoDbService
                 return $empty;
             }
 
+            // ── Account running balance ───────────────────────────────────────
+            $stmtBal = $pdo->prepare("
+                SELECT SUM(credit) - SUM(debit) AS true_balance
+                FROM dbo.vw_AccountTransactions
+                WHERE account_no = ?
+                  AND (isReversed IS NULL OR isReversed = 0)
+            ");
+            $stmtBal->execute([$escaped]);
+            $balRow = $stmtBal->fetch(\PDO::FETCH_ASSOC);
+            $trueBalance = (float)($balRow['true_balance'] ?? 0);
+
             // ── Format bill fields ────────────────────────────────────────────
             $billAmount     = 'N/A';
             $billingPeriod  = 'N/A';
             $dueDate        = 'N/A';
-            $balance        = 'N/A';
+            $balance        = '₱' . number_format($trueBalance, 2);
 
             if ($bill) {
                 $billAmount    = '₱' . number_format((float)($bill['bill_amount'] ?? 0), 2);
-                $balance       = '₱' . number_format((float)($bill['balance']    ?? 0), 2);
                 $billDateRaw   = $bill['bill_date'] ?? null;
                 if ($billDateRaw) {
                     try {
@@ -632,6 +642,7 @@ class MorescoDbService
             'phone_number' => $this->toUtf8($row['ContactNo'] ?? ''),
             'email'        => $this->toUtf8($row['email'] ?? ''),
             'address'      => $this->toUtf8($row['Address'] ?? ''),
+            'sa_code'      => $this->toUtf8($row['sa_code'] ?? ''),
             'service_area' => $this->toUtf8(trim(($row['sa_code'] ?? '') . ' ' . ($row['service_area'] ?? ''))),
             'status'       => $this->toUtf8($row['membershipstatus'] ?? ''),
             'municipality' => $this->toUtf8($row['Municipality'] ?? ''),

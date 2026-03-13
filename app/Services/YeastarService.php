@@ -19,42 +19,62 @@ class YeastarService
         $this->port = env('YEASTAR_PORT', '80');
         $this->username = env('YEASTAR_API_USERNAME', 'apiuser');
         $this->password = env('YEASTAR_API_PASSWORD', 'apipass');
-        $this->defaultPort = env('YEASTAR_DEFAULT_ROUTE_PORT', '2'); // Which GSM port to use for sending, if known
+        $this->defaultPort = env('YEASTAR_DEFAULT_ROUTE_PORT', '2');
     }
 
-    /**
-     * Send an SMS via the Yeastar TG Series HTTP CGI Api
-     * Default URL structure for TG models: http://[IP]:[PORT]/cgi/WebCGI?11401&destination=[NUMBER]&port=[PORT]&content=[MESSAGE]&username=[USER]&password=[PASS]
-     */
     public function sendSms(string $destination, string $content, string $gsmPort = null)
     {
         $portUsed = $gsmPort ?? $this->defaultPort;
-        
         $url = "http://{$this->host}:{$this->port}/cgi/WebCGI";
-        
-        // Older TG Firmwares require the parameters stacked on the 1500101= key directly
         $queryString = "1500101=account={$this->username}&password={$this->password}&port={$portUsed}&destination={$destination}&content=" . urlencode($content);
 
         try {
-            // Some older Yeastar firmware returns malformed HTTP headers that crack Guzzle/cURL.
-            // Using raw stream context safely grabs the body while ignoring bad headers.
             $context = stream_context_create([
                 'http' => [
                     'method' => 'GET',
                     'timeout' => 10,
-                    'ignore_errors' => true // Don't throw PHP errors on 400/500
+                    'ignore_errors' => true
                 ]
             ]);
 
             $responseBody = @file_get_contents("{$url}?{$queryString}", false, $context);
-            
             Log::info("Yeastar outbound SMS to {$destination}: " . $responseBody);
-            
-            // Yeastar normally returns something like "Action: smssend\r\nStatus: Success"
             return $responseBody && str_contains($responseBody, 'Success');
         } catch (\Exception $e) {
             Log::error("Yeastar SMS send failed to {$destination}: " . $e->getMessage());
             return false;
+        }
+    }
+
+    public function deleteSms(int $gsmPort, int $index)
+    {
+        $amiPort = env('YEASTAR_API_PORT', 5038);
+        $socket = @fsockopen($this->host, $amiPort, $errno, $errstr, 5);
+        
+        if (!$socket) {
+            Log::error("Yeastar AMI Connection for deletion failed: {$errstr} ({$errno})");
+            return false;
+        }
+
+        try {
+            fwrite($socket, "Action: Login\r\n");
+            fwrite($socket, "Username: {$this->username}\r\n");
+            fwrite($socket, "Secret: {$this->password}\r\n");
+            fwrite($socket, "\r\n");
+            
+            fwrite($socket, "Action: smscommand\r\n");
+            fwrite($socket, "Command: sms delete {$gsmPort} {$index}\r\n");
+            fwrite($socket, "\r\n");
+
+            fwrite($socket, "Action: Logoff\r\n\r\n");
+            
+            Log::info("Yeastar SMS delete command sent for Port: {$gsmPort}, Index: {$index}");
+            return true;
+        } catch (\Exception $e) {
+            Log::error("Yeastar SMS deletion failed: " . $e->getMessage());
+            return false;
+        } finally {
+            fclose($socket);
         }
     }
 }

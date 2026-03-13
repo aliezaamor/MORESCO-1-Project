@@ -98,6 +98,18 @@ class YeastarController extends Controller
             // Dispatch to central service to register contact and process keywords
             $this->smsService->processIncomingMessage($sender, $content);
             
+            // Automatically delete from Yeastar gateway to prevent full SIM
+            $index = $data['Index'] ?? null;
+            $port = $data['GsmSpan'] ?? null;
+            if ($index !== null && $port !== null) {
+                try {
+                    $yeastar = app(\App\Services\YeastarService::class);
+                    $yeastar->deleteSms((int)$port, (int)$index);
+                } catch (\Exception $e) {
+                    Log::error("Yeastar Webhook auto-deletion failed: " . $e->getMessage());
+                }
+            }
+
             return response('OK', 200);
         }
 

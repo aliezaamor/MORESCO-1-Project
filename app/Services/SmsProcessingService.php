@@ -227,9 +227,21 @@ class SmsProcessingService
 
                 // Billing/payment placeholders — fetched for relevant action types
                 if ($billing) {
+                    // Calculate dynamic balance block
+                    $rawBalance    = (float)str_replace(['₱', ',', ' '], '', $billing['balance'] ?? '0');
+                    $rawBillAmount = (float)str_replace(['₱', ',', ' '], '', $billing['bill_amount'] ?? '0');
+                    $dynamicBalanceBlock = "";
+                    
+                    // ONLY show if the balance is strictly greater than the current bill amount
+                    // (meaning they have past arrears) AND balance > 0
+                    if ($rawBalance > $rawBillAmount && $rawBalance > 0.0) {
+                        $formattedBal = $billing['balance'] ?? '₱0.00';
+                        $dynamicBalanceBlock = "Running Balance:\n{$formattedBal}\n";
+                    }
+
                     $replyContent = str_replace(
-                        ['{bill_amount}',                   '{billing_period}',                   '{due_date}',                   '{balance}',                   '{last_payment_amount}',                   '{last_payment_date}',                   '{or_number}',                   '{account_status}'           ],
-                        [$billing['bill_amount'] ?? 'N/A',  $billing['billing_period'] ?? 'N/A',  $billing['due_date'] ?? 'N/A',  $billing['balance'] ?? 'N/A',  $billing['last_payment_amount'] ?? 'N/A',  $billing['last_payment_date'] ?? 'N/A',  $billing['or_number'] ?? 'N/A',  $billing['account_status'] ?? 'N/A'],
+                        ['{bill_amount}',                   '{billing_period}',                   '{due_date}',                   '{balance}',                   '{dynamic_balance}',               '{last_payment_amount}',                   '{last_payment_date}',                   '{or_number}',                   '{account_status}'           ],
+                        [$billing['bill_amount'] ?? 'N/A',  $billing['billing_period'] ?? 'N/A',  $billing['due_date'] ?? 'N/A',  $billing['balance'] ?? 'N/A',  $dynamicBalanceBlock,              $billing['last_payment_amount'] ?? 'N/A',  $billing['last_payment_date'] ?? 'N/A',  $billing['or_number'] ?? 'N/A',  $billing['account_status'] ?? 'N/A'],
                         $replyContent
                     );
                 }
@@ -238,8 +250,8 @@ class SmsProcessingService
                 if ($member && in_array($actionType, ['outage_info', 'outage_report'])) {
                     $outage = $morescoService->getMemberOutageData($accountNumber, $member['sa_code'] ?? null);
                     $replyContent = str_replace(
-                        ['{work_name}',                   '{work_status}',                   '{date_created}',                   '{power_interruption}',                   '{remarks}'           ],
-                        [$outage['work_name'] ?? 'N/A',   $outage['work_status'] ?? 'N/A',   $outage['date_created'] ?? 'N/A',   $outage['power_interruption'] ?? 'N/A',   $outage['remarks'] ?? 'N/A'],
+                        ['{work_name}',                   '{work_status}',                   '{date_created}',                   '{power_interruption}',                   '{location}',                   '{remarks}'           ],
+                        [$outage['work_name'] ?? 'N/A',   $outage['work_status'] ?? 'N/A',   $outage['date_created'] ?? 'N/A',   $outage['power_interruption'] ?? 'N/A',   $outage['location'] ?? 'N/A',   $outage['remarks'] ?? 'N/A'],
                         $replyContent
                     );
                 }
