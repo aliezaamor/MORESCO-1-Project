@@ -55,9 +55,7 @@
                         <option value="due_date_info">Due Date Info (Has Due Date / Settled)</option>
                         <option value="payment_history">Payment History (Record Found / No Record)</option>
                         <option value="account_status">Account Status (Active / For Disconnection / Disconnected)</option>
-                        <option value="advisory_info">Advisory Info (Active Advisory / No Advisory)</option>
                         <option value="outage_info">Outage Info (Active Outage / No Active Outage)</option>
-                        <option value="events_info">Events Info (Has Event / No Event)</option>
                     </select>
                     <small style="color: var(--text-light); font-size: 0.75rem;">Select the behavior for this keyword.</small>
                 </div>
@@ -165,26 +163,12 @@
             ],
             placeholders: ['{name}', '{account}', '{status}', '{balance}', '{last_payment_amount}', '{last_payment_date}', '{or_number}']
         },
-        'advisory_info': {
-            fields: [
-                { key: 'active_advisory', label: 'Reply (Active Advisory Found)' },
-                { key: 'no_advisory',     label: 'Reply (No Active Advisory)' }
-            ],
-            placeholders: []
-        },
         'outage_info': {
             fields: [
                 { key: 'has_outage', label: 'Reply (Active Outage Found)' },
                 { key: 'no_outage',  label: 'Reply (No Active Outage)' }
             ],
             placeholders: ['{name}', '{account}', '{work_name}', '{work_status}', '{date_created}', '{power_interruption}', '{location}', '{remarks}']
-        },
-        'events_info': {
-            fields: [
-                { key: 'has_event', label: 'Reply (Upcoming Event Found)' },
-                { key: 'no_event',  label: 'Reply (No Upcoming Events)' }
-            ],
-            placeholders: []
         }
     };
 

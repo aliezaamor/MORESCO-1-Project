@@ -137,6 +137,27 @@ class MorescoDbService
     }
 
     /**
+     * Look up a member by phone number (matches last 10 digits).
+     */
+    public function getMemberByPhoneNumber(string $phoneNumber): ?array
+    {
+        try {
+            $pdo = $this->getConnection();
+            $normalized = strlen($phoneNumber) >= 10 ? substr($phoneNumber, -10) : $phoneNumber;
+            $like = "'%" . str_replace("'", "''", $normalized) . "'";
+
+            $sql = "SELECT TOP 1 * FROM dbo.vw_members_list WHERE ContactNo LIKE {$like}";
+            $stmt = $pdo->query($sql);
+            $row = $stmt->fetch(\PDO::FETCH_ASSOC);
+
+            return $row ? $this->mapMember($row) : null;
+        } catch (\Exception $e) {
+            Log::error('MorescoDbService::getMemberByPhoneNumber failed: ' . $e->getMessage());
+            return null;
+        }
+    }
+
+    /**
      * Get member details by Member ID directly from vw_members_list
      */
     public function getMemberById(string $memberId): ?array
@@ -157,6 +178,8 @@ class MorescoDbService
                 'sa_code'      => $this->toUtf8($member['sa_code'] ?? ''),
                 'status'       => $this->toUtf8($member['membershipstatus'] ?? ''),
                 'address'      => $this->toUtf8($member['service_area'] ?? ''),
+                'barangay'     => $this->toUtf8($member['Barangay'] ?? ''),
+                'municipality' => $this->toUtf8($member['Municipality'] ?? ''),
             ];
 
         } catch (\Exception $e) {
@@ -247,6 +270,7 @@ class MorescoDbService
                 FROM dbo.vw_AccountTransactions
                 WHERE account_no = ?
                   AND (isReversed IS NULL OR isReversed = 0)
+                  AND status_id <> 7
             ");
             $stmtBal->execute([$escaped]);
             $balRow = $stmtBal->fetch(\PDO::FETCH_ASSOC);
@@ -533,73 +557,105 @@ class MorescoDbService
 
     /**
      * Fetch the most relevant active outage for a member.
-     * Checks for specific account outages first, then falls back to area-wide outages.
-     * 
-     * @param string $memberId The 5-digit member_ID
-     * @param string|null $saCode The service area code (e.g. OSA, JSA)
-     * @return array|null 
+     * Lookup priority:
+     *   1. Individual workorder (by account_no) — any work type
+     *   2. Barangay-level: active NO POWER / POWER INTERRUPTION workorder
+     *      whose address contains the member's barangay name
+     *   3. Municipality-level: same, but address contains the municipality name
+     *
+     * NOTE: VW_WORKORDERS_LIST has no barangay/municipality columns — location is
+     * stored only in the free-text `address` field, so we use LIKE '%BARANGAY%'.
+     *
+     * @param string      $accountNo    The account number
+     * @param string|null $saCode       The member's service area code (unused, kept for BC)
+     * @param string|null $barangay     The member's barangay
+     * @param string|null $municipality The member's municipality / town
+     * @return array|null
      */
-    public function getMemberOutageData(string $accountNo, ?string $saCode = null): ?array
+    public function getMemberOutageData(string $accountNo, ?string $saCode = null, ?string $barangay = null, ?string $municipality = null): ?array
     {
         try {
-            $pdo = $this->getConnection();
+            $pdo     = $this->getConnection();
             $escaped = trim($accountNo);
-            
-            // 2. Check for Individual Outage / Workorder
-            $sqlIndividual = "
+
+            // ── 1. Individual workorder (any type) linked to this account ────
+            $stmtInd = $pdo->prepare("
                 SELECT TOP 1 *
-                FROM dbo.VW_WORKORDERS_LIST 
+                FROM dbo.VW_WORKORDERS_LIST
                 WHERE Account_no = ?
                   AND status NOT LIKE '%DONE%'
                   AND status NOT LIKE '%CANCEL%'
                 ORDER BY date_created DESC
-            ";
-            $stmtInd = $pdo->prepare($sqlIndividual);
+            ");
             $stmtInd->execute([$escaped]);
-            $individualRow = $stmtInd->fetch(\PDO::FETCH_ASSOC);
+            $indRow = $stmtInd->fetch(\PDO::FETCH_ASSOC);
 
-            if ($individualRow) {
+            if ($indRow) {
                 return [
                     'type'               => 'individual',
-                    'work_name'          => $this->toUtf8($individualRow['work_name'] ?? 'Unknown Work'),
-                    'work_status'        => $this->toUtf8($individualRow['status'] ?? 'PENDING'),
-                    'date_created'       => $individualRow['date_created'] ?? 'Unknown Date',
-                    'power_interruption' => $this->toUtf8($individualRow['power_interruption'] ?? 'N/A'),
-                    'location'           => $this->toUtf8($individualRow['address'] ?? 'Unknown Location'),
-                    'remarks'            => $this->toUtf8($individualRow['remarks'] ?? 'None'),
+                    'work_name'          => $this->toUtf8($indRow['work_name'] ?? 'Unknown Work'),
+                    'work_status'        => $this->toUtf8($indRow['status'] ?? 'PENDING'),
+                    'date_created'       => $indRow['date_created'] ?? 'Unknown Date',
+                    'power_interruption' => $this->toUtf8($indRow['power_interruption'] ?? 'N/A'),
+                    'location'           => $this->toUtf8($indRow['address'] ?? 'Unknown Location'),
+                    'remarks'            => $this->toUtf8($indRow['remarks'] ?? 'None'),
                 ];
             }
 
-            // 3. Fallback: Check for Area-Wide Outage using sa_code
-            if ($saCode) {
-                // Ensure saCode doesn't have extra appended text like "OSA OPOL", just "OSA"
-                $saCodeParts = explode(' ', $saCode);
-                $cleanSaCode = $saCodeParts[0];
+            // Helper: build and run a location-targeted outage query
+            // Matches genuine outage work names (NO POWER / POWER INTERRUPTION)
+            // AND the free-text address must contain the location keyword
+            $findOutageByLocation = function (string $locationKeyword) use ($pdo): ?array {
+                $esc = str_replace("'", "''", strtoupper(trim($locationKeyword)));
 
-                $sqlGrouped = "
+                // SQL Server has no regex. Simulate word boundaries by requiring the keyword
+                // to be surrounded by non-letter characters (space, comma, newline, start/end).
+                // We check 6 patterns to cover the most common address formats.
+                $sql = "
                     SELECT TOP 1 *
                     FROM dbo.VW_WORKORDERS_LIST
-                    WHERE account_id IS NULL 
-                      AND sa_code = ?
-                      AND status NOT LIKE '%DONE%'
+                    WHERE status NOT LIKE '%DONE%'
                       AND status NOT LIKE '%CANCEL%'
+                      AND (
+                            work_name LIKE '%NO POWER%'
+                         OR work_name LIKE '%POWER INTERRUPTION%'
+                      )
+                      AND (
+                            UPPER(address) LIKE '{$esc} %'
+                         OR UPPER(address) LIKE '{$esc},%'
+                         OR UPPER(address) LIKE '% {$esc} %'
+                         OR UPPER(address) LIKE '% {$esc},%'
+                         OR UPPER(address) LIKE '% {$esc}'
+                         OR UPPER(address) = '{$esc}'
+                      )
                     ORDER BY date_created DESC
                 ";
-                $stmtGroup = $pdo->prepare($sqlGrouped);
-                $stmtGroup->execute([$cleanSaCode]);
-                $groupRow = $stmtGroup->fetch(\PDO::FETCH_ASSOC);
+                $row = $pdo->query($sql)->fetch(\PDO::FETCH_ASSOC);
+                if (!$row) return null;
 
-                if ($groupRow) {
-                    return [
-                        'type'               => 'grouped',
-                        'work_name'          => $this->toUtf8($groupRow['work_name'] ?? 'Area Outage'),
-                        'work_status'        => $this->toUtf8($groupRow['status'] ?? 'PENDING'),
-                        'date_created'       => $groupRow['date_created'] ?? 'Unknown Date',
-                        'power_interruption' => $this->toUtf8($groupRow['power_interruption'] ?? 'N/A'),
-                        'location'           => $this->toUtf8($groupRow['address'] ?? 'Area-wide'),
-                        'remarks'            => $this->toUtf8($groupRow['remarks'] ?? 'None'),
-                    ];
-                }
+                return [
+                    'type'               => 'grouped',
+                    'work_name'          => $this->toUtf8($row['work_name'] ?? 'Area Outage'),
+                    'work_status'        => $this->toUtf8($row['status'] ?? 'PENDING'),
+                    'date_created'       => $row['date_created'] ?? 'Unknown Date',
+                    'power_interruption' => $this->toUtf8($row['power_interruption'] ?? 'N/A'),
+                    'location'           => $this->toUtf8($row['address'] ?? 'Area-wide'),
+                    'remarks'            => $this->toUtf8($row['remarks'] ?? 'None'),
+                ];
+            };
+
+            // ── 2. Barangay-level outage ──────────────────────────────────────
+            if ($barangay && strlen(trim($barangay)) >= 3) {
+                $outage = $findOutageByLocation(trim($barangay));
+                if ($outage) return $outage;
+            }
+
+            // ── 3. Municipality-level outage ─────────────────────────────────
+            // If no outage was found in the specific barangay, check if any
+            // NO POWER / POWER INTERRUPTION workorder mentions this municipality.
+            if ($municipality && strlen(trim($municipality)) >= 3) {
+                $outage = $findOutageByLocation(trim($municipality));
+                if ($outage) return $outage;
             }
 
             return null; // No active outage found

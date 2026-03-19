@@ -8,6 +8,11 @@ class Contact extends Model
 {
     protected $fillable = ['source', 'name', 'phone_number', 'email', 'last_keyword_id'];
 
+    public function rateLimit()
+    {
+        return $this->hasOne(SmsRateLimit::class);
+    }
+
     public function lastKeyword()
     {
         return $this->belongsTo(Keyword::class , 'last_keyword_id');

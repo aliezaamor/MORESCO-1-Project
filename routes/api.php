@@ -42,6 +42,8 @@ Route::middleware(['web', 'auth'])->group(function () {
 // Using match(['get', 'post']) to ensure it captures however the TG400 decides to send it!
 Route::any('/yeastar/webhook', [\App\Http\Controllers\YeastarController::class, 'webhook']);
 
+
+
 Route::get('/test-billing/{account}', function ($account) {
     $service = app(\App\Services\MorescoDbService::class);
     

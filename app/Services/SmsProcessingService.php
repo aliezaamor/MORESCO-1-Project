@@ -31,11 +31,28 @@ class SmsProcessingService
                 : $phoneNumber;
 
             $contact = Contact::where('phone_number', 'like', '%' . $normalizedNumber)->first();
-            if (!$contact) {
-                $contact = Contact::create([
-                    'phone_number' => $phoneNumber,
-                    'name'         => 'Consumer ' . substr($phoneNumber, -4),
-                ]);
+            
+            // ── 1b. Identify MCO name if new or generic ──────────────────────
+            $morescoService = app(MorescoDbService::class);
+            if (!$contact || str_starts_with($contact->name, 'Consumer ')) {
+                $mcoMember = $morescoService->getMemberByPhoneNumber($phoneNumber);
+                if ($mcoMember) {
+                    $mcoName = $mcoMember['name'];
+                    if (!$contact) {
+                        $contact = Contact::create([
+                            'phone_number' => $phoneNumber,
+                            'name'         => $mcoName,
+                        ]);
+                    } else {
+                        // Update existing generic 'Consumer XXXX' name with the real MCO name
+                        $contact->update(['name' => $mcoName]);
+                    }
+                } elseif (!$contact) {
+                    $contact = Contact::create([
+                        'phone_number' => $phoneNumber,
+                        'name'         => 'Consumer ' . substr($phoneNumber, -4),
+                    ]);
+                }
             }
 
             // ── 2. Store the incoming message ─────────────────────────────────
@@ -48,6 +65,38 @@ class SmsProcessingService
                 'contact_id' => $contact->id,
                 'status'     => 'sent',
             ]);
+
+            // ── 3. Rate limit check ───────────────────────────────────────────
+            $rateLimiter = app(RateLimitService::class);
+            $rateResult  = $rateLimiter->check($contact);
+
+            if ($rateResult['status'] === 'block') {
+                // Only send the block notice on the very first message that crosses the threshold
+                if ($rateResult['is_new_block']) {
+                    $blockMsg = Message::create([
+                        'content' => 'MORESCO-1: You have sent too many messages in a short time. Your account has been temporarily paused. Please try again after a few minutes.',
+                        'type'    => 'auto_reply',
+                        'user_id' => null,
+                    ]);
+                    $blockMsg->recipients()->create(['contact_id' => $contact->id, 'status' => 'sent']);
+
+                    // Dispatch block notice via Yeastar
+                    try {
+                        $destination = preg_replace('/[^0-9+]/', '', $contact->phone_number);
+                        $gsmPort     = env('YEASTAR_PORT_KEYWORD', 2);
+                        app(\App\Services\YeastarService::class)->sendSms($destination, $blockMsg->content, $gsmPort);
+                    } catch (\Exception $e) {
+                        Log::error('RateLimit block notice dispatch failed: ' . $e->getMessage());
+                    }
+                }
+
+                return ['incoming' => $incomingMessage->load('recipients.contact'), 'auto_reply' => null, 'keyword_matched' => false, 'rate_limited' => true];
+            }
+
+            if ($rateResult['status'] === 'throttle') {
+                // Message saved, but silently drop auto-reply
+                return ['incoming' => $incomingMessage->load('recipients.contact'), 'auto_reply' => null, 'keyword_matched' => false, 'rate_limited' => true];
+            }
 
             $normalizedContent = strtolower(trim(preg_replace('/\s+/', ' ', $content)));
             
@@ -131,7 +180,6 @@ class SmsProcessingService
                         $actionType   = 'static';
                     } else {
                         // Look up member in MORESCO external DB
-                        $morescoService = app(MorescoDbService::class);
                         $member = $morescoService->getMemberByAccountNumber($accountNumber);
 
                         if (!$member) {
@@ -183,17 +231,10 @@ class SmsProcessingService
                         }
                         break;
 
-                    case 'advisory_info':
-                        // TODO: connect to MORESCO advisory system
-                        $activeAdvisory = true;
-                        $replyContent = $activeAdvisory
-                            ? ($actionData['active_advisory'] ?? $replyContent)
-                            : ($actionData['no_advisory']     ?? $replyContent);
-                        break;
 
                     case 'outage_info':
                     case 'outage_report':
-                        $outage = $morescoService->getMemberOutageData($accountNumber, $member['sa_code'] ?? null);
+                        $outage = $morescoService->getMemberOutageData($accountNumber, $member['sa_code'] ?? null, $member['barangay'] ?? null, $member['municipality'] ?? null);
                         if ($outage) {
                             $replyContent = $actionData['has_outage'] ?? $replyContent;
                         } else {
@@ -201,13 +242,6 @@ class SmsProcessingService
                         }
                         break;
 
-                    case 'events_info':
-                        // TODO: connect to MORESCO events system
-                        $hasEvent = true;
-                        $replyContent = $hasEvent
-                            ? ($actionData['has_event'] ?? $replyContent)
-                            : ($actionData['no_event']  ?? $replyContent);
-                        break;
 
                     case 'static':
                     default:
@@ -248,7 +282,7 @@ class SmsProcessingService
 
                 // Outage placeholders
                 if ($member && in_array($actionType, ['outage_info', 'outage_report'])) {
-                    $outage = $morescoService->getMemberOutageData($accountNumber, $member['sa_code'] ?? null);
+                    $outage = $morescoService->getMemberOutageData($accountNumber, $member['sa_code'] ?? null, $member['barangay'] ?? null, $member['municipality'] ?? null);
                     $replyContent = str_replace(
                         ['{work_name}',                   '{work_status}',                   '{date_created}',                   '{power_interruption}',                   '{location}',                   '{remarks}'           ],
                         [$outage['work_name'] ?? 'N/A',   $outage['work_status'] ?? 'N/A',   $outage['date_created'] ?? 'N/A',   $outage['power_interruption'] ?? 'N/A',   $outage['location'] ?? 'N/A',   $outage['remarks'] ?? 'N/A'],
@@ -257,7 +291,9 @@ class SmsProcessingService
                 }
 
                 $autoReply = Message::create([
-                    'content' => $replyContent,
+                    'content' => ($rateResult['status'] === 'warn')
+                        ? $replyContent . "\n\n⚠️ Note: You are sending many requests. Please slow down to avoid being temporarily blocked."
+                        : $replyContent,
                     'type'    => 'auto_reply',
                     'user_id' => null,
                 ]);
@@ -297,6 +333,7 @@ class SmsProcessingService
                 'incoming'        => $incomingMessage->load('recipients.contact'),
                 'auto_reply'      => $autoReply ? $autoReply->load('recipients.contact') : null,
                 'keyword_matched' => (bool) $keywordMatch,
+                'rate_limited'    => false,
             ];
         });
     }

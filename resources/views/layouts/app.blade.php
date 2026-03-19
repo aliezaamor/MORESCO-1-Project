@@ -50,7 +50,7 @@
             </li>
             <li class="nav-item has-dropdown">
                 @php
-                    $isMessagesActive = request()->routeIs('view.messages.*') || request()->routeIs('view.broadcasts.*');
+                    $isMessagesActive = request()->routeIs('view.messages.*') || request()->routeIs('view.broadcasts.*') || request()->routeIs('sms.activity');
                 @endphp
                 <a href="#" class="nav-link {{ $isMessagesActive ? 'active' : '' }}" onclick="toggleSubmenu(event, 'messagesSubmenu')">
                     <i class="fa-solid fa-envelope"></i> Messages
@@ -85,6 +85,11 @@
                         </ul>
                         @endif
                     </li>
+                    <li>
+                        <a href="{{ route('sms.activity') }}" class="nav-link {{ request()->routeIs('sms.activity') ? 'active' : '' }}" style="padding: 0.5rem 1rem; font-size: 0.9em; margin-top: 0.5rem;">
+                            <i class="fa-solid fa-chart-line"></i> Activity Monitor
+                        </a>
+                    </li>
                 </ul>
             </li>
             <li class="nav-item has-dropdown">
@@ -111,11 +116,6 @@
             <li>
                 <a href="{{ route('view.simulator.index') }}" class="nav-link {{ request()->routeIs('view.simulator.*') ? 'active' : '' }}">
                     <i class="fa-solid fa-comments"></i> Message Threads
-                </a>
-            </li>
-            <li>
-                <a href="{{ url('/test-billing') }}" class="nav-link {{ request()->is('test-billing') ? 'active' : '' }}">
-                    <i class="fa-solid fa-file-invoice-dollar"></i> Billing Tester
                 </a>
             </li>
         </ul>

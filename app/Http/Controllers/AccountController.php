@@ -52,7 +52,7 @@ class AccountController extends Controller
             $accountsData[] = [
                 'account_no' => $accNo,
                 'billing'    => $service->getMemberBillingData($accNo),
-                'outage'     => $service->getMemberOutageData($accNo, $member['sa_code'] ?? null)
+                'outage'     => $service->getMemberOutageData($accNo, $member['sa_code'] ?? null, $member['barangay'] ?? null, $member['municipality'] ?? null)
             ];
         }
         
