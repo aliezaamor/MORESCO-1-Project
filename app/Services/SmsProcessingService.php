@@ -18,12 +18,14 @@ class SmsProcessingService
      *                     STATUS 987987
      *                     HELP
      *
+    /**
      * @param string $phoneNumber  The sender's phone number
      * @param string $content      The full SMS text
+     * @param int|string|null $port The GSM port it arrived on
      */
-    public function processIncomingMessage(string $phoneNumber, string $content)
+    public function processIncomingMessage(string $phoneNumber, string $content, $port = null)
     {
-        return DB::transaction(function () use ($phoneNumber, $content) {
+        return DB::transaction(function () use ($phoneNumber, $content, $port) {
 
             // ── 1. Find or create sender contact ─────────────────────────────
             $normalizedNumber = strlen($phoneNumber) >= 10
@@ -56,9 +58,12 @@ class SmsProcessingService
             }
 
             // ── 2. Store the incoming message ─────────────────────────────────
+            $keywordPort = env('YEASTAR_PORT_KEYWORD', 1);
+            $incomingType = ($port !== null && (int)$port === (int)$keywordPort) ? 'incoming_keyword' : 'incoming';
+
             $incomingMessage = Message::create([
                 'content' => $content,
-                'type'    => 'incoming',
+                'type'    => $incomingType,
                 'user_id' => null,
             ]);
             $incomingMessage->recipients()->create([

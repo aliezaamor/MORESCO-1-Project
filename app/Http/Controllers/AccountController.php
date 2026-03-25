@@ -12,6 +12,7 @@ class AccountController extends Controller
      */
     public function index()
     {
+        abort_unless(auth()->check() && auth()->user()->role === 'admin', 403, 'Unauthorized action. Admins only.');
         return view('accounts.index');
     }
 
@@ -20,6 +21,8 @@ class AccountController extends Controller
      */
     public function data(Request $request, MorescoDbService $service)
     {
+        abort_unless(auth()->check() && auth()->user()->role === 'admin', 403, 'Unauthorized action. Admins only.');
+        
         $search  = $request->get('search');
         $perPage = (int) $request->get('per_page', 100);
         $offset  = (int) $request->get('offset', 0);
@@ -35,6 +38,8 @@ class AccountController extends Controller
      */
     public function show(string $memberId, MorescoDbService $service)
     {
+        abort_unless(auth()->check() && auth()->user()->role === 'admin', 403, 'Unauthorized action. Admins only.');
+
         $member = $service->getMemberById($memberId);
         if (!$member) {
             return response()->json(['error' => 'Member not found'], 404);

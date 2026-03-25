@@ -650,9 +650,18 @@
             const urlParams = new URLSearchParams(window.location.search);
             const typeParam = urlParams.get('type');
             const isIndividual = typeParam === 'individual';
+            const isKeyword = typeParam === 'auto_reply';
 
-            const outgoing = messages.filter(m => m.type !== 'incoming' && m.type !== 'auto_reply');
-            const incoming = messages.filter(m => m.type === 'incoming' || m.type === 'auto_reply');
+            let outgoing = [];
+            let incoming = [];
+
+            if (isKeyword) {
+                outgoing = messages.filter(m => m.type === 'auto_reply');
+                incoming = messages.filter(m => m.type === 'incoming_keyword');
+            } else {
+                outgoing = messages.filter(m => m.type !== 'incoming' && m.type !== 'incoming_keyword' && m.type !== 'auto_reply');
+                incoming = messages.filter(m => m.type === 'incoming');
+            }
 
             function buildItem(m) {
                 let badgeColor = '#64748b';
@@ -662,10 +671,10 @@
                     badgeColor = 'var(--primary-color)';
                     categoryLabel = `<span class="badge" style="background: var(--moresco-dark); color: white; padding: 2px 8px; border-radius: 4px; font-size: 0.6rem; margin-left: 0.5rem; border: 1px solid var(--border-color); font-weight: 600;">${m.category}</span>`;
                 }
-                if (m.type === 'incoming') badgeColor = '#f59e0b';
+                if (m.type === 'incoming' || m.type === 'incoming_keyword') badgeColor = '#f59e0b';
                 if (m.type === 'auto_reply') badgeColor = '#10b981';
 
-                const isOutgoing = m.type !== 'incoming' && m.type !== 'auto_reply';
+                const isOutgoing = m.type !== 'incoming' && m.type !== 'incoming_keyword';
                 const isProcessed = m.is_scheduled && m.recipients.length > 0 && m.recipients.every(r => r.status && r.status !== 'pending');
 
                 const scheduledInfo = m.is_scheduled
@@ -720,7 +729,32 @@
 
             let html = '';
 
-            if (isIndividual && (outgoing.length > 0 || incoming.length > 0)) {
+            if (isKeyword) {
+                // Two-column grid for Keyword History
+                html += `
+                <li class="keyword-wrapper-li" style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; padding: 0.75rem; background: var(--input-bg);">
+                    <!-- Outgoing Column -->
+                    <div style="border: 1px solid var(--border-color); border-radius: 8px; background: var(--card-bg); overflow: hidden; display: flex; flex-direction: column;">
+                        <div style="padding: 0.6rem; font-weight: 600; font-size: 0.85rem; text-align: center; border-bottom: 1px solid var(--border-color); background: var(--item-hover); color: var(--text-color);">
+                            <i class="fa-solid fa-paper-plane" style="color: var(--primary-color);"></i> Outgoing (Auto-Replies)
+                        </div>
+                        <ul class="scrollable-container" style="list-style: none; padding: 0; margin: 0; overflow-y: auto; max-height: 405px;">
+                            ${outgoing.length > 0 ? outgoing.map(buildItem).join('') : '<li style="padding: 1rem; text-align: center; color: var(--text-light); font-size: 0.8rem;">No outgoing auto-replies.</li>'}
+                        </ul>
+                    </div>
+
+                    <!-- Incoming Column -->
+                    <div style="border: 1px solid var(--border-color); border-radius: 8px; background: var(--card-bg); overflow: hidden; display: flex; flex-direction: column;">
+                        <div style="padding: 0.6rem; font-weight: 600; font-size: 0.85rem; text-align: center; border-bottom: 1px solid var(--border-color); background: var(--item-hover); color: var(--text-color);">
+                            <i class="fa-solid fa-envelope-open-text" style="color: #f59e0b;"></i> Incoming (Keyword Requests)
+                        </div>
+                        <ul class="scrollable-container" style="list-style: none; padding: 0; margin: 0; overflow-y: auto; max-height: 405px;">
+                            ${incoming.length > 0 ? incoming.map(buildItem).join('') : '<li style="padding: 1rem; text-align: center; color: var(--text-light); font-size: 0.8rem;">No incoming requests.</li>'}
+                        </ul>
+                    </div>
+                </li>
+                `;
+            } else if (isIndividual && (outgoing.length > 0 || incoming.length > 0)) {
                 // Render outgoing first
                 if (outgoing.length > 0) {
                     html += outgoing.map(buildItem).join('');
@@ -754,7 +788,7 @@
                     html += incoming.map(buildItem).join('');
                 }
             } else {
-                // Broadcast / auto_reply / other views — render as-is
+                // Broadcast / other views — render as-is
                 html = messages.map(buildItem).join('');
             }
 
@@ -773,10 +807,13 @@
             const items = document.querySelectorAll('#message-list li');
 
             items.forEach(li => {
-                // Separator row: hide it when filtering by direction, keep otherwise
+                // Separator row or wrapper row: hide if applicable, keep otherwise
                 if (li.classList.contains('msg-separator')) {
                     li.style.display = activeDirectionFilter ? 'none' : 'flex';
                     return;
+                }
+                if (li.classList.contains('keyword-wrapper-li')) {
+                    return; // Ignore the wrapper `li` itself for text/date filtering (we filter the inner ones)
                 }
 
                 const text = li.textContent.toLowerCase();

@@ -95,8 +95,11 @@ class YeastarController extends Controller
 
             Log::info("Yeastar processing parsed SMS from {$sender}: {$content}");
             
+            $port = $data['GsmSpan'] ?? null;
+            $index = $data['Index'] ?? null;
+
             // Dispatch to central service to register contact and process keywords
-            $this->smsService->processIncomingMessage($sender, $content);
+            $this->smsService->processIncomingMessage($sender, $content, $port);
             
             // Automatically delete from Yeastar gateway to prevent full SIM
             $index = $data['Index'] ?? null;

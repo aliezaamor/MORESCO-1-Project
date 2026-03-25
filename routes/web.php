@@ -38,9 +38,12 @@ Route::middleware('auth')->group(function () {
         }
         )->name('view.contacts.index');
 
-        Route::get('/accounts', [\App\Http\Controllers\AccountController::class, 'index'])->name('accounts.index');
-        Route::get('/accounts/data', [\App\Http\Controllers\AccountController::class, 'data'])->name('accounts.data');
-        Route::get('/accounts/{account}', [\App\Http\Controllers\AccountController::class, 'show'])->name('accounts.show');
+        // Admin-only Accounts Master List
+        Route::prefix('accounts')->group(function () {
+            Route::get('/', [\App\Http\Controllers\AccountController::class, 'index'])->name('accounts.index');
+            Route::get('/data', [\App\Http\Controllers\AccountController::class, 'data'])->name('accounts.data');
+            Route::get('/{account}', [\App\Http\Controllers\AccountController::class, 'show'])->name('accounts.show');
+        });
 
         Route::get('/messages', function () {
             return view('messages.index');

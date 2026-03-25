@@ -21,9 +21,9 @@ class RateLimitController extends Controller
     /**
      * Return JSON data for the live Activity Monitor table.
      */
-    public function data()
+    public function data(Request $request)
     {
-        return response()->json($this->rateLimiter->getActivityData());
+        return response()->json($this->rateLimiter->getActivityData($request->query('date')));
     }
 
     /**

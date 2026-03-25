@@ -161,7 +161,7 @@ class ListenToYeastarAmi extends Command
             Log::info("Yeastar AMI processing parsed SMS from {$sender}: {$content}");
             
             try {
-                $smsService->processIncomingMessage($sender, $content);
+                $smsService->processIncomingMessage($sender, $content, $port);
                 $this->info("   -> ✓ Successfully saved SMS to database.");
 
                 // Automatically delete from Yeastar gateway to prevent full SIM

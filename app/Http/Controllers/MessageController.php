@@ -27,9 +27,14 @@ class MessageController extends Controller
             $query->where(function($q) use ($request) {
                 $q->where('type', $request->type);
                 
-                // Keep incoming messages strictly in the "Individual Notification" tab
+                // Keep individual incoming messages in the "Individual Notification" tab
                 if ($request->type === 'individual' && (!$request->has('scheduled') || !$request->scheduled)) {
                     $q->orWhere('type', 'incoming');
+                }
+                
+                // Keep keyword incoming messages in the "Keyword History" tab
+                if ($request->type === 'auto_reply') {
+                    $q->orWhere('type', 'incoming_keyword');
                 }
             });
         }

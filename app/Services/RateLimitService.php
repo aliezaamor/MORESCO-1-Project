@@ -102,19 +102,23 @@ class RateLimitService
      * Get all contacts with rate limit data for the Activity Monitor.
      * Only returns contacts with at least one message in the last hour.
      */
-    public function getActivityData(): array
+    public function getActivityData(?string $date = null): array
     {
-        $cutoff = now()->subHour();
+        $query = SmsRateLimit::with('contact')->orderByDesc('message_count');
 
-        $records = SmsRateLimit::with('contact')
-            ->where('last_seen_at', '>=', $cutoff)
-            ->orderByDesc('message_count')
-            ->get();
+        if ($date) {
+            $query->whereDate('last_seen_at', $date);
+        } else {
+            $cutoff = now()->subHour();
+            $query->where('last_seen_at', '>=', $cutoff);
+        }
 
-        return $records->map(function ($rl) {
-            // If window expired, status is effectively normal (counts are stale)
-            $windowExpired = !$rl->window_start
-                || $rl->window_start->diffInMinutes(now()) >= self::WINDOW_MINUTES;
+        $records = $query->get();
+
+        return $records->map(function ($rl) use ($date) {
+            // If viewing live data (no date selected), check window expiration
+            $isLive = empty($date);
+            $windowExpired = $isLive && (!$rl->window_start || $rl->window_start->diffInMinutes(now()) >= self::WINDOW_MINUTES);
 
             return [
                 'id'            => $rl->id,
@@ -123,7 +127,7 @@ class RateLimitService
                 'phone'         => $rl->contact->phone_number ?? '—',
                 'message_count' => $windowExpired ? 0 : $rl->message_count,
                 'status'        => $windowExpired ? 'normal' : $this->resolveStatus($rl),
-                'last_seen_at'  => $rl->last_seen_at?->diffForHumans() ?? '—',
+                'last_seen_at'  => $rl->last_seen_at?->format('Y-m-d h:i A') ?? '—',
                 'window_start'  => $rl->window_start?->format('H:i:s') ?? '—',
             ];
         })->values()->toArray();

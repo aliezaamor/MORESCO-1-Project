@@ -13,7 +13,7 @@
                 SMS Activity Monitor
             </h2>
             <p style="font-size: 0.82rem; color: var(--text-light); margin: 0.25rem 0 0;">
-                Live view of incoming SMS activity. Auto-refreshes every 15 seconds.
+                <span id="viewModeText">Live view of incoming SMS activity. Auto-refreshes every 15 seconds.</span><br>
                 Rate window: <strong>{{ \App\Services\RateLimitService::WINDOW_MINUTES }} minutes</strong> &nbsp;|&nbsp;
                 Warn at <strong>{{ \App\Services\RateLimitService::WARN_AT }}</strong> msgs &nbsp;|&nbsp;
                 Throttle at <strong>{{ \App\Services\RateLimitService::THROTTLE_AT }}</strong> &nbsp;|&nbsp;
@@ -21,13 +21,11 @@
             </p>
         </div>
         <div style="display: flex; align-items: center; gap: 0.75rem;">
+            <input type="date" id="activityDate" onchange="handleDateChange()" title="Filter by date" style="font-size: 0.82rem; padding: 0.45rem 0.6rem; border: 1px solid var(--border-color); border-radius: 6px; background: transparent; color: var(--text-color); outline: none;">
             <span id="refreshCountdown" style="font-size: 0.78rem; color: var(--text-light);"></span>
             <button onclick="loadActivityData()" class="btn" style="padding: 0.45rem 0.9rem; font-size: 0.82rem; background: var(--item-hover);">
                 <i class="fa-solid fa-rotate"></i> Refresh Now
             </button>
-            <a href="{{ route('view.messages.index') }}" class="btn" style="padding: 0.45rem 0.9rem; font-size: 0.82rem; background: var(--item-hover);">
-                <i class="fa-solid fa-arrow-left"></i> Back to Messages
-            </a>
         </div>
     </div>
 
@@ -60,7 +58,7 @@
     <div class="card" style="padding: 0; overflow: hidden;">
         <div style="padding: 1rem 1.25rem; border-bottom: 1px solid var(--border-color); display: flex; align-items: center; gap: 0.75rem;">
             <i class="fa-solid fa-table-list" style="color: var(--primary-color);"></i>
-            <span style="font-weight: 600; font-size: 0.9rem;">Active Senders (Last Hour)</span>
+            <span id="tableTitle" style="font-weight: 600; font-size: 0.9rem;">Active Senders (Last Hour)</span>
             <span id="lastUpdated" style="font-size: 0.75rem; color: var(--text-light); margin-left: auto;"></span>
         </div>
 
@@ -107,7 +105,9 @@
 
     async function loadActivityData() {
         try {
-            const resp = await fetch('{{ route("sms.activity.data") }}', {
+            const dateVal = document.getElementById('activityDate').value;
+            const query = dateVal ? `?date=${encodeURIComponent(dateVal)}` : '';
+            const resp = await fetch(`{{ route("sms.activity.data") }}${query}`, {
                 headers: { 'Accept': 'application/json', 'X-Requested-With': 'XMLHttpRequest' }
             });
             const data = await resp.json();
@@ -146,12 +146,15 @@
             </div>`;
 
             const canUnblock = row.status === 'blocked' || row.status === 'throttled' || row.status === 'warning';
+            const origText = row.status === 'warning' ? 'Reset' : 'Unblock';
+            const origIcon = row.status === 'warning' ? 'fa-rotate-left' : 'fa-lock-open';
+
             const actionBtn  = canUnblock
-                ? `<button onclick="unblockContact(${row.contact_id}, this)"
+                ? `<button onclick="unblockContact(${row.contact_id}, this, '${origText}', '${origIcon}')"
                         style="padding: 0.3rem 0.75rem; font-size: 0.75rem; background: #fef2f2; color: #dc2626; border: 1px solid #fca5a5; border-radius: 6px; cursor: pointer; font-weight: 500; transition: all 0.2s;"
                         onmouseover="this.style.background='#dc2626';this.style.color='#fff';"
                         onmouseout="this.style.background='#fef2f2';this.style.color='#dc2626';">
-                        <i class="fa-solid fa-lock-open"></i> Unblock
+                        <i class="fa-solid ${origIcon}"></i> ${origText}
                    </button>`
                 : `<span style="color: var(--text-light); font-size: 0.75rem;">—</span>`;
 
@@ -182,7 +185,7 @@
         document.getElementById('countBlocked').textContent = counts.blocked;
     }
 
-    async function unblockContact(contactId, btn) {
+    async function unblockContact(contactId, btn, origText = 'Unblock', origIcon = 'fa-lock-open') {
         btn.disabled = true;
         btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i>';
         try {
@@ -194,14 +197,14 @@
             if (result.success) {
                 await loadActivityData();
             } else {
-                alert('Failed to unblock. Please try again.');
+                alert('Failed to process. Please try again.');
                 btn.disabled = false;
-                btn.innerHTML = '<i class="fa-solid fa-lock-open"></i> Unblock';
+                btn.innerHTML = `<i class="fa-solid ${origIcon}"></i> ${origText}`;
             }
         } catch (e) {
             alert('Error: ' + e.message);
             btn.disabled = false;
-            btn.innerHTML = '<i class="fa-solid fa-lock-open"></i> Unblock';
+            btn.innerHTML = `<i class="fa-solid ${origIcon}"></i> ${origText}`;
         }
     }
 
@@ -214,6 +217,11 @@
         clearInterval(countdownTimer);
         clearTimeout(refreshTimer);
 
+        if (document.getElementById('activityDate').value) {
+            document.getElementById('refreshCountdown').textContent = 'Auto-refresh paused';
+            return; // Don't auto-refresh if viewing history
+        }
+
         countdownTimer = setInterval(() => {
             countdown--;
             document.getElementById('refreshCountdown').textContent = `Next refresh in ${countdown}s`;
@@ -225,6 +233,22 @@
         refreshTimer = setTimeout(() => {
             loadActivityData();
         }, 15000);
+    }
+
+    function handleDateChange() {
+        const dateVal = document.getElementById('activityDate').value;
+        const viewModeText = document.getElementById('viewModeText');
+        const tableTitle = document.getElementById('tableTitle');
+
+        if (dateVal) {
+            viewModeText.textContent = `Historical view for ${dateVal}. (Auto-refresh paused)`;
+            tableTitle.textContent = `Rate Limit History (${dateVal})`;
+        } else {
+            viewModeText.textContent = 'Live view of incoming SMS activity. Auto-refreshes every 15 seconds.';
+            tableTitle.textContent = 'Active Senders (Last Hour)';
+        }
+        
+        loadActivityData();
     }
 
     document.addEventListener('DOMContentLoaded', () => {

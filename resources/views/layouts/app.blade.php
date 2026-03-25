@@ -37,6 +37,11 @@
                     <i class="fa-solid fa-list-check"></i> User Activity Log
                 </a>
             </li>
+            <li>
+                <a href="{{ route('accounts.index') }}" class="nav-link {{ request()->routeIs('accounts.*') ? 'active' : '' }}">
+                    <i class="fa-solid fa-users-viewfinder"></i> Accounts Master List
+                </a>
+            </li>
             @endif
             <li>
                 <a href="{{ route('view.contacts.index') }}" class="nav-link {{ request()->routeIs('view.contacts.*') ? 'active' : '' }}">
@@ -44,13 +49,13 @@
                 </a>
             </li>
             <li>
-                <a href="{{ route('accounts.index') }}" class="nav-link {{ request()->routeIs('accounts.*') ? 'active' : '' }}">
-                    <i class="fa-solid fa-users-viewfinder"></i> Accounts Master List
+                <a href="{{ route('sms.activity') }}" class="nav-link {{ request()->routeIs('sms.activity') ? 'active' : '' }}">
+                    <i class="fa-solid fa-chart-line"></i> SMS Activity Monitor
                 </a>
             </li>
             <li class="nav-item has-dropdown">
                 @php
-                    $isMessagesActive = request()->routeIs('view.messages.*') || request()->routeIs('view.broadcasts.*') || request()->routeIs('sms.activity');
+                    $isMessagesActive = request()->routeIs('view.messages.*') || request()->routeIs('view.broadcasts.*');
                 @endphp
                 <a href="#" class="nav-link {{ $isMessagesActive ? 'active' : '' }}" onclick="toggleSubmenu(event, 'messagesSubmenu')">
                     <i class="fa-solid fa-envelope"></i> Messages
@@ -84,11 +89,6 @@
                             </li>
                         </ul>
                         @endif
-                    </li>
-                    <li>
-                        <a href="{{ route('sms.activity') }}" class="nav-link {{ request()->routeIs('sms.activity') ? 'active' : '' }}" style="padding: 0.5rem 1rem; font-size: 0.9em; margin-top: 0.5rem;">
-                            <i class="fa-solid fa-chart-line"></i> Activity Monitor
-                        </a>
                     </li>
                 </ul>
             </li>

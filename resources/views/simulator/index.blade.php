@@ -160,10 +160,14 @@
             chatArea.innerHTML = history.map(m => {
                 let typeClass = 'bubble-outgoing';
                 let label = 'Moresco-1';
+                const consumerName = contacts.find(c => c.id == activeContactId)?.name || 'User';
                 
                 if (m.type === 'incoming') {
                     typeClass = 'bubble-incoming';
-                    label = 'You';
+                    label = consumerName + ' (Standard)';
+                } else if (m.type === 'incoming_keyword') {
+                    typeClass = 'bubble-incoming';
+                    label = consumerName + ' (Keyword)';
                 } else if (m.type === 'auto_reply') {
                     typeClass = 'bubble-auto';
                     label = 'Moresco-1 (Auto)';
