@@ -22,9 +22,9 @@
 </head>
 <body>
     <aside class="sidebar">
-        <div class="brand">
+        <a href="{{ route('dashboard') }}" class="brand" style="text-decoration: none;">
             <i class="fa-solid fa-paper-plane" style="margin-right: 1rem;"></i> SMS Management
-        </div>
+        </a>
         <ul class="nav-links">
             <li>
                 <a href="{{ route('dashboard') }}" class="nav-link {{ request()->routeIs('dashboard') ? 'active' : '' }}">
