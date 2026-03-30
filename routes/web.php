@@ -29,9 +29,8 @@ Route::get('/admin/activities', [AdminActivityController::class, 'index'])->name
 // Protected Routes
 Route::middleware('auth')->group(function () {
     Route::get('/', function () {
-            return view('dashboard');
-        }
-        )->name('dashboard');
+        return view('dashboard');
+    })->name('dashboard');
 
         Route::get('/contacts', function () {
             return view('contacts.index');

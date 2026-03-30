@@ -25,6 +25,23 @@ Route::get('/user', function (Request $request) {
 })->middleware('auth:sanctum');
 
 Route::middleware(['web', 'auth'])->group(function () {
+    Route::get('/dashboard/stats', function (\App\Services\MorescoDbService $morescoDb) {
+        return response()->json([
+            'total_contacts' => \App\Models\Contact::count(),
+            'total_groups' => \App\Models\Group::where('source', 'app')->count(),
+            'moresco_contacts' => $morescoDb->countMembers(''),
+            'service_areas' => count($morescoDb->getServiceAreaGroups()),
+            'municipalities' => count($morescoDb->getMunicipalityGroups()),
+            'barangays' => count($morescoDb->getBarangayGroups()),
+            'outgoing_individual' => \App\Models\Message::where('type', 'outgoing')->count(),
+            'incoming_individual' => \App\Models\Message::where('type', 'incoming')->count(),
+            'outgoing_broadcast' => \App\Models\Message::where('type', 'broadcast')->count(),
+            'incoming_keyword' => \App\Models\Message::where('type', 'incoming_keyword')->count(),
+            'outgoing_keyword' => \App\Models\Message::where('type', 'auto_reply')->count(),
+            'active_keywords' => \App\Models\Keyword::where('is_active', true)->count(),
+        ]);
+    });
+
     Route::apiResource('contacts', ContactController::class);
     Route::apiResource('groups', GroupController::class);
     Route::post('/groups/{group}/contacts', [GroupController::class, 'addContacts']);

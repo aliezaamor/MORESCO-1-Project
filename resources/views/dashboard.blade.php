@@ -3,26 +3,59 @@
 @section('title', 'Dashboard')
 
 @section('content')
-    <div class="grid-5" style="display: grid; grid-template-columns: repeat(5, 1fr); gap: 1rem;">
-        <div class="card" style="padding: 1rem;">
-            <h3>Total Contacts</h3>
-            <p id="total-contacts" style="font-size: 2rem; font-weight: 700; color: var(--primary-color);">...</p>
+    <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 1rem;">
+        <!-- Column 1: Contacts & Groups -->
+        <div class="card" style="padding: 1.25rem; border-left: 4px solid var(--primary-color);">
+            <h3 style="font-size: 0.85rem; color: var(--text-light); font-weight: 600; text-transform: uppercase; margin: 0;">Total Contacts <span style="font-size: 0.7rem; text-transform: none;">(System)</span></h3>
+            <div id="stat-total_contacts" style="font-size: 1.8rem; font-weight: 700; color: var(--text-color); margin-top: 0.5rem;"><i class="fa-solid fa-spinner fa-spin" style="font-size: 1rem; opacity: 0.5;"></i></div>
         </div>
-        <div class="card" style="padding: 1rem;">
-            <h3>Total Groups</h3>
-            <p id="total-groups" style="font-size: 2rem; font-weight: 700; color: #8b5cf6;">...</p>
+        <div class="card" style="padding: 1.25rem; border-left: 4px solid var(--primary-color);">
+            <h3 style="font-size: 0.85rem; color: var(--text-light); font-weight: 600; text-transform: uppercase; margin: 0;">Total Contacts <span style="font-size: 0.7rem; text-transform: none;">(MORESCO)</span></h3>
+            <div id="stat-moresco_contacts" style="font-size: 1.8rem; font-weight: 700; color: var(--text-color); margin-top: 0.5rem;"><i class="fa-solid fa-spinner fa-spin" style="font-size: 1rem; opacity: 0.5;"></i></div>
         </div>
-        <div class="card" style="padding: 1rem;">
-            <h3>Outgoing Messages</h3>
-            <p id="total-outgoing" style="font-size: 2rem; font-weight: 700; color: var(--success-color);">...</p>
+        <div class="card" style="padding: 1.25rem; border-left: 4px solid #8b5cf6;">
+            <h3 style="font-size: 0.85rem; color: var(--text-light); font-weight: 600; text-transform: uppercase; margin: 0;">Total Groups <span style="font-size: 0.7rem; text-transform: none;">(System)</span></h3>
+            <div id="stat-total_groups" style="font-size: 1.8rem; font-weight: 700; color: var(--text-color); margin-top: 0.5rem;"><i class="fa-solid fa-spinner fa-spin" style="font-size: 1rem; opacity: 0.5;"></i></div>
         </div>
-        <div class="card" style="padding: 1rem;">
-            <h3>Incoming Messages</h3>
-            <p id="total-incoming" style="font-size: 2rem; font-weight: 700; color: #f59e0b;">...</p>
+        <div class="card" style="padding: 1.25rem; border-left: 4px solid #ef4444;">
+            <h3 style="font-size: 0.85rem; color: var(--text-light); font-weight: 600; text-transform: uppercase; margin: 0;">Active Keywords</h3>
+            <div id="stat-active_keywords" style="font-size: 1.8rem; font-weight: 700; color: var(--text-color); margin-top: 0.5rem;"><i class="fa-solid fa-spinner fa-spin" style="font-size: 1rem; opacity: 0.5;"></i></div>
         </div>
-        <div class="card" style="padding: 1rem;">
-            <h3>Active Keywords</h3>
-            <p id="active-keywords" style="font-size: 2rem; font-weight: 700; color: var(--danger-color);">...</p>
+
+        <!-- Column 2: MORESCO Service Areas -->
+        <div class="card" style="padding: 1.25rem; border-left: 4px solid #06b6d4;">
+            <h3 style="font-size: 0.85rem; color: var(--text-light); font-weight: 600; text-transform: uppercase; margin: 0;">Service Areas</h3>
+            <div id="stat-service_areas" style="font-size: 1.8rem; font-weight: 700; color: var(--text-color); margin-top: 0.5rem;"><i class="fa-solid fa-spinner fa-spin" style="font-size: 1rem; opacity: 0.5;"></i></div>
+        </div>
+        <div class="card" style="padding: 1.25rem; border-left: 4px solid #06b6d4;">
+            <h3 style="font-size: 0.85rem; color: var(--text-light); font-weight: 600; text-transform: uppercase; margin: 0;">Municipalities</h3>
+            <div id="stat-municipalities" style="font-size: 1.8rem; font-weight: 700; color: var(--text-color); margin-top: 0.5rem;"><i class="fa-solid fa-spinner fa-spin" style="font-size: 1rem; opacity: 0.5;"></i></div>
+        </div>
+        <div class="card" style="padding: 1.25rem; border-left: 4px solid #06b6d4;">
+            <h3 style="font-size: 0.85rem; color: var(--text-light); font-weight: 600; text-transform: uppercase; margin: 0;">Barangays</h3>
+            <div id="stat-barangays" style="font-size: 1.8rem; font-weight: 700; color: var(--text-color); margin-top: 0.5rem;"><i class="fa-solid fa-spinner fa-spin" style="font-size: 1rem; opacity: 0.5;"></i></div>
+        </div>
+        <div class="card" style="padding: 1.25rem; border-left: 4px solid #f59e0b;">
+            <h3 style="font-size: 0.85rem; color: var(--text-light); font-weight: 600; text-transform: uppercase; margin: 0;">Incoming Keyword</h3>
+            <div id="stat-incoming_keyword" style="font-size: 1.8rem; font-weight: 700; color: var(--text-color); margin-top: 0.5rem;"><i class="fa-solid fa-spinner fa-spin" style="font-size: 1rem; opacity: 0.5;"></i></div>
+        </div>
+
+        <!-- Column 3: Messaging Stats -->
+        <div class="card" style="padding: 1.25rem; border-left: 4px solid #10b981;">
+            <h3 style="font-size: 0.85rem; color: var(--text-light); font-weight: 600; text-transform: uppercase; margin: 0;">Outgoing Individual</h3>
+            <div id="stat-outgoing_individual" style="font-size: 1.8rem; font-weight: 700; color: var(--text-color); margin-top: 0.5rem;"><i class="fa-solid fa-spinner fa-spin" style="font-size: 1rem; opacity: 0.5;"></i></div>
+        </div>
+        <div class="card" style="padding: 1.25rem; border-left: 4px solid #f59e0b;">
+            <h3 style="font-size: 0.85rem; color: var(--text-light); font-weight: 600; text-transform: uppercase; margin: 0;">Incoming Individual</h3>
+            <div id="stat-incoming_individual" style="font-size: 1.8rem; font-weight: 700; color: var(--text-color); margin-top: 0.5rem;"><i class="fa-solid fa-spinner fa-spin" style="font-size: 1rem; opacity: 0.5;"></i></div>
+        </div>
+        <div class="card" style="padding: 1.25rem; border-left: 4px solid #10b981;">
+            <h3 style="font-size: 0.85rem; color: var(--text-light); font-weight: 600; text-transform: uppercase; margin: 0;">Outgoing Broadcast</h3>
+            <div id="stat-outgoing_broadcast" style="font-size: 1.8rem; font-weight: 700; color: var(--text-color); margin-top: 0.5rem;"><i class="fa-solid fa-spinner fa-spin" style="font-size: 1rem; opacity: 0.5;"></i></div>
+        </div>
+        <div class="card" style="padding: 1.25rem; border-left: 4px solid #10b981;">
+            <h3 style="font-size: 0.85rem; color: var(--text-light); font-weight: 600; text-transform: uppercase; margin: 0;">Outgoing Keyword</h3>
+            <div id="stat-outgoing_keyword" style="font-size: 1.8rem; font-weight: 700; color: var(--text-color); margin-top: 0.5rem;"><i class="fa-solid fa-spinner fa-spin" style="font-size: 1rem; opacity: 0.5;"></i></div>
         </div>
     </div>
 
@@ -47,19 +80,25 @@
 <script>
     document.addEventListener('DOMContentLoaded', async () => {
         try {
-            // Fetch counts
-            const [contacts, messages, keywords, groups] = await Promise.all([
-                fetchAPI('/contacts'),
-                fetchAPI('/messages'),
-                fetchAPI('/keywords'),
-                fetchAPI('/groups')
-            ]);
+            // Fetch stats from specific endpoint to avoid large DOM payloads and calculate correctly
+            fetchAPI('/dashboard/stats').then(stats => {
+                const keys = [
+                    'total_contacts', 'total_groups', 'moresco_contacts',
+                    'service_areas', 'municipalities', 'barangays',
+                    'outgoing_individual', 'incoming_individual',
+                    'outgoing_broadcast', 'incoming_keyword', 'outgoing_keyword', 'active_keywords'
+                ];
+                
+                keys.forEach(key => {
+                    const el = document.getElementById(`stat-${key}`);
+                    if (el) {
+                        el.textContent = (stats[key] !== undefined && stats[key] !== null) ? stats[key].toLocaleString() : 0;
+                    }
+                });
+            }).catch(e => console.error("Stats Error:", e));
 
-            document.getElementById('total-contacts').textContent = contacts.length || 0;
-            document.getElementById('total-groups').textContent = groups.length || 0;
-            document.getElementById('total-outgoing').textContent = messages.filter(m => m.type !== 'incoming').length || 0;
-            document.getElementById('total-incoming').textContent = messages.filter(m => m.type === 'incoming').length || 0;
-            document.getElementById('active-keywords').textContent = keywords.filter(k => k.is_active).length || 0;
+            // Fetch messages for exactly the chart and recent logs
+            const messages = await fetchAPI('/messages');
 
             // Prepare Chart Data
             const last7Days = [...Array(7)].map((_, i) => {
@@ -76,7 +115,7 @@
                 const date = new Date(m.created_at).toLocaleDateString();
                 const index = last7Days.indexOf(date);
                 if (index !== -1) {
-                    if (m.type === 'incoming') {
+                    if (m.type === 'incoming' || m.type === 'incoming_keyword') {
                         receivedData[index]++;
                     } else {
                         sentData[index]++;
@@ -133,7 +172,7 @@
 
             if (sortedMessages.length > 0) {
                  recentLogs.innerHTML = sortedMessages.map(m => {
-                    const isIncoming = m.type === 'incoming';
+                    const isIncoming = m.type === 'incoming' || m.type === 'incoming_keyword';
                     const type = isIncoming ? 'Received from' : 'Sent to';
                     const icon = isIncoming 
                         ? '<i class="fa-solid fa-inbox" style="color: var(--success-color);"></i>' 
