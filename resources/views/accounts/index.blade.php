@@ -273,7 +273,8 @@
                                 </div>
                                 <div style="padding: 0.75rem;">
                                     <div style="font-size: 1.25rem; font-weight: bold; color: var(--text-color); margin-bottom: 0.25rem;">${escapeHtml(bill.bill_amount || '0.00')}</div>
-                                    <div style="font-size: 0.75rem; color: var(--text-light);"><i class="fa-regular fa-calendar" style="margin-right: 0.2rem;"></i> Due: <span style="color: var(--danger-color); font-weight: 500;">${escapeHtml(bill.due_date || '-')}</span></div>
+                                    <div style="font-size: 0.75rem; color: var(--text-light);"><i class="fa-solid fa-bolt" style="margin-right: 0.2rem; color: var(--primary-color);"></i> Reading Date: <span style="font-weight: 500; color: var(--text-color);">${escapeHtml(bill.reading_date || '-')}</span></div>
+                                    <div style="font-size: 0.75rem; color: var(--text-light); margin-bottom: 0.2rem;"><i class="fa-regular fa-calendar" style="margin-right: 0.2rem;"></i> Due: <span style="color: var(--danger-color); font-weight: 500;">${escapeHtml(bill.due_date || '-')}</span></div>
                                 </div>
                                 <div style="padding: 0.4rem 0.75rem; border-top: 1px dashed var(--border-color); background: var(--item-hover); font-size: 0.75rem; display: flex; justify-content: space-between; color: var(--text-light);">
                                     <span>Running Balance:</span>

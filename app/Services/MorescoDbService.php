@@ -205,6 +205,7 @@ class MorescoDbService
             'bill_amount'          => 'N/A',
             'billing_period'       => 'N/A',
             'due_date'             => 'N/A',
+            'reading_date'         => 'N/A',
             'balance'              => 'N/A',
             'last_payment_amount'  => 'N/A',
             'last_payment_date'    => 'N/A',
@@ -216,10 +217,11 @@ class MorescoDbService
             $pdo     = $this->getConnection();
             $escaped = trim($accountNo);
 
-            // ── Latest account info (due date, status) ──────────────────────
+            // ── Latest account info (due date, reading date, status) ────────
             $stmtAcc = $pdo->prepare("
                 SELECT TOP 1
                     due_date,
+                    rdng_date,
                     status_id
                 FROM dbo.VW_ACCOUNTS_METER_READING
                 WHERE account_no = ?
@@ -280,6 +282,7 @@ class MorescoDbService
             $billAmount     = 'N/A';
             $billingPeriod  = 'N/A';
             $dueDate        = 'N/A';
+            $readingDate    = 'N/A';
             $balance        = '₱' . number_format($trueBalance, 2);
 
             if ($bill) {
@@ -311,7 +314,7 @@ class MorescoDbService
                 $orNumber = $this->toUtf8(trim($pay['or_number'] ?? 'N/A'));
             }
 
-            // ── Account status from VW_ACCOUNTS_METER_READING ────────────────
+            // ── Account status & reading date from VW_ACCOUNTS_METER_READING ─
             if ($acc) {
                 // Use the real due date if available
                 $accDueDateRaw = $acc['due_date'] ?? null;
@@ -321,9 +324,15 @@ class MorescoDbService
                     } catch (\Exception $ignored) {}
                 }
 
+                // Parse the meter reading date (rdng_date)
+                $rdngDateRaw = $acc['rdng_date'] ?? null;
+                if ($rdngDateRaw) {
+                    try {
+                        $readingDate = (new \DateTime($rdngDateRaw))->format('F d, Y');
+                    } catch (\Exception $ignored) {}
+                }
+
                 // Map status_id to a readable string if possible
-                // For now, we'll return it as-is or map common ones if known.
-                // If status_id is just a number, we'll label it.
                 $sid = $acc['status_id'] ?? null;
                 if ($sid !== null) {
                     $accountStatus = match((int)$sid) {
@@ -339,6 +348,7 @@ class MorescoDbService
                 'bill_amount'          => $billAmount,
                 'billing_period'       => $billingPeriod,
                 'due_date'             => $dueDate,
+                'reading_date'         => $readingDate,
                 'balance'              => $balance,
                 'last_payment_amount'  => $lastPaymentAmount,
                 'last_payment_date'    => $lastPaymentDate,
