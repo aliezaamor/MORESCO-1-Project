@@ -33,7 +33,7 @@ Route::middleware(['web', 'auth'])->group(function () {
             'service_areas' => count($morescoDb->getServiceAreaGroups()),
             'municipalities' => count($morescoDb->getMunicipalityGroups()),
             'barangays' => count($morescoDb->getBarangayGroups()),
-            'outgoing_individual' => \App\Models\Message::where('type', 'outgoing')->count(),
+            'outgoing_individual' => \App\Models\Message::where('type', 'individual')->count(),
             'incoming_individual' => \App\Models\Message::where('type', 'incoming')->count(),
             'outgoing_broadcast' => \App\Models\Message::where('type', 'broadcast')->count(),
             'incoming_keyword' => \App\Models\Message::where('type', 'incoming_keyword')->count(),

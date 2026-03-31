@@ -158,9 +158,10 @@ class ListenToYeastarAmi extends Command
             $content = trim($content);
             
             $this->info("Received SMS from {$sender}: {$content} (Port: {$port}, Index: {$index})");
-            Log::info("Yeastar AMI processing parsed SMS from {$sender}: {$content}");
-            
+
             try {
+                try { Log::info("Yeastar AMI processing parsed SMS from {$sender}: {$content}"); } catch (\Throwable $le) {}
+
                 $smsService->processIncomingMessage($sender, $content, $port);
                 $this->info("   -> ✓ Successfully saved SMS to database.");
 
@@ -176,7 +177,7 @@ class ListenToYeastarAmi extends Command
                 }
             } catch (\Exception $e) {
                 $this->error("   -> Failed to save SMS: " . $e->getMessage());
-                Log::error("Yeastar AMI processing failed: " . $e->getMessage());
+                try { Log::error("Yeastar AMI processing failed: " . $e->getMessage()); } catch (\Throwable $le) {}
             }
         } else {
             $this->warn("Received SMS event missing Sender or Content.");

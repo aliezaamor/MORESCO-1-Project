@@ -50,6 +50,7 @@ class AccountController extends Controller
         $stmt = $pdo->prepare("SELECT account_no FROM dbo.account WHERE member_id = ? ORDER BY account_no ASC");
         $stmt->execute([$memberId]);
         $accountsRows = $stmt->fetchAll(\PDO::FETCH_ASSOC);
+        $stmt->closeCursor();
 
         $accountsData = [];
         foreach ($accountsRows as $row) {

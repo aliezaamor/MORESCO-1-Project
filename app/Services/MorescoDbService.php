@@ -229,6 +229,7 @@ class MorescoDbService
             ");
             $stmtAcc->execute([$escaped]);
             $acc = $stmtAcc->fetch(\PDO::FETCH_ASSOC);
+            $stmtAcc->closeCursor();
 
             // ── Latest bill (credit row with no OR) ─────────────────────────
             $stmtBill = $pdo->prepare("
@@ -245,6 +246,7 @@ class MorescoDbService
             ");
             $stmtBill->execute([$escaped]);
             $bill = $stmtBill->fetch(\PDO::FETCH_ASSOC);
+            $stmtBill->closeCursor();
 
             // ── Latest payment (debit row with OR) ────────────────────────
             $stmtPay = $pdo->prepare("
@@ -261,6 +263,7 @@ class MorescoDbService
             ");
             $stmtPay->execute([$escaped]);
             $pay = $stmtPay->fetch(\PDO::FETCH_ASSOC);
+            $stmtPay->closeCursor();
 
             if (!$bill && !$pay) {
                 return $empty;
@@ -276,6 +279,7 @@ class MorescoDbService
             ");
             $stmtBal->execute([$escaped]);
             $balRow = $stmtBal->fetch(\PDO::FETCH_ASSOC);
+            $stmtBal->closeCursor();
             $trueBalance = (float)($balRow['true_balance'] ?? 0);
 
             // ── Format bill fields ────────────────────────────────────────────
@@ -687,7 +691,7 @@ class MorescoDbService
         $username = env('MSDB_USERNAME', '');
         $password = env('MSDB_PASSWORD', '');
 
-        $dsn = "odbc:Driver={SQL Server};Server={$host},{$port};Database={$database};";
+        $dsn = "odbc:Driver={FreeTDS};Server={$host};Port={$port};Database={$database};TDS_Version=7.4;";
 
         return new \PDO($dsn, $username, $password, [
             \PDO::ATTR_ERRMODE            => \PDO::ERRMODE_EXCEPTION,
