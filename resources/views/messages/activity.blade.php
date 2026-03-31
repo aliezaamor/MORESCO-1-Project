@@ -29,6 +29,23 @@
         </div>
     </div>
 
+    {{-- Listener Status Panel --}}
+    <div class="card" id="listenerPanel" style="margin-bottom: 1.25rem; padding: 0; overflow: hidden;">
+        <div style="padding: 0.75rem 1.25rem; border-bottom: 1px solid var(--border-color); display: flex; align-items: center; gap: 0.75rem; cursor: pointer;" onclick="toggleListenerLogs()">
+            <i class="fa-solid fa-satellite-dish" style="color: var(--primary-color);"></i>
+            <span style="font-weight: 600; font-size: 0.88rem;">Yeastar AMI Listener</span>
+            <span id="listenerStatusBadge" style="display: inline-flex; align-items: center; gap: 0.3rem; padding: 2px 10px; border-radius: 999px; font-size: 0.72rem; font-weight: 600; background: rgba(156,163,175,0.15); color: #6b7280; border: 1px solid #6b728033;">
+                <i class="fa-solid fa-circle-notch fa-spin" style="font-size: 0.6rem;"></i> Loading...
+            </span>
+            <span id="listenerPid" style="font-size: 0.75rem; color: var(--text-light); margin-left: 0.25rem;"></span>
+            <span id="listenerLastSeen" style="font-size: 0.75rem; color: var(--text-light); margin-left: auto; margin-right: 0.5rem;"></span>
+            <i id="listenerToggleIcon" class="fa-solid fa-chevron-down" style="font-size: 0.75rem; color: var(--text-light); transition: transform 0.2s;"></i>
+        </div>
+        <div id="listenerLogFeed" style="max-height: 200px; overflow-y: auto; padding: 0.5rem 1.25rem; font-family: monospace; font-size: 0.76rem; background: var(--item-hover); display: none;">
+            <div style="color: var(--text-light); padding: 0.5rem 0;">Loading listener logs...</div>
+        </div>
+    </div>
+
     {{-- Summary Cards --}}
     <div id="summaryCards" style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 1rem; margin-bottom: 1.5rem;">
         <div class="card" style="padding: 1rem 1.25rem; display: flex; align-items: center; gap: 1rem; border-left: 4px solid #10b981;">
@@ -92,6 +109,71 @@
 <script>
     const CSRF_TOKEN = document.querySelector('meta[name="csrf-token"]')?.content || '';
 
+    // ── Listener Status ───────────────────────────────────────────────────────
+    let listenerLogsVisible = false;
+
+    const LISTENER_STATUS_CONFIG = {
+        connected:    { label: 'Connected',    color: '#10b981', bg: 'rgba(16,185,129,0.12)',  icon: 'fa-circle-check' },
+        disconnected: { label: 'Disconnected', color: '#ef4444', bg: 'rgba(239,68,68,0.12)',   icon: 'fa-circle-xmark' },
+        unknown:      { label: 'Unknown',      color: '#f59e0b', bg: 'rgba(245,158,11,0.12)',  icon: 'fa-circle-question' },
+    };
+
+    const LOG_LEVEL_COLOR = {
+        INFO:    'var(--text-color)',
+        WARNING: '#f59e0b',
+        ERROR:   '#ef4444',
+        DEBUG:   'var(--text-light)',
+    };
+
+    async function loadListenerStatus() {
+        try {
+            const resp = await fetch('{{ route("sms.activity.listener") }}', {
+                headers: { 'Accept': 'application/json', 'X-Requested-With': 'XMLHttpRequest' }
+            });
+            const data = await resp.json();
+            renderListenerStatus(data);
+        } catch (e) {
+            console.error('Failed to load listener status', e);
+        }
+    }
+
+    function renderListenerStatus(data) {
+        const cfg    = LISTENER_STATUS_CONFIG[data.status] || LISTENER_STATUS_CONFIG.unknown;
+        const badge  = document.getElementById('listenerStatusBadge');
+        badge.style.background  = cfg.bg;
+        badge.style.color       = cfg.color;
+        badge.style.borderColor = cfg.color + '55';
+        badge.innerHTML = `<i class="fa-solid ${cfg.icon}" style="font-size:0.6rem;"></i> ${cfg.label}`;
+
+        const pidEl = document.getElementById('listenerPid');
+        pidEl.textContent = data.pid ? `PID ${data.pid}` : '';
+
+        const lastEl = document.getElementById('listenerLastSeen');
+        lastEl.textContent = data.last_seen_at ? `Last: ${data.last_seen_at}` : 'No events logged today';
+
+        const feed = document.getElementById('listenerLogFeed');
+        if (!data.logs || data.logs.length === 0) {
+            feed.innerHTML = '<div style="color: var(--text-light); padding: 0.5rem 0;">No Yeastar AMI log entries found for today. Restart the listener to begin logging.</div>';
+            return;
+        }
+
+        feed.innerHTML = data.logs.slice().reverse().map(entry => {
+            const color = LOG_LEVEL_COLOR[entry.level] || 'var(--text-color)';
+            const levelBadge = `<span style="color:${color}; font-weight:600; min-width:4rem; display:inline-block;">[${entry.level}]</span>`;
+            return `<div style="padding: 2px 0; border-bottom: 1px solid var(--border-color); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;" title="${escHtml(entry.message)}">
+                <span style="color: var(--text-light); margin-right: 0.5rem;">${escHtml(entry.time)}</span>${levelBadge} ${escHtml(entry.message)}
+            </div>`;
+        }).join('');
+    }
+
+    function toggleListenerLogs() {
+        listenerLogsVisible = !listenerLogsVisible;
+        const feed = document.getElementById('listenerLogFeed');
+        const icon = document.getElementById('listenerToggleIcon');
+        feed.style.display = listenerLogsVisible ? 'block' : 'none';
+        icon.style.transform = listenerLogsVisible ? 'rotate(180deg)' : 'rotate(0deg)';
+    }
+
     const STATUS_CONFIG = {
         normal:    { label: 'Normal',    color: '#10b981', bg: 'rgba(16,185,129,0.12)', icon: 'fa-circle-check' },
         warning:   { label: 'Warning',   color: '#f59e0b', bg: 'rgba(245,158,11,0.12)', icon: 'fa-triangle-exclamation' },
@@ -118,6 +200,7 @@
         } catch (e) {
             console.error('Failed to fetch activity data', e);
         }
+        loadListenerStatus();
     }
 
     function renderTable(data) {

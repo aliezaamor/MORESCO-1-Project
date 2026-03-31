@@ -46,6 +46,7 @@ class ListenToYeastarAmi extends Command
 
         while (true) {
             $this->info("\n[" . now()->format('Y-m-d H:i:s') . "] Connecting to Yeastar AMI at {$host}:{$port}...");
+            Log::info("Yeastar AMI: Connecting to {$host}:{$port}...");
 
             $socket = @fsockopen($host, $port, $errno, $errstr, 10);
 
@@ -68,7 +69,8 @@ class ListenToYeastarAmi extends Command
             $loginAction .= "\r\n";
             
             fwrite($socket, $loginAction);
-            
+            fwrite($socket, "Action: Events\r\nEventMask: on\r\n\r\n");
+
             $currentEvent = [];
             $isContentReading = false;
             $lastDataTime = time();
@@ -90,6 +92,7 @@ class ListenToYeastarAmi extends Command
                     if (time() - $lastDataTime > 30) {
                         fwrite($socket, "Action: Ping\r\n\r\n");
                         $lastDataTime = time();
+                        Log::debug("Yeastar AMI: Ping sent (keepalive)");
                     }
 
                     usleep(100000); 
@@ -130,6 +133,7 @@ class ListenToYeastarAmi extends Command
                     // Print to console for debug when login is successful
                     if ($key === 'Message' && str_contains(strtolower($value), 'authentication accepted')) {
                         $this->info("✓ Successfully authenticated with Yeastar API.");
+                        Log::info("Yeastar AMI: Authentication accepted");
                     }
                 }
             }
@@ -149,7 +153,9 @@ class ListenToYeastarAmi extends Command
         $content = $eventData['Content'] ?? null;
         $index = $eventData['Index'] ?? null;
         $port = $eventData['GsmSpan'] ?? null;
-        
+
+        Log::info("Yeastar AMI: ReceivedSMS event — Sender: {$sender}, Port: {$port}, Index: {$index}");
+
         if ($sender && $content) {
             // Yeastar AMI sometimes URL encodes the Content field (e.g. Hello+guys%2C)
             $content = urldecode($content);
@@ -164,6 +170,7 @@ class ListenToYeastarAmi extends Command
 
                 $smsService->processIncomingMessage($sender, $content, $port);
                 $this->info("   -> ✓ Successfully saved SMS to database.");
+                Log::info("Yeastar AMI: SMS from {$sender} saved successfully — content: {$content}");
 
                 // Automatically delete from Yeastar gateway to prevent full SIM
                 if ($index !== null && $port !== null) {

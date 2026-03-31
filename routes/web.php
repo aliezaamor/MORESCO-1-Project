@@ -62,6 +62,7 @@ Route::middleware('auth')->group(function () {
         // SMS Activity Monitor (rate limiting)
         Route::get('/sms/activity', [\App\Http\Controllers\RateLimitController::class, 'index'])->name('sms.activity');
         Route::get('/sms/activity/data', [\App\Http\Controllers\RateLimitController::class, 'data'])->name('sms.activity.data');
+        Route::get('/sms/activity/listener-status', [\App\Http\Controllers\RateLimitController::class, 'listenerStatus'])->name('sms.activity.listener');
         Route::post('/sms/activity/{contact}/unblock', [\App\Http\Controllers\RateLimitController::class, 'unblock'])->name('sms.activity.unblock');
 
         Route::get('/test-billing', function (\Illuminate\Http\Request $request) {
