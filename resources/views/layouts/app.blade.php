@@ -114,7 +114,7 @@
                 </ul>
             </li>
             <li>
-                <a href="{{ route('view.inquiries.index') }}" class="nav-link {{ request()->routeIs('view.inquiries.index') ? 'active' : '' }}">
+                <a href="{{ route('inquiries.index') }}" class="nav-link {{ request()->routeIs('inquiries.index') ? 'active' : '' }}">
                     <i class="fa-solid fa-clipboard-question"></i> Consumer Inquiries
                 </a>
             </li>
