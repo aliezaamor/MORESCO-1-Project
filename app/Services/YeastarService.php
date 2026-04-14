@@ -15,16 +15,18 @@ class YeastarService
 
     public function __construct()
     {
-        $this->host = env('YEASTAR_HOST', '10.209.80.8');
-        $this->port = env('YEASTAR_PORT', '80');
-        $this->username = env('YEASTAR_API_USERNAME', 'apiuser');
-        $this->password = env('YEASTAR_API_PASSWORD', 'apipass');
-        $this->defaultPort = env('YEASTAR_DEFAULT_ROUTE_PORT', '2');
+        $this->host = config('yeastar.host', '10.209.80.8');
+        $this->port = config('yeastar.port', '80');
+        $this->username = config('yeastar.username', 'apiuser');
+        $this->password = config('yeastar.password', 'apipass');
+        $this->defaultPort = config('yeastar.default_route_port', 2);
     }
 
     public function sendSms(string $destination, string $content, string $gsmPort = null)
     {
-        $portUsed = $gsmPort ?? $this->defaultPort;
+        $rawPort  = $gsmPort ?? $this->defaultPort;
+        $spanMap  = config('yeastar.gsm_span_map', []);
+        $portUsed = $spanMap[(int) $rawPort] ?? $rawPort;
         $url = "http://{$this->host}:{$this->port}/cgi/WebCGI";
         $queryString = "1500101=account={$this->username}&password={$this->password}&port={$portUsed}&destination={$destination}&content=" . urlencode($content);
 

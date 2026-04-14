@@ -191,7 +191,12 @@
                 }
             });
             if (!response.ok) {
-                throw new Error(`API Error: ${response.statusText}`);
+                let errMsg = response.statusText;
+                try {
+                    const errBody = await response.json();
+                    errMsg = errBody.message || errBody.error || JSON.stringify(errBody);
+                } catch (_) {}
+                throw new Error(`API Error: ${errMsg}`);
             }
             const text = await response.text();
             return text ? JSON.parse(text) : {};

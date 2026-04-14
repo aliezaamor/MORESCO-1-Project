@@ -55,9 +55,9 @@ class DispatchScheduledMessages extends Command
             $gsmPortToUse = null;
 
             if ($message->type === 'individual') {
-                $gsmPortToUse = env('YEASTAR_PORT_INDIVIDUAL', 1);
+                $gsmPortToUse = config('yeastar.port_individual', 2);
             } elseif ($message->type === 'broadcast') {
-                $gsmPortToUse = env('YEASTAR_PORT_BROADCAST', 2);
+                $gsmPortToUse = config('yeastar.port_broadcast', 1);
             }
 
             $isFirst = true;

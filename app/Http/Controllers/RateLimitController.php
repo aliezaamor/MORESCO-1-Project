@@ -37,10 +37,15 @@ class RateLimitController extends Controller
         $pid       = null;
 
         if (file_exists($lockPath)) {
-            $handle    = fopen($lockPath, 'c+');
-            $isRunning = !flock($handle, LOCK_EX | LOCK_NB); // can't acquire = someone holds it
-            if (!$isRunning) flock($handle, LOCK_UN);        // release immediately if we got it
-            fclose($handle);
+            $handle = @fopen($lockPath, 'c+');
+            if ($handle === false) {
+                // Can't open the file (permission denied) — another process owns it exclusively
+                $isRunning = true;
+            } else {
+                $isRunning = !flock($handle, LOCK_EX | LOCK_NB); // can't acquire = someone holds it
+                if (!$isRunning) flock($handle, LOCK_UN);        // release immediately if we got it
+                fclose($handle);
+            }
         }
 
         // Try to get PID via shell_exec (best-effort; may be unavailable in some environments)

@@ -110,6 +110,7 @@ class MorescoDbService
             $stmtMap = $pdo->prepare("SELECT member_id FROM dbo.account WHERE account_no = ?");
             $stmtMap->execute([$escaped]);
             $accountRecord = $stmtMap->fetch(\PDO::FETCH_ASSOC);
+            $stmtMap->closeCursor(); // Required: FreeTDS/ODBC throws cursor state error if not closed
 
             if (!$accountRecord) {
                 return null;
@@ -685,11 +686,11 @@ class MorescoDbService
      */
     public function getConnection(): \PDO
     {
-        $host     = env('MSDB_HOST', 'localhost');
-        $port     = env('MSDB_PORT', '1433');
-        $database = env('MSDB_DATABASE', '');
-        $username = env('MSDB_USERNAME', '');
-        $password = env('MSDB_PASSWORD', '');
+        $host     = config('database.connections.sqlsrv.host', 'localhost');
+        $port     = config('database.connections.sqlsrv.port', '1433');
+        $database = config('database.connections.sqlsrv.database', '');
+        $username = config('database.connections.sqlsrv.username', '');
+        $password = config('database.connections.sqlsrv.password', '');
 
         $dsn = "odbc:Driver={FreeTDS};Server={$host};Port={$port};Database={$database};TDS_Version=7.4;";
 

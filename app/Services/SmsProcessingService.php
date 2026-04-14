@@ -58,7 +58,7 @@ class SmsProcessingService
             }
 
             // ── 2. Store the incoming message ─────────────────────────────────
-            $keywordPort = env('YEASTAR_PORT_KEYWORD', 1);
+            $keywordPort = config('yeastar.port_keyword', 2);
             $incomingType = ($port !== null && (int)$port === (int)$keywordPort) ? 'incoming_keyword' : 'incoming';
 
             $incomingMessage = Message::create([
@@ -85,10 +85,10 @@ class SmsProcessingService
                     ]);
                     $blockMsg->recipients()->create(['contact_id' => $contact->id, 'status' => 'sent']);
 
-                    // Dispatch block notice via Yeastar
+                    // Dispatch block notice via Yeastar — reply on the same port the message arrived on
                     try {
                         $destination = preg_replace('/[^0-9+]/', '', $contact->phone_number);
-                        $gsmPort     = env('YEASTAR_PORT_KEYWORD', 2);
+                        $gsmPort     = $port ?? config('yeastar.port_keyword', 2);
                         app(\App\Services\YeastarService::class)->sendSms($destination, $blockMsg->content, $gsmPort);
                     } catch (\Exception $e) {
                         Log::error('RateLimit block notice dispatch failed: ' . $e->getMessage());
@@ -101,6 +101,11 @@ class SmsProcessingService
             if ($rateResult['status'] === 'throttle') {
                 // Message saved, but silently drop auto-reply
                 return ['incoming' => $incomingMessage->load('recipients.contact'), 'auto_reply' => null, 'keyword_matched' => false, 'rate_limited' => true];
+            }
+
+            // ── Keyword processing is TM-port only ───────────────────────────
+            if ($port === null || (int)$port !== (int)$keywordPort) {
+                return ['incoming' => $incomingMessage->load('recipients.contact'), 'auto_reply' => null, 'keyword_matched' => false, 'rate_limited' => false];
             }
 
             $normalizedContent = strtolower(trim(preg_replace('/\s+/', ' ', $content)));
@@ -279,8 +284,8 @@ class SmsProcessingService
                     }
 
                     $replyContent = str_replace(
-                        ['{bill_amount}',                   '{billing_period}',                   '{due_date}',                   '{balance}',                   '{dynamic_balance}',               '{last_payment_amount}',                   '{last_payment_date}',                   '{or_number}',                   '{account_status}'           ],
-                        [$billing['bill_amount'] ?? 'N/A',  $billing['billing_period'] ?? 'N/A',  $billing['due_date'] ?? 'N/A',  $billing['balance'] ?? 'N/A',  $dynamicBalanceBlock,              $billing['last_payment_amount'] ?? 'N/A',  $billing['last_payment_date'] ?? 'N/A',  $billing['or_number'] ?? 'N/A',  $billing['account_status'] ?? 'N/A'],
+                        ['{bill_amount}',                   '{billing_period}',                   '{due_date}',                   '{reading_date}',                   '{balance}',                   '{dynamic_balance}',               '{last_payment_amount}',                   '{last_payment_date}',                   '{or_number}',                   '{account_status}'           ],
+                        [$billing['bill_amount'] ?? 'N/A',  $billing['billing_period'] ?? 'N/A',  $billing['due_date'] ?? 'N/A',  $billing['reading_date'] ?? 'N/A',  $billing['balance'] ?? 'N/A',  $dynamicBalanceBlock,              $billing['last_payment_amount'] ?? 'N/A',  $billing['last_payment_date'] ?? 'N/A',  $billing['or_number'] ?? 'N/A',  $billing['account_status'] ?? 'N/A'],
                         $replyContent
                     );
                 }
@@ -314,10 +319,10 @@ class SmsProcessingService
                 ]);
             }
 
-            // ── 6. Dispatch auto-reply via Yeastar ────────────────────────────
+            // ── 6. Dispatch auto-reply via Yeastar — reply on the same port the message arrived on
             if ($autoReply) {
                 $destination = preg_replace('/[^0-9+]/', '', $contact->phone_number);
-                $gsmPort     = env('YEASTAR_PORT_KEYWORD', 2);
+                $gsmPort     = $port ?? config('yeastar.port_keyword', 2);
 
                 try {
                     $yeastarService = app(\App\Services\YeastarService::class);

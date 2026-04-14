@@ -42,6 +42,7 @@ class YeastarController extends Controller
             // Map lower case parameters to expected case if necessary, depending on how TG400 sends them
             if (isset($data['sender'])) $data['Sender'] = $data['sender'];
             if (isset($data['content'])) $data['Content'] = $data['content'];
+            if (isset($data['gsmspan'])) $data['GsmSpan'] = $data['gsmspan'];
 
         } else {
             // Otherwise, process as a raw text POST payload

@@ -97,7 +97,7 @@ class MessageController extends Controller
         $gsmPortToUse   = null;
 
         if ($validated['type'] === 'individual') {
-            $gsmPortToUse = env('YEASTAR_PORT_INDIVIDUAL', 1);
+            $gsmPortToUse = config('yeastar.port_individual', 2);
 
             if (!empty($validated['moresco_phone'])) {
                 // MORESCO consumer — find or create a local stub so the FK is satisfied
@@ -118,7 +118,7 @@ class MessageController extends Controller
             }
         }
         elseif ($validated['type'] === 'broadcast') {
-            $gsmPortToUse = env('YEASTAR_PORT_BROADCAST', 2);
+            $gsmPortToUse = config('yeastar.port_broadcast', 1);
             $uniqueContacts = collect();
 
             // --- App groups (local MySQL) ---
