@@ -4,75 +4,89 @@
 
 @section('content')
 <div class="card">
-    <div class="card-header" style="display: flex; justify-content: space-between; align-items: center;">
+    <div class="card-header" style="display: flex; justify-content: space-between; align-items: center; background: transparent; border-bottom: 2px solid var(--border-color); padding: 1.5rem;">
         <div>
-            <h2 style="margin: 0; font-size: 1.25rem;">Inquiries from MORESCO Database</h2>
-            <p style="margin: 5px 0 0; font-size: 0.875rem; color: var(--text-light);">
-                Total Records: <strong>{{ number_format($total) }}</strong>
+            <h2 style="margin: 0; font-size: 1.5rem; font-weight: 700; color: var(--text-color);">Inquiries from MORESCO Database</h2>
+            <p style="margin: 5px 0 0; font-size: 0.9rem; color: var(--text-light);">
+                Tracking <strong>{{ number_format($total) }}</strong> records from external system
             </p>
         </div>
         <div class="actions">
-            <!-- Optional refresh button -->
-            <button class="btn btn-secondary" onclick="window.location.reload()">
-                <i class="fa-solid fa-sync" style="margin-right: 0.5rem;"></i> Refresh
+            <button class="btn btn-secondary" onclick="window.location.reload()" style="display: flex; align-items: center; gap: 0.5rem; border-radius: 8px;">
+                <i class="fa-solid fa-arrows-rotate"></i> Refresh
             </button>
         </div>
     </div>
 
     <div class="card-body" style="padding: 0;">
-        <div class="table-container">
-            <table class="table">
-                <thead>
+        <div class="table-container" style="overflow-x: auto;">
+            <table class="table" style="width: 100%; border-collapse: separate; border-spacing: 0;">
+                <thead style="background: var(--item-hover);">
                     <tr>
-                        <th>Date</th>
-                        <th>Account</th>
-                        <th>Consumer Name</th>
-                        <th>Address</th>
-                        <th>Inquiry Details</th>
-                        <th>Type</th>
-                        <th>Status</th>
+                        <th style="padding: 1rem; text-align: left; color: var(--text-light); border-bottom: 1px solid var(--border-color); font-weight: 600; font-size: 0.85rem; text-transform: uppercase; letter-spacing: 0.05em;">Date</th>
+                        <th style="padding: 1rem; text-align: left; color: var(--text-light); border-bottom: 1px solid var(--border-color); font-weight: 600; font-size: 0.85rem; text-transform: uppercase; letter-spacing: 0.05em;">Account</th>
+                        <th style="padding: 1rem; text-align: left; color: var(--text-light); border-bottom: 1px solid var(--border-color); font-weight: 600; font-size: 0.85rem; text-transform: uppercase; letter-spacing: 0.05em;">Consumer</th>
+                        <th style="padding: 1rem; text-align: left; color: var(--text-light); border-bottom: 1px solid var(--border-color); font-weight: 600; font-size: 0.85rem; text-transform: uppercase; letter-spacing: 0.05em;">Details</th>
+                        <th style="padding: 1rem; text-align: left; color: var(--text-light); border-bottom: 1px solid var(--border-color); font-weight: 600; font-size: 0.85rem; text-transform: uppercase; letter-spacing: 0.05em;">Type</th>
+                        <th style="padding: 1rem; text-align: left; color: var(--text-light); border-bottom: 1px solid var(--border-color); font-weight: 600; font-size: 0.85rem; text-transform: uppercase; letter-spacing: 0.05em;">Status</th>
+                        <th style="padding: 1rem; text-align: center; color: var(--text-light); border-bottom: 1px solid var(--border-color); font-weight: 600; font-size: 0.85rem; text-transform: uppercase; letter-spacing: 0.05em;">Actions</th>
                     </tr>
                 </thead>
                 <tbody>
                     @forelse($inquiries as $inq)
-                        <tr>
-                            <td style="white-space: nowrap; font-size: 0.85rem;">
+                        @php
+                            // Smart name logic: hide First Name if identical to Last Name
+                            $fullName = $inq['last_name'];
+                            if (strtoupper(trim($inq['first_name'])) !== strtoupper(trim($inq['last_name']))) {
+                                $fullName .= ', ' . $inq['first_name'];
+                            }
+                        @endphp
+                        <tr style="transition: background 0.2s;" onmouseover="this.style.background='var(--item-hover)'" onmouseout="this.style.background='transparent'">
+                            <td style="padding: 1rem; border-bottom: 1px solid var(--border-color); font-size: 0.9rem; white-space: nowrap; color: var(--text-light);">
                                 {{ $inq['date'] }}
                             </td>
-                            <td>
-                                <span class="badge" style="background: rgba(var(--primary-rgb), 0.1); color: var(--primary-color);">
+                            <td style="padding: 1rem; border-bottom: 1px solid var(--border-color);">
+                                <code style="padding: 0.2rem 0.5rem; background: rgba(59, 130, 246, 0.1); color: var(--primary-color); border-radius: 4px; font-weight: 600;">
                                     {{ $inq['account_no'] }}
-                                </span>
+                                </code>
                             </td>
-                            <td style="font-weight: 500;">
-                                {{ $inq['last_name'] }}, {{ $inq['first_name'] }}
-                                <div style="font-size: 0.75rem; color: var(--text-light); font-weight: 400;">
-                                    {{ $inq['phone'] }}
+                            <td style="padding: 1rem; border-bottom: 1px solid var(--border-color);">
+                                <div style="font-weight: 600; color: var(--text-color);">{{ $fullName }}</div>
+                                <div style="font-size: 0.8rem; color: var(--text-light);"><i class="fa-solid fa-phone" style="font-size: 0.7rem; margin-right: 0.3rem;"></i>{{ $inq['phone'] }}</div>
+                            </td>
+                            <td style="padding: 1rem; border-bottom: 1px solid var(--border-color); font-size: 0.9rem; max-width: 250px;">
+                                <div style="white-space: nowrap; overflow: hidden; text-overflow: ellipsis;" title="{{ $inq['inquiry'] }}">
+                                    {{ $inq['inquiry'] }}
                                 </div>
                             </td>
-                            <td style="font-size: 0.85rem; max-width: 200px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;" title="{{ $inq['address'] }}">
-                                {{ $inq['address'] }}
-                            </td>
-                            <td style="font-size: 0.85rem; max-width: 300px;">
-                                {{ $inq['inquiry'] }}
-                            </td>
-                            <td>
-                                <span class="badge" style="background: #e9ecef; color: #495057;">
+                            <td style="padding: 1rem; border-bottom: 1px solid var(--border-color);">
+                                <span class="badge inq-badge-{{ strtolower(str_replace(' ', '-', $inq['type'])) }}" 
+                                      style="padding: 0.25rem 0.75rem; border-radius: 20px; font-size: 0.75rem; font-weight: 600;">
                                     {{ $inq['type'] }}
                                 </span>
                             </td>
-                            <td>
+                            <td style="padding: 1rem; border-bottom: 1px solid var(--border-color);">
                                 @if($inq['status_id'] == 1)
-                                    <span class="status-pill warning" style="background: #fff3cd; color: #856404;">New</span>
+                                    <span style="display: inline-flex; align-items: center; gap: 0.4rem; padding: 0.25rem 0.75rem; background: #fff3cd; color: #856404; border-radius: 20px; font-size: 0.75rem; font-weight: 700;">
+                                        <span style="width: 6px; height: 6px; background: #856404; border-radius: 50%; animation: pulse 1.5s infinite;"></span>
+                                        NEW
+                                    </span>
                                 @else
-                                    <span class="status-pill success">Processed</span>
+                                    <span style="padding: 0.25rem 0.75rem; background: #d4edda; color: #155724; border-radius: 20px; font-size: 0.75rem; font-weight: 700;">
+                                        PROCESSED
+                                    </span>
                                 @endif
+                            </td>
+                            <td style="padding: 1rem; border-bottom: 1px solid var(--border-color); text-align: center;">
+                                <button class="btn btn-icon" onclick='inspectInquiry(@json($inq))' title="Inspect Inquiry" style="color: var(--primary-color);">
+                                    <i class="fa-solid fa-magnifying-glass"></i>
+                                </button>
                             </td>
                         </tr>
                     @empty
                         <tr>
-                            <td colspan="7" style="text-align: center; padding: 3rem; color: var(--text-light);">
-                                <i class="fa-solid fa-inbox" style="font-size: 3rem; display: block; margin-bottom: 1rem; opacity: 0.3;"></i>
+                            <td colspan="7" style="text-align: center; padding: 4rem; color: var(--text-light);">
+                                <div style="opacity: 0.2; font-size: 3rem; margin-bottom: 1rem;"><i class="fa-solid fa-folder-open"></i></div>
                                 No inquiries found in the database.
                             </td>
                         </tr>
@@ -82,20 +96,116 @@
         </div>
 
         @if($lastPage > 1)
-            <div class="pagination" style="padding: 1.5rem; display: flex; justify-content: center; gap: 0.5rem; border-top: 1px solid var(--border-color);">
-                @if($page > 1)
-                    <a href="?page={{ $page - 1 }}" class="btn btn-secondary btn-sm">Previous</a>
-                @endif
+            <div style="padding: 1.5rem; display: flex; justify-content: center; align-items: center; gap: 1rem; border-top: 2px solid var(--border-color);">
+                <a href="?page={{ $page - 1 }}" class="btn btn-secondary btn-sm {{ $page <= 1 ? 'disabled' : '' }}" style="border-radius: 8px;">
+                    <i class="fa-solid fa-chevron-left" style="margin-right: 0.5rem;"></i> Previous
+                </a>
                 
-                <span style="display: flex; align-items: center; padding: 0 1rem; font-size: 0.9rem;">
-                    Page {{ $page }} of {{ $lastPage }}
-                </span>
+                <div style="font-size: 0.9rem; color: var(--text-light);">
+                    Page <strong style="color: var(--text-color);">{{ $page }}</strong> of <strong>{{ $lastPage }}</strong>
+                </div>
 
-                @if($page < $lastPage)
-                    <a href="?page={{ $page + 1 }}" class="btn btn-secondary btn-sm">Next</a>
-                @endif
+                <a href="?page={{ $page + 1 }}" class="btn btn-secondary btn-sm {{ $page >= $lastPage ? 'disabled' : '' }}" style="border-radius: 8px;">
+                    Next <i class="fa-solid fa-chevron-right" style="margin-left: 0.5rem;"></i>
+                </a>
             </div>
         @endif
     </div>
 </div>
+
+<!-- Inquiry Details Modal -->
+<div class="modal-overlay" id="inquiryModal" style="display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.6); align-items: center; justify-content: center; z-index: 2000; backdrop-filter: blur(4px);">
+    <div class="modal" style="width: 600px; max-width: 95%; background: var(--surface-color); border-radius: 16px; overflow: hidden; box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5); border: 1px solid var(--border-color);">
+        <div class="modal-header" style="padding: 1.5rem; border-bottom: 1px solid var(--border-color); display: flex; justify-content: space-between; align-items: center; background: var(--item-hover);">
+            <h3 style="margin: 0; display: flex; align-items: center; gap: 0.75rem; color: var(--text-color); font-size: 1.25rem;">
+                <i class="fa-solid fa-clipboard-list" style="color: var(--primary-color);"></i>
+                Inquiry Details
+            </h3>
+            <button onclick="closeInquiryModal()" style="background: none; border: none; font-size: 1.5rem; color: var(--text-light); cursor: pointer;">&times;</button>
+        </div>
+        <div class="modal-body" style="padding: 2rem;">
+            <div id="modalContent">
+                <!-- Data injected here -->
+            </div>
+        </div>
+        <div class="modal-footer" style="padding: 1.25rem; background: var(--item-hover); border-top: 1px solid var(--border-color); text-align: right;">
+            <button class="btn btn-primary" onclick="closeInquiryModal()" style="padding: 0.6rem 2rem; border-radius: 8px;">Close</button>
+        </div>
+    </div>
+</div>
+
+<style>
+    @keyframes pulse {
+        0% { transform: scale(1); opacity: 1; }
+        50% { transform: scale(1.5); opacity: 0.5; }
+        100% { transform: scale(1); opacity: 1; }
+    }
+
+    /* Dynamic Badges based on type */
+    .inq-badge-online-payment { background: rgba(16, 185, 129, 0.1); color: #10b981; }
+    .inq-badge-outage-report { background: rgba(239, 68, 68, 0.1); color: #ef4444; }
+    .inq-badge-billing-inquiry { background: rgba(59, 130, 246, 0.1); color: #3b82f6; }
+    .inq-badge-general-inquiry { background: rgba(245, 158, 11, 0.1); color: #f59e0b; }
+    .inq-badge-others { background: #e9ecef; color: #6c757d; }
+
+    .disabled { pointer-events: none; opacity: 0.5; }
+</style>
+
+<script>
+    function inspectInquiry(inq) {
+        const modal = document.getElementById('inquiryModal');
+        const content = document.getElementById('modalContent');
+        
+        // Build clean identity string
+        let name = inq.last_name;
+        if (inq.first_name.toUpperCase() !== inq.last_name.toUpperCase()) {
+            name += ', ' + inq.first_name;
+        }
+
+        content.innerHTML = `
+            <div style="display: flex; gap: 1.5rem; align-items: flex-start; margin-bottom: 2rem;">
+                <div style="width: 64px; height: 64px; background: var(--primary-color); color: white; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 1.5rem; font-weight: bold; flex-shrink: 0;">
+                    ${inq.last_name.charAt(0)}
+                </div>
+                <div>
+                    <h4 style="margin: 0 0 0.25rem; font-size: 1.25rem; color: var(--text-color);">${name}</h4>
+                    <div style="color: var(--text-light); font-size: 0.9rem; display: flex; align-items: center; gap: 1rem;">
+                        <span><i class="fa-solid fa-id-card" style="margin-right: 0.4rem;"></i>${inq.account_no || 'No Account'}</span>
+                        <span><i class="fa-solid fa-phone" style="margin-right: 0.4rem;"></i>${inq.phone}</span>
+                    </div>
+                </div>
+            </div>
+
+            <div style="background: var(--background-color); border: 1px solid var(--border-color); border-radius: 12px; padding: 1.5rem; margin-bottom: 2rem;">
+                <label style="display: block; font-size: 0.75rem; font-weight: 700; color: var(--primary-color); text-transform: uppercase; margin-bottom: 0.75rem; letter-spacing: 0.05em;">Message Body</label>
+                <div style="font-size: 1.1rem; color: var(--text-color); line-height: 1.6; white-space: pre-wrap;">${inq.inquiry}</div>
+            </div>
+
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
+                <div>
+                    <label style="display: block; font-size: 0.7rem; font-weight: 700; color: var(--text-light); text-transform: uppercase; margin-bottom: 0.4rem;">Received At</label>
+                    <div style="font-weight: 600; color: var(--text-color);">${inq.date}</div>
+                </div>
+                <div>
+                    <label style="display: block; font-size: 0.7rem; font-weight: 700; color: var(--text-light); text-transform: uppercase; margin-bottom: 0.4rem;">Service Address</label>
+                    <div style="font-weight: 600; color: var(--text-color); font-size: 0.85rem;">${inq.address || 'N/A'}</div>
+                </div>
+            </div>
+        `;
+        
+        modal.style.display = 'flex';
+    }
+
+    function closeInquiryModal() {
+        document.getElementById('inquiryModal').style.display = 'none';
+    }
+
+    // Close on background click
+    window.onclick = function(event) {
+        const modal = document.getElementById('inquiryModal');
+        if (event.target == modal) {
+            closeInquiryModal();
+        }
+    }
+</script>
 @endsection
