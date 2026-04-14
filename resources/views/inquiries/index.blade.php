@@ -26,10 +26,9 @@
                         <th style="padding: 1rem; text-align: left; color: var(--text-light); border-bottom: 1px solid var(--border-color); font-weight: 600; font-size: 0.85rem; text-transform: uppercase; letter-spacing: 0.05em;">Date</th>
                         <th style="padding: 1rem; text-align: left; color: var(--text-light); border-bottom: 1px solid var(--border-color); font-weight: 600; font-size: 0.85rem; text-transform: uppercase; letter-spacing: 0.05em;">Account</th>
                         <th style="padding: 1rem; text-align: left; color: var(--text-light); border-bottom: 1px solid var(--border-color); font-weight: 600; font-size: 0.85rem; text-transform: uppercase; letter-spacing: 0.05em;">Consumer</th>
-                        <th style="padding: 1rem; text-align: left; color: var(--text-light); border-bottom: 1px solid var(--border-color); font-weight: 600; font-size: 0.85rem; text-transform: uppercase; letter-spacing: 0.05em;">Details</th>
                         <th style="padding: 1rem; text-align: left; color: var(--text-light); border-bottom: 1px solid var(--border-color); font-weight: 600; font-size: 0.85rem; text-transform: uppercase; letter-spacing: 0.05em;">Type</th>
                         <th style="padding: 1rem; text-align: left; color: var(--text-light); border-bottom: 1px solid var(--border-color); font-weight: 600; font-size: 0.85rem; text-transform: uppercase; letter-spacing: 0.05em;">Status</th>
-                        <th style="padding: 1rem; text-align: center; color: var(--text-light); border-bottom: 1px solid var(--border-color); font-weight: 600; font-size: 0.85rem; text-transform: uppercase; letter-spacing: 0.05em;">Actions</th>
+                        <th style="padding: 1rem; text-align: left; color: var(--text-light); border-bottom: 1px solid var(--border-color); font-weight: 600; font-size: 0.85rem; text-transform: uppercase; letter-spacing: 0.05em;">Details</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -54,11 +53,6 @@
                                 <div style="font-weight: 600; color: var(--text-color);">{{ $fullName }}</div>
                                 <div style="font-size: 0.8rem; color: var(--text-light);"><i class="fa-solid fa-phone" style="font-size: 0.7rem; margin-right: 0.3rem;"></i>{{ $inq['phone'] }}</div>
                             </td>
-                            <td style="padding: 1rem; border-bottom: 1px solid var(--border-color); font-size: 0.9rem; max-width: 250px;">
-                                <div style="white-space: nowrap; overflow: hidden; text-overflow: ellipsis;" title="{{ $inq['inquiry'] }}">
-                                    {{ $inq['inquiry'] }}
-                                </div>
-                            </td>
                             <td style="padding: 1rem; border-bottom: 1px solid var(--border-color);">
                                 <span class="badge inq-badge-{{ strtolower(str_replace(' ', '-', $inq['type'])) }}" 
                                       style="padding: 0.25rem 0.75rem; border-radius: 20px; font-size: 0.75rem; font-weight: 600;">
@@ -77,10 +71,15 @@
                                     </span>
                                 @endif
                             </td>
-                            <td style="padding: 1rem; border-bottom: 1px solid var(--border-color); text-align: center;">
-                                <button class="btn btn-icon" onclick='inspectInquiry(@json($inq))' title="Inspect Inquiry" style="color: var(--primary-color);">
-                                    <i class="fa-solid fa-magnifying-glass"></i>
-                                </button>
+                            <td style="padding: 1rem; border-bottom: 1px solid var(--border-color); font-size: 0.9rem;">
+                                <div style="display: flex; justify-content: space-between; align-items: center; min-width: 200px;">
+                                    <div style="white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 250px; color: var(--text-light);" title="{{ $inq['inquiry'] }}">
+                                        {{ $inq['inquiry'] }}
+                                    </div>
+                                    <button class="btn btn-icon btn-sm" onclick='inspectInquiry(@json($inq))' title="View Full Message" style="color: var(--primary-color); padding: 0.2rem; margin-left: 1rem;">
+                                        <i class="fa-solid fa-magnifying-glass"></i>
+                                    </button>
+                                </div>
                             </td>
                         </tr>
                     @empty
