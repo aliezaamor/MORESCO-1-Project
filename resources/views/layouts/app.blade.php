@@ -114,6 +114,11 @@
                 </ul>
             </li>
             <li>
+                <a href="{{ route('view.inquiries.index') }}" class="nav-link {{ request()->routeIs('view.inquiries.index') ? 'active' : '' }}">
+                    <i class="fa-solid fa-clipboard-question"></i> Consumer Inquiries
+                </a>
+            </li>
+            <li>
                 <a href="{{ route('view.simulator.index') }}" class="nav-link {{ request()->routeIs('view.simulator.*') ? 'active' : '' }}">
                     <i class="fa-solid fa-comments"></i> Message Threads
                 </a>

@@ -244,11 +244,70 @@ class SmsProcessingService
 
                     case 'outage_info':
                     case 'outage_report':
-                        $outage = $morescoService->getMemberOutageData($accountNumber, $member['sa_code'] ?? null, $member['barangay'] ?? null, $member['municipality'] ?? null);
-                        if ($outage) {
-                            $replyContent = $actionData['has_outage'] ?? $replyContent;
-                        } else {
-                            $replyContent = $actionData['no_outage'] ?? $replyContent;
+                    case 'general_inquiry':
+                        // 1. Identify context
+                        $isReport = ($actionType === 'outage_report');
+                        $isGeneral = ($actionType === 'general_inquiry');
+                        
+                        $outage = null;
+                        if ($isReport) {
+                            $outage = $morescoService->getMemberOutageData($accountNumber, $member['sa_code'] ?? null, $member['barangay'] ?? null, $member['municipality'] ?? null);
+                        }
+
+                        // ── "Smart" Inquiry Logging ──
+                        if (($isReport || $isGeneral) && $member) {
+                            $parts = explode(' ', trim(preg_replace('/\s+/', ' ', $content)));
+                            $wordCount = count($parts);
+                            
+                            // Extract details (everything after keyword and account number)
+                            // Format: KEYWORD ACCOUNT_NO [DETAILS...]
+                            $inquiryText = ($wordCount > 2) 
+                                ? implode(' ', array_slice($parts, 2)) 
+                                : ($isReport ? "Power Interruption Report (Account: {$accountNumber})" : "General Inquiry (Account: {$accountNumber})");
+
+                            // Split name for Moresco DB
+                            $fullName = $member['name'] ?? '';
+                            $nameParts = explode(',', $fullName, 2);
+                            $lastName  = trim($nameParts[0]);
+                            $firstName = isset($nameParts[1]) ? trim($nameParts[1]) : '';
+
+                            // Log to Moresco Inquiries_Log
+                            $morescoService->logInquiry([
+                                'first_name' => $firstName,
+                                'last_name'  => $lastName,
+                                'contact_no' => $phoneNumber,
+                                'mode'       => 'SMS',
+                                'inquiry'    => $inquiryText,
+                                'address'    => ($member['barangay'] ?? '') . ', ' . ($member['municipality'] ?? ''),
+                                'type_id'    => $isReport ? 1 : 2, // 1=Outage, 2=General (Need to verify IDs)
+                                'status_id'  => 1, // New
+                                'account_no' => $accountNumber,
+                                'member_id'  => $member['id']
+                            ]);
+
+                            // If they provided details, we don't need to ask for them in the guide
+                            if ($wordCount > 2) {
+                                // Add details to placeholders for replacement
+                                $member['inquiry'] = $inquiryText;
+                                
+                                $replyContent = $actionData['detailed'] ?? "MORESCO-1: Thank you. We have logged your report: \"{$inquiryText}\". Our team will investigate. Stay safe!";
+                                $actionType = 'static'; // Use this custom reply
+                            }
+                        }
+
+                        // Fallback to standard Outage Info if no specific details were provided
+                        if ($actionType !== 'static' && $isReport) {
+                            if ($outage) {
+                                $replyContent = $actionData['has_outage'] ?? $replyContent;
+
+                                // Verification Prompt: If it's a wide-area outage and they didn't send details yet,
+                                // we append a verification question.
+                                if (($outage['is_wide_area'] ?? false) && $wordCount === 2) {
+                                    $replyContent .= "\n\nIs this the outage you are reporting? If not, please reply with: REPORT {$accountNumber} followed by details.";
+                                }
+                            } else {
+                                $replyContent = $actionData['no_outage'] ?? $replyContent;
+                            }
                         }
                         break;
 

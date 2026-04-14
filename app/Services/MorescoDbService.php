@@ -614,6 +614,7 @@ class MorescoDbService
                     'power_interruption' => $this->toUtf8($indRow['power_interruption'] ?? 'N/A'),
                     'location'           => $this->toUtf8($indRow['address'] ?? 'Unknown Location'),
                     'remarks'            => $this->toUtf8($indRow['remarks'] ?? 'None'),
+                    'is_wide_area'       => false,
                 ];
             }
 
@@ -656,6 +657,7 @@ class MorescoDbService
                     'power_interruption' => $this->toUtf8($row['power_interruption'] ?? 'N/A'),
                     'location'           => $this->toUtf8($row['address'] ?? 'Area-wide'),
                     'remarks'            => $this->toUtf8($row['remarks'] ?? 'None'),
+                    'is_wide_area'       => true,
                 ];
             };
 
@@ -827,6 +829,123 @@ class MorescoDbService
         } catch (\Exception $e) {
             \Illuminate\Support\Facades\Log::error('MorescoDbService::countAccounts failed: ' . $e->getMessage());
             return 0;
+        }
+    }
+
+    /**
+     * Fetch the latest records from dbo.Inquiries_Log joined with InquiryTypes.
+     */
+    public function getInquiries(int $limit = 50, int $offset = 0): array
+    {
+        try {
+            $pdo = $this->getConnection();
+            $sql = "
+                SELECT 
+                    L.*, 
+                    T.Description AS type_description 
+                FROM dbo.Inquiries_Log L
+                LEFT JOIN dbo.InquiryTypes T ON L.inquiryType_ID = T.inquiryType_ID
+                ORDER BY L.inquiry_date DESC
+                OFFSET {$offset} ROWS FETCH NEXT {$limit} ROWS ONLY
+            ";
+
+            $stmt = $pdo->query($sql);
+            $rows = $stmt->fetchAll(\PDO::FETCH_ASSOC);
+
+            return array_map(function($row) {
+                return [
+                    'id'           => $row['inq_ID'],
+                    'first_name'   => $this->toUtf8($row['Firstname'] ?? ''),
+                    'last_name'    => $this->toUtf8($row['LastName'] ?? ''),
+                    'phone'        => $this->toUtf8($row['ContactNo'] ?? ''),
+                    'mode'         => $this->toUtf8($row['Mode'] ?? ''),
+                    'inquiry'      => $this->toUtf8($row['inquiry'] ?? ''),
+                    'date'         => $row['inquiry_date'] ? (new \DateTime($row['inquiry_date']))->format('Y-m-d h:i A') : 'N/A',
+                    'address'      => $this->toUtf8($row['address'] ?? ''),
+                    'type'         => $this->toUtf8($row['type_description'] ?? 'General'),
+                    'account_no'   => $this->toUtf8($row['account_no'] ?? ''),
+                    'status_id'    => $row['status_id'],
+                ];
+            }, $rows);
+        } catch (\Exception $e) {
+            Log::error('MorescoDbService::getInquiries failed: ' . $e->getMessage());
+            return [];
+        }
+    }
+
+    /**
+     * Count total inquiries.
+     */
+    public function countInquiries(): int
+    {
+        try {
+            $pdo = $this->getConnection();
+            $sql = "SELECT COUNT(*) AS total FROM dbo.Inquiries_Log";
+            $stmt = $pdo->query($sql);
+            $result = $stmt->fetch(\PDO::FETCH_ASSOC);
+            return (int)($result['total'] ?? 0);
+        } catch (\Exception $e) {
+            Log::error('MorescoDbService::countInquiries failed: ' . $e->getMessage());
+            return 0;
+        }
+    }
+
+    /**
+     * Fetch all inquiry types.
+     */
+    public function getInquiryTypes(): array
+    {
+        try {
+            $pdo = $this->getConnection();
+            $stmt = $pdo->query("SELECT * FROM dbo.InquiryTypes ORDER BY Description");
+            $rows = $stmt->fetchAll(\PDO::FETCH_ASSOC);
+
+            return array_map(fn($row) => [
+                'id'          => $row['inquiryType_ID'],
+                'description' => $this->toUtf8($row['Description'] ?? ''),
+            ], $rows);
+        } catch (\Exception $e) {
+            Log::error('MorescoDbService::getInquiryTypes failed: ' . $e->getMessage());
+            return [];
+        }
+    }
+
+    /**
+     * Log a new inquiry entry into the Inquiries_Log table.
+     */
+    public function logInquiry(array $data): bool
+    {
+        try {
+            $pdo = $this->getConnection();
+            
+            $sql = "
+                INSERT INTO dbo.Inquiries_Log (
+                    Firstname, LastName, ContactNo, Mode, inquiry, 
+                    inquiry_date, address, inquiryType_ID, status_id, 
+                    account_no, member_id
+                ) VALUES (
+                    ?, ?, ?, ?, ?, 
+                    GETDATE(), ?, ?, ?, 
+                    ?, ?
+                )
+            ";
+
+            $stmt = $pdo->prepare($sql);
+            return $stmt->execute([
+                $data['first_name']    ?? null,
+                $data['last_name']     ?? null,
+                $data['contact_no']    ?? null,
+                $data['mode']          ?? 'SMS',
+                $data['inquiry']       ?? null,
+                $data['address']       ?? null,
+                $data['type_id']       ?? 1, // Default type
+                $data['status_id']     ?? 1, // Default status (New)
+                $data['account_no']    ?? null,
+                $data['member_id']     ?? null,
+            ]);
+        } catch (\Exception $e) {
+            Log::error('MorescoDbService::logInquiry failed: ' . $e->getMessage());
+            return false;
         }
     }
 }

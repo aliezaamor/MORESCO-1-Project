@@ -1,0 +1,25 @@
+USE [MORESCO1CMBC]
+GO
+
+/****** Object:  Table [dbo].[InquiryTypes]    Script Date: 4/14/2026 1:37:12 PM ******/
+SET ANSI_NULLS ON
+GO
+
+SET QUOTED_IDENTIFIER ON
+GO
+
+CREATE TABLE [dbo].[InquiryTypes](
+	[inquiryType_ID] [int] IDENTITY(1,1) NOT FOR REPLICATION NOT NULL,
+	[Description] [varchar](100) NOT NULL,
+	[is_ticket] [bit] NULL,
+ CONSTRAINT [PK_InquiryTypes] PRIMARY KEY CLUSTERED 
+(
+	[inquiryType_ID] ASC
+)WITH (PAD_INDEX = OFF, STATISTICS_NORECOMPUTE = OFF, IGNORE_DUP_KEY = OFF, ALLOW_ROW_LOCKS = ON, ALLOW_PAGE_LOCKS = ON) ON [PRIMARY]
+) ON [PRIMARY]
+GO
+
+ALTER TABLE [dbo].[InquiryTypes] ADD  CONSTRAINT [DF_InquiryTypes_is_ticket]  DEFAULT ((0)) FOR [is_ticket]
+GO
+
+

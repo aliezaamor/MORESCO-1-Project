@@ -56,6 +56,8 @@
                         <option value="payment_history">Payment History (Record Found / No Record)</option>
                         <option value="account_status">Account Status (Active / For Disconnection / Disconnected)</option>
                         <option value="outage_info">Outage Info (Active Outage / No Active Outage)</option>
+                        <option value="outage_report">Outage Report (Log to MORESCO Inquiries)</option>
+                        <option value="general_inquiry">General Inquiry (Capture Message to Inquiries Log)</option>
                     </select>
                     <small style="color: var(--text-light); font-size: 0.75rem;">Select the behavior for this keyword.</small>
                 </div>
@@ -169,6 +171,20 @@
                 { key: 'no_outage',  label: 'Reply (No Active Outage)' }
             ],
             placeholders: ['{name}', '{account}', '{work_name}', '{work_status}', '{date_created}', '{power_interruption}', '{location}', '{remarks}']
+        },
+        'outage_report': {
+            fields: [
+                { key: 'has_outage', label: 'Reply (Aware of Outage + Guide)' },
+                { key: 'no_outage',  label: 'Reply (No Outage + Logged Report)' },
+                { key: 'detailed',   label: 'Reply (Detailed Report Received)' }
+            ],
+            placeholders: ['{name}', '{account}', '{inquiry}', '{work_name}', '{work_status}', '{date_created}', '{power_interruption}', '{location}', '{remarks}']
+        },
+        'general_inquiry': {
+            fields: [
+                { key: 'success', label: 'Reply (Report Logged Successfully)' }
+            ],
+            placeholders: ['{name}', '{account}']
         }
     };
 

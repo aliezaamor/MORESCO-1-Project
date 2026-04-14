@@ -1,0 +1,32 @@
+USE [MORESCO1CMBC]
+GO
+
+/****** Object:  Table [dbo].[Inquiries_Log]    Script Date: 4/14/2026 1:36:35 PM ******/
+SET ANSI_NULLS ON
+GO
+
+SET QUOTED_IDENTIFIER ON
+GO
+
+CREATE TABLE [dbo].[Inquiries_Log](
+	[inq_ID] [int] IDENTITY(1,1) NOT FOR REPLICATION NOT NULL,
+	[Firstname] [varchar](100) NULL,
+	[LastName] [varchar](100) NULL,
+	[ContactNo] [varchar](50) NULL,
+	[Mode] [varchar](50) NOT NULL,
+	[inquiry] [nvarchar](1000) NULL,
+	[action_taken] [nvarchar](1000) NULL,
+	[inquiry_date] [datetime] NULL,
+	[address] [nvarchar](1000) NULL,
+	[userName] [varchar](100) NULL,
+	[inquiryType_ID] [int] NOT NULL,
+	[sa_id] [int] NULL,
+	[status_id] [int] NULL,
+	[account_no] [varchar](50) NULL,
+	[member_id] [bigint] NULL,
+ CONSTRAINT [PK_Inquiries_Log] PRIMARY KEY CLUSTERED 
+(
+	[inq_ID] ASC
+)WITH (PAD_INDEX = OFF, STATISTICS_NORECOMPUTE = OFF, IGNORE_DUP_KEY = OFF, ALLOW_ROW_LOCKS = ON, ALLOW_PAGE_LOCKS = ON) ON [PRIMARY]
+) ON [PRIMARY]
+GO
