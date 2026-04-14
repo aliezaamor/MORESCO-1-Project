@@ -835,21 +835,38 @@ class MorescoDbService
     /**
      * Fetch the latest records from dbo.Inquiries_Log joined with InquiryTypes.
      */
-    public function getInquiries(int $limit = 50, int $offset = 0): array
+    public function getInquiries(int $limit = 50, int $offset = 0, ?string $search = null): array
     {
         try {
             $pdo = $this->getConnection();
+            
+            $whereClause = "";
+            $params = [];
+            
+            if (!empty($search)) {
+                $escSearch = "%" . str_replace("'", "''", $search) . "%";
+                $whereClause = "
+                    WHERE L.account_no LIKE ? 
+                       OR L.Firstname LIKE ? 
+                       OR L.LastName LIKE ? 
+                       OR L.address LIKE ?
+                ";
+                $params = [$escSearch, $escSearch, $escSearch, $escSearch];
+            }
+
             $sql = "
                 SELECT 
                     L.*, 
                     T.Description AS type_description 
                 FROM dbo.Inquiries_Log L
                 LEFT JOIN dbo.InquiryTypes T ON L.inquiryType_ID = T.inquiryType_ID
+                {$whereClause}
                 ORDER BY L.inquiry_date DESC
                 OFFSET {$offset} ROWS FETCH NEXT {$limit} ROWS ONLY
             ";
 
-            $stmt = $pdo->query($sql);
+            $stmt = $pdo->prepare($sql);
+            $stmt->execute($params);
             $rows = $stmt->fetchAll(\PDO::FETCH_ASSOC);
 
             return array_map(function($row) {
@@ -873,15 +890,28 @@ class MorescoDbService
         }
     }
 
-    /**
-     * Count total inquiries.
-     */
-    public function countInquiries(): int
+    public function countInquiries($search = null): int
     {
         try {
             $pdo = $this->getConnection();
-            $sql = "SELECT COUNT(*) AS total FROM dbo.Inquiries_Log";
-            $stmt = $pdo->query($sql);
+            
+            $whereClause = "";
+            $params = [];
+            
+            if (!empty($search)) {
+                $escSearch = "%" . str_replace("'", "''", $search) . "%";
+                $whereClause = "
+                    WHERE account_no LIKE ? 
+                       OR Firstname LIKE ? 
+                       OR LastName LIKE ? 
+                       OR address LIKE ?
+                ";
+                $params = [$escSearch, $escSearch, $escSearch, $escSearch];
+            }
+
+            $sql = "SELECT COUNT(*) AS total FROM dbo.Inquiries_Log {$whereClause}";
+            $stmt = $pdo->prepare($sql);
+            $stmt->execute($params);
             $result = $stmt->fetch(\PDO::FETCH_ASSOC);
             return (int)($result['total'] ?? 0);
         } catch (\Exception $e) {

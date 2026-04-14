@@ -11,9 +11,13 @@
                 Tracking <strong>{{ number_format($total) }}</strong> records from external system
             </p>
         </div>
-        <div class="actions">
-            <button class="btn btn-secondary" onclick="window.location.reload()" style="display: flex; align-items: center; gap: 0.5rem; border-radius: 8px;">
-                <i class="fa-solid fa-arrows-rotate"></i> Refresh
+        <div class="actions" style="display: flex; gap: 1rem; align-items: center;">
+            <div style="position: relative;">
+                <input type="text" id="inquirySearch" placeholder="Search account or name..." class="form-control" style="padding-left: 2.5rem; width: 300px; border-radius: 20px;" value="{{ $search }}">
+                <i class="fa-solid fa-search" style="position: absolute; left: 1rem; top: 50%; transform: translateY(-50%); color: var(--text-light);"></i>
+            </div>
+            <button class="btn btn-secondary" onclick="window.location.href='{{ route('inquiries.index') }}'" style="display: flex; align-items: center; gap: 0.5rem; border-radius: 8px;">
+                <i class="fa-solid fa-arrows-rotate"></i> Reset
             </button>
         </div>
     </div>
@@ -87,7 +91,15 @@
 
         @if($lastPage > 1)
             <div style="padding: 1.5rem; display: flex; justify-content: center; align-items: center; gap: 1rem; border-top: 2px solid var(--border-color);">
-                <a href="?page={{ $page - 1 }}" class="btn btn-secondary btn-sm {{ $page <= 1 ? 'disabled' : '' }}" style="border-radius: 8px;">
+                @php
+                    $prevUrl = "?page=" . ($page - 1);
+                    $nextUrl = "?page=" . ($page + 1);
+                    if(!empty($search)) {
+                        $prevUrl .= "&search=" . urlencode($search);
+                        $nextUrl .= "&search=" . urlencode($search);
+                    }
+                @endphp
+                <a href="{{ $prevUrl }}" class="btn btn-secondary btn-sm {{ $page <= 1 ? 'disabled' : '' }}" style="border-radius: 8px;">
                     <i class="fa-solid fa-chevron-left" style="margin-right: 0.5rem;"></i> Previous
                 </a>
                 
@@ -95,7 +107,7 @@
                     Page <strong style="color: var(--text-color);">{{ $page }}</strong> of <strong>{{ $lastPage }}</strong>
                 </div>
 
-                <a href="?page={{ $page + 1 }}" class="btn btn-secondary btn-sm {{ $page >= $lastPage ? 'disabled' : '' }}" style="border-radius: 8px;">
+                <a href="{{ $nextUrl }}" class="btn btn-secondary btn-sm {{ $page >= $lastPage ? 'disabled' : '' }}" style="border-radius: 8px;">
                     Next <i class="fa-solid fa-chevron-right" style="margin-left: 0.5rem;"></i>
                 </a>
             </div>
@@ -142,6 +154,13 @@
 </style>
 
 <script>
+    document.getElementById('inquirySearch')?.addEventListener('keypress', function(e) {
+        if (e.key === 'Enter') {
+            const val = e.target.value;
+            window.location.href = `{{ route('inquiries.index') }}?search=${encodeURIComponent(val)}`;
+        }
+    });
+
     function inspectInquiry(inq) {
         const modal = document.getElementById('inquiryModal');
         const content = document.getElementById('modalContent');

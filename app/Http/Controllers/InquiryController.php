@@ -20,18 +20,20 @@ class InquiryController extends Controller
     public function index(Request $request)
     {
         $page = (int)$request->get('page', 1);
+        $search = $request->get('search');
         $perPage = 50;
         $offset = ($page - 1) * $perPage;
 
-        $inquiries = $this->morescoService->getInquiries($perPage, $offset);
-        $total = $this->morescoService->countInquiries();
+        $inquiries = $this->morescoService->getInquiries($perPage, $offset, $search);
+        $total = $this->morescoService->countInquiries($search);
 
         return view('inquiries.index', [
             'inquiries' => $inquiries,
             'total'     => $total,
             'page'      => $page,
             'perPage'   => $perPage,
-            'lastPage'  => ceil($total / $perPage)
+            'lastPage'  => ceil($total / $perPage),
+            'search'    => $search
         ]);
     }
 
