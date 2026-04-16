@@ -260,11 +260,8 @@ class SmsProcessingService
                             $parts = explode(' ', trim(preg_replace('/\s+/', ' ', $content)));
                             $wordCount = count($parts);
                             
-                            // Extract details (everything after keyword and account number)
-                            // Format: KEYWORD ACCOUNT_NO [DETAILS...]
-                            $inquiryText = ($wordCount > 2) 
-                                ? implode(' ', array_slice($parts, 2)) 
-                                : ($isReport ? "Power Interruption Report (Account: {$accountNumber})" : "General Inquiry (Account: {$accountNumber})");
+                            // Instead of splitting and extracting details, log exactly what the consumer texted
+                            $inquiryText = $content;
 
                             // Split name for Moresco DB
                             $fullName = $member['name'] ?? '';
