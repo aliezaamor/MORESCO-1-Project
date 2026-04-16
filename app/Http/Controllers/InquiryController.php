@@ -66,4 +66,21 @@ class InquiryController extends Controller
             return redirect()->back()->with('error', 'Failed to update inquiry status.');
         }
     }
+
+    /**
+     * Fetch threaded history for an account.
+     */
+    public function history(Request $request)
+    {
+        $account = $request->get('account');
+        $phone = $request->get('phone');
+        $exclude = (int) $request->get('exclude', 0);
+
+        if (!$account && !$phone) {
+            return response()->json([]);
+        }
+
+        $history = $this->morescoService->getInquiryHistory($account, $phone, $exclude);
+        return response()->json($history);
+    }
 }

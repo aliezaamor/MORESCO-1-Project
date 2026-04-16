@@ -897,6 +897,69 @@ class MorescoDbService
         }
     }
 
+    /**
+     * Fetch previous inquiries for a specific account or phone number.
+     */
+    public function getInquiryHistory(?string $accountNo, ?string $phone, int $excludeId): array
+    {
+        try {
+            $pdo = $this->getConnection();
+            
+            $whereParts = [];
+            $params = [];
+            
+            if (!empty($accountNo) && $accountNo !== 'N/A') {
+                $whereParts[] = "L.account_no = ?";
+                $params[] = $accountNo;
+            }
+            if (!empty($phone)) {
+                $whereParts[] = "L.ContactNo = ?";
+                $params[] = $phone;
+            }
+            
+            // If we have neither, return empty to prevent fetching random blank histories
+            if (empty($whereParts)) {
+                return [];
+            }
+            
+            $sql = "
+                SELECT TOP 15
+                    L.*, 
+                    T.Description AS type_description 
+                FROM dbo.Inquiries_Log L
+                LEFT JOIN dbo.InquiryTypes T ON L.inquiryType_ID = T.inquiryType_ID
+                WHERE (" . implode(" OR ", $whereParts) . ") AND L.inq_ID != ?
+                ORDER BY L.inquiry_date DESC
+            ";
+            
+            $params[] = $excludeId;
+
+            $stmt = $pdo->prepare($sql);
+            $stmt->execute($params);
+            $rows = $stmt->fetchAll(\PDO::FETCH_ASSOC);
+
+            return array_map(function($row) {
+                return [
+                    'id'           => $row['inq_ID'],
+                    'first_name'   => $this->toUtf8($row['Firstname'] ?? ''),
+                    'last_name'    => $this->toUtf8($row['LastName'] ?? ''),
+                    'phone'        => $this->toUtf8($row['ContactNo'] ?? ''),
+                    'mode'         => $this->toUtf8($row['Mode'] ?? ''),
+                    'inquiry'      => $this->toUtf8($row['inquiry'] ?? ''),
+                    'action_taken' => $this->toUtf8($row['action_taken'] ?? ''),
+                    'date'         => $row['inquiry_date'] ? (new \DateTime($row['inquiry_date']))->format('Y-m-d h:i A') : 'N/A',
+                    'address'      => $this->toUtf8($row['address'] ?? ''),
+                    'type'         => $this->toUtf8($row['type_description'] ?? 'General'),
+                    'account_no'   => $this->toUtf8($row['account_no'] ?? ''),
+                    'status_id'    => $row['status_id'],
+                ];
+            }, $rows);
+        } catch (\Exception $e) {
+            Log::error('MorescoDbService::getInquiryHistory failed: ' . $e->getMessage());
+            return [];
+        }
+    }
+
     public function countInquiries($search = null, ?string $statusFilter = 'new'): int
     {
         try {

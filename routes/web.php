@@ -59,6 +59,7 @@ Route::middleware('auth')->group(function () {
         }
         )->name('view.simulator.index');
 
+        Route::get('/inquiries/history', [\App\Http\Controllers\InquiryController::class, 'history'])->name('inquiries.history');
         Route::get('/inquiries', [\App\Http\Controllers\InquiryController::class, 'index'])->name('inquiries.index');
         Route::patch('/inquiries/{id}/process', [\App\Http\Controllers\InquiryController::class, 'process'])->name('inquiries.process');
 

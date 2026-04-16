@@ -242,9 +242,63 @@
                 </form>
             </div>
             ` : ''}
+
+            <div id="historyContainer" style="margin-top: 2rem; border-top: 2px dashed var(--border-color); padding-top: 1.5rem;">
+                <div style="text-align: center; color: var(--text-light); padding: 1rem;">
+                    <i class="fa-solid fa-spinner fa-spin" style="margin-right: 0.5rem;"></i> Loading previous records...
+                </div>
+            </div>
         `;
         
         modal.style.display = 'flex';
+
+        fetch(`{{ url('/inquiries/history') }}?account=${encodeURIComponent(inq.account_no || '')}&phone=${encodeURIComponent(inq.phone || '')}&exclude=${inq.id}`)
+            .then(res => res.json())
+            .then(history => {
+                const hContainer = document.getElementById('historyContainer');
+                if (!history || history.length === 0) {
+                    hContainer.innerHTML = '';
+                    hContainer.style.display = 'none';
+                    return;
+                }
+
+                let historyHtml = `
+                    <h5 style="margin: 0 0 1rem; color: var(--text-color); font-size: 1rem; display: flex; align-items: center; gap: 0.5rem;">
+                        <i class="fa-solid fa-clock-rotate-left" style="color: var(--primary-color);"></i>
+                        Previous Records (${history.length})
+                    </h5>
+                    <div style="display: flex; flex-direction: column; gap: 1rem;">
+                `;
+
+                history.forEach(record => {
+                    const statusBadge = record.status_id == 1 
+                        ? `<span style="padding: 0.2rem 0.5rem; background: #fff3cd; color: #856404; border-radius: 4px; font-size: 0.65rem; font-weight: 700;">NEW</span>`
+                        : `<span style="padding: 0.2rem 0.5rem; background: #d4edda; color: #155724; border-radius: 4px; font-size: 0.65rem; font-weight: 700;">PROCESSED</span>`;
+
+                    historyHtml += `
+                        <div style="background: var(--background-color); border: 1px solid var(--border-color); border-radius: 8px; padding: 1rem;">
+                            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem;">
+                                <div style="font-size: 0.8rem; font-weight: 600; color: var(--text-light);"><i class="fa-solid fa-calendar-days" style="margin-right: 0.4rem;"></i>${record.date} &nbsp; • &nbsp; ${record.type}</div>
+                                <div>${statusBadge}</div>
+                            </div>
+                            <div style="font-size: 0.95rem; color: var(--text-color); line-height: 1.5; white-space: pre-wrap;">${record.inquiry}</div>
+                            ${record.action_taken ? `
+                                <div style="margin-top: 0.75rem; padding-top: 0.75rem; border-top: 1px solid var(--border-color); font-size: 0.85rem; color: var(--primary-color);">
+                                    <span style="font-weight: 700; text-transform: uppercase; font-size: 0.7rem; letter-spacing: 0.05em; display: block; margin-bottom: 0.2rem;">Reply Sent</span>
+                                    <div style="color: var(--text-color); white-space: pre-wrap;">${record.action_taken}</div>
+                                </div>
+                            ` : ''}
+                        </div>
+                    `;
+                });
+
+                historyHtml += `</div>`;
+                hContainer.innerHTML = historyHtml;
+            })
+            .catch(err => {
+                console.error("Failed to load history", err);
+                document.getElementById('historyContainer').innerHTML = '';
+            });
     }
 
     function closeInquiryModal() {
