@@ -858,7 +858,7 @@ class MorescoDbService
                 SELECT 
                     L.*, 
                     T.Description AS type_description 
-                FROM dbo.test_inquiries_log L
+                FROM dbo.Inquiries_Log L
                 LEFT JOIN dbo.InquiryTypes T ON L.inquiryType_ID = T.inquiryType_ID
                 {$whereClause}
                 ORDER BY L.inquiry_date DESC
@@ -909,7 +909,7 @@ class MorescoDbService
                 $params = [$escSearch, $escSearch, $escSearch, $escSearch];
             }
 
-            $sql = "SELECT COUNT(*) AS total FROM dbo.test_inquiries_log {$whereClause}";
+            $sql = "SELECT COUNT(*) AS total FROM dbo.Inquiries_Log {$whereClause}";
             $stmt = $pdo->prepare($sql);
             $stmt->execute($params);
             $result = $stmt->fetch(\PDO::FETCH_ASSOC);
@@ -949,7 +949,7 @@ class MorescoDbService
             $pdo = $this->getConnection();
             
             $sql = "
-                INSERT INTO dbo.test_inquiries_log (
+                INSERT INTO dbo.Inquiries_Log (
                     Firstname, LastName, ContactNo, Mode, inquiry, 
                     inquiry_date, address, inquiryType_ID, status_id, 
                     account_no, member_id
