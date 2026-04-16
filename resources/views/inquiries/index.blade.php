@@ -189,7 +189,7 @@
 
             ${inq.action_taken ? `
             <div style="background: rgba(59, 130, 246, 0.05); border: 1px solid rgba(59, 130, 246, 0.2); border-radius: 12px; padding: 1.5rem; margin-bottom: 2rem;">
-                <label style="display: block; font-size: 0.75rem; font-weight: 700; color: #3b82f6; text-transform: uppercase; margin-bottom: 0.75rem; letter-spacing: 0.05em;">Auto Reply Sent</label>
+                <label style="display: block; font-size: 0.75rem; font-weight: 700; color: #3b82f6; text-transform: uppercase; margin-bottom: 0.75rem; letter-spacing: 0.05em;">Reply Sent</label>
                 <div style="font-size: 1.1rem; color: var(--text-color); line-height: 1.6; white-space: pre-wrap; max-height: 200px; overflow-y: auto; padding-right: 10px;">${inq.action_taken}</div>
             </div>
             ` : ''}
