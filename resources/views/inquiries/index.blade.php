@@ -117,21 +117,18 @@
 
 <!-- Inquiry Details Modal -->
 <div class="modal-overlay" id="inquiryModal" style="display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.6); align-items: center; justify-content: center; z-index: 2000; backdrop-filter: blur(4px);">
-    <div class="modal" style="width: 600px; max-width: 95%; background: var(--surface-color); border-radius: 16px; overflow: hidden; box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5); border: 1px solid var(--border-color);">
-        <div class="modal-header" style="padding: 1.5rem; border-bottom: 1px solid var(--border-color); display: flex; justify-content: space-between; align-items: center; background: var(--item-hover);">
+    <div class="modal" style="width: 600px; max-width: 95%; background: var(--surface-color); border-radius: 16px; overflow: hidden; box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5); border: 1px solid var(--border-color); display: flex; flex-direction: column; max-height: 90vh;">
+        <div class="modal-header" style="padding: 1.5rem; border-bottom: 1px solid var(--border-color); display: flex; justify-content: space-between; align-items: center; background: var(--item-hover); flex-shrink: 0;">
             <h3 style="margin: 0; display: flex; align-items: center; gap: 0.75rem; color: var(--text-color); font-size: 1.25rem;">
                 <i class="fa-solid fa-clipboard-list" style="color: var(--primary-color);"></i>
                 Inquiry Details
             </h3>
             <button onclick="closeInquiryModal()" style="background: none; border: none; font-size: 1.5rem; color: var(--text-light); cursor: pointer;">&times;</button>
         </div>
-        <div class="modal-body" style="padding: 2rem;">
+        <div class="modal-body" style="padding: 2rem; overflow-y: auto;">
             <div id="modalContent">
                 <!-- Data injected here -->
             </div>
-        </div>
-        <div class="modal-footer" style="padding: 1.25rem; background: var(--item-hover); border-top: 1px solid var(--border-color); text-align: right;">
-            <button class="btn btn-primary" onclick="closeInquiryModal()" style="padding: 0.6rem 2rem; border-radius: 8px;">Close</button>
         </div>
     </div>
 </div>
@@ -187,7 +184,7 @@
 
             <div style="background: var(--background-color); border: 1px solid var(--border-color); border-radius: 12px; padding: 1.5rem; margin-bottom: 2rem;">
                 <label style="display: block; font-size: 0.75rem; font-weight: 700; color: var(--primary-color); text-transform: uppercase; margin-bottom: 0.75rem; letter-spacing: 0.05em;">Message Body</label>
-                <div style="font-size: 1.1rem; color: var(--text-color); line-height: 1.6; white-space: pre-wrap;">${inq.inquiry}</div>
+                <div style="font-size: 1.1rem; color: var(--text-color); line-height: 1.6; white-space: pre-wrap; max-height: 300px; overflow-y: auto; padding-right: 10px;">${inq.inquiry}</div>
             </div>
 
             <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
