@@ -22,11 +22,24 @@
         </div>
     </div>
 
+    <div style="background: var(--surface-color); border-bottom: 1px solid var(--border-color); padding: 0 1.5rem; display: flex; gap: 2rem;">
+        <a href="{{ route('inquiries.index', ['status' => 'new', 'search' => $search]) }}" style="padding: 1rem 0; color: {{ $status === 'new' ? 'var(--primary-color)' : 'var(--text-light)' }}; font-weight: 600; text-decoration: none; border-bottom: 3px solid {{ $status === 'new' ? 'var(--primary-color)' : 'transparent' }}; transition: all 0.2s;">
+            <i class="fa-solid fa-inbox" style="margin-right: 0.5rem;"></i>New Inquiries
+        </a>
+        <a href="{{ route('inquiries.index', ['status' => 'processed', 'search' => $search]) }}" style="padding: 1rem 0; color: {{ $status === 'processed' ? 'var(--primary-color)' : 'var(--text-light)' }}; font-weight: 600; text-decoration: none; border-bottom: 3px solid {{ $status === 'processed' ? 'var(--primary-color)' : 'transparent' }}; transition: all 0.2s;">
+            <i class="fa-solid fa-check-double" style="margin-right: 0.5rem;"></i>Processed
+        </a>
+        <a href="{{ route('inquiries.index', ['status' => 'all', 'search' => $search]) }}" style="padding: 1rem 0; color: {{ $status === 'all' ? 'var(--primary-color)' : 'var(--text-light)' }}; font-weight: 600; text-decoration: none; border-bottom: 3px solid {{ $status === 'all' ? 'var(--primary-color)' : 'transparent' }}; transition: all 0.2s;">
+            <i class="fa-solid fa-list-ul" style="margin-right: 0.5rem;"></i>All Records
+        </a>
+    </div>
+
     <div class="card-body" style="padding: 0;">
         <div class="table-container" style="overflow-x: auto;">
             <table class="table" style="width: 100%; border-collapse: separate; border-spacing: 0;">
                 <thead style="background: var(--item-hover);">
                     <tr>
+                        <th style="padding: 1rem; width: 40px; text-align: center; border-bottom: 2px solid var(--border-color);"></th>
                         <th style="padding: 1rem; text-align: left; color: var(--text-light); border-bottom: 2px solid var(--border-color); font-weight: 600; font-size: 0.85rem; text-transform: uppercase;">Date</th>
                         <th style="padding: 1rem; text-align: left; color: var(--text-light); border-bottom: 1px solid var(--border-color); font-weight: 600; font-size: 0.85rem; text-transform: uppercase;">Account</th>
                         <th style="padding: 1rem; text-align: left; color: var(--text-light); border-bottom: 1px solid var(--border-color); font-weight: 600; font-size: 0.85rem; text-transform: uppercase;">Consumer Name</th>
@@ -47,6 +60,17 @@
                         <tr style="transition: background 0.2s;" 
                             onmouseover="this.style.background='var(--item-hover)'" 
                             onmouseout="this.style.background='transparent'">
+                            <td style="padding: 0.75rem 1rem; text-align: center; border-bottom: 1px solid var(--border-color);">
+                                @if($inq['status_id'] == 1)
+                                    <form action="{{ route('inquiries.process', $inq['id']) }}" method="POST" style="margin:0;">
+                                        @csrf
+                                        @method('PATCH')
+                                        <input type="checkbox" title="Mark as Processed" onchange="this.disabled=true; this.form.submit()" style="cursor: pointer; width: 1.1rem; height: 1.1rem; accent-color: #10b981;">
+                                    </form>
+                                @else
+                                    <i class="fa-solid fa-check" style="color: #10b981; font-size: 1.1rem;" title="Processed"></i>
+                                @endif
+                            </td>
                             <td style="padding: 0.75rem 1rem; border-bottom: 1px solid var(--border-color); font-size: 0.85rem; white-space: nowrap; color: var(--text-light);">
                                 {{ $inq['date'] }}
                             </td>
@@ -98,6 +122,8 @@
                         $prevUrl .= "&search=" . urlencode($search);
                         $nextUrl .= "&search=" . urlencode($search);
                     }
+                    $prevUrl .= "&status=" . urlencode($status);
+                    $nextUrl .= "&status=" . urlencode($status);
                 @endphp
                 <a href="{{ $prevUrl }}" class="btn btn-secondary btn-sm {{ $page <= 1 ? 'disabled' : '' }}" style="border-radius: 8px;">
                     <i class="fa-solid fa-chevron-left" style="margin-right: 0.5rem;"></i> Previous
@@ -204,6 +230,18 @@
                     <div style="font-weight: 600; color: var(--text-color); font-size: 0.85rem;">${inq.address || 'N/A'}</div>
                 </div>
             </div>
+
+            ${inq.status_id == 1 ? `
+            <div style="margin-top: 2rem; padding-top: 1.5rem; border-top: 1px solid var(--border-color); display: flex; justify-content: flex-end;">
+                <form action="{{ url('/inquiries') }}/${inq.id}/process" method="POST" style="margin: 0;">
+                    <input type="hidden" name="_token" value="{{ csrf_token() }}">
+                    <input type="hidden" name="_method" value="PATCH">
+                    <button type="submit" class="btn btn-primary" style="padding: 0.6rem 2rem; border-radius: 8px; display: flex; align-items: center; gap: 0.5rem;" onclick="this.disabled=true; this.form.submit();">
+                        <i class="fa-solid fa-check"></i> Mark as Processed
+                    </button>
+                </form>
+            </div>
+            ` : ''}
         `;
         
         modal.style.display = 'flex';

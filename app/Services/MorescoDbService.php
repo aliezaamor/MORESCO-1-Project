@@ -835,23 +835,29 @@ class MorescoDbService
     /**
      * Fetch the latest records from dbo.Inquiries_Log joined with InquiryTypes.
      */
-    public function getInquiries(int $limit = 50, int $offset = 0, ?string $search = null): array
+    public function getInquiries(int $limit = 50, int $offset = 0, ?string $search = null, ?string $statusFilter = 'new'): array
     {
         try {
             $pdo = $this->getConnection();
             
             $whereClause = "";
             $params = [];
+            $conditions = [];
             
             if (!empty($search)) {
                 $escSearch = "%" . str_replace("'", "''", $search) . "%";
-                $whereClause = "
-                    WHERE L.account_no LIKE ? 
-                       OR L.Firstname LIKE ? 
-                       OR L.LastName LIKE ? 
-                       OR L.address LIKE ?
-                ";
-                $params = [$escSearch, $escSearch, $escSearch, $escSearch];
+                $conditions[] = "(L.account_no LIKE ? OR L.Firstname LIKE ? OR L.LastName LIKE ? OR L.address LIKE ?)";
+                array_push($params, $escSearch, $escSearch, $escSearch, $escSearch);
+            }
+
+            if ($statusFilter === 'new') {
+                $conditions[] = "L.status_id = 1";
+            } elseif ($statusFilter === 'processed') {
+                $conditions[] = "L.status_id = 2";
+            }
+
+            if (!empty($conditions)) {
+                $whereClause = "WHERE " . implode(" AND ", $conditions);
             }
 
             $sql = "
@@ -891,23 +897,29 @@ class MorescoDbService
         }
     }
 
-    public function countInquiries($search = null): int
+    public function countInquiries($search = null, ?string $statusFilter = 'new'): int
     {
         try {
             $pdo = $this->getConnection();
             
             $whereClause = "";
             $params = [];
+            $conditions = [];
             
             if (!empty($search)) {
                 $escSearch = "%" . str_replace("'", "''", $search) . "%";
-                $whereClause = "
-                    WHERE account_no LIKE ? 
-                       OR Firstname LIKE ? 
-                       OR LastName LIKE ? 
-                       OR address LIKE ?
-                ";
-                $params = [$escSearch, $escSearch, $escSearch, $escSearch];
+                $conditions[] = "(account_no LIKE ? OR Firstname LIKE ? OR LastName LIKE ? OR address LIKE ?)";
+                array_push($params, $escSearch, $escSearch, $escSearch, $escSearch);
+            }
+
+            if ($statusFilter === 'new') {
+                $conditions[] = "status_id = 1";
+            } elseif ($statusFilter === 'processed') {
+                $conditions[] = "status_id = 2";
+            }
+
+            if (!empty($conditions)) {
+                $whereClause = "WHERE " . implode(" AND ", $conditions);
             }
 
             $sql = "SELECT COUNT(*) AS total FROM dbo.Inquiries_Log {$whereClause}";
@@ -977,6 +989,28 @@ class MorescoDbService
             ]);
         } catch (\Exception $e) {
             Log::error('MorescoDbService::logInquiry failed: ' . $e->getMessage());
+            return false;
+        }
+    }
+
+    /**
+     * Mark an inquiry as processed (status_id = 2) and append an action log.
+     */
+    public function markInquiryProcessed(int $inquiryId, string $userName): bool
+    {
+        try {
+            $pdo = $this->getConnection();
+            $actionAppend = "\n\n[Marked Processed by " . static::toUtf8($userName) . " on " . date('Y-m-d H:i') . "]";
+            
+            $sql = "UPDATE dbo.Inquiries_Log 
+                    SET status_id = 2, 
+                        action_taken = ISNULL(CAST(action_taken AS nvarchar(max)), '') + ? 
+                    WHERE inq_ID = ?";
+            
+            $stmt = $pdo->prepare($sql);
+            return $stmt->execute([$actionAppend, $inquiryId]);
+        } catch (\Exception $e) {
+            Log::error('MorescoDbService::markInquiryProcessed failed: ' . $e->getMessage());
             return false;
         }
     }

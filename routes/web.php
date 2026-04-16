@@ -60,6 +60,7 @@ Route::middleware('auth')->group(function () {
         )->name('view.simulator.index');
 
         Route::get('/inquiries', [\App\Http\Controllers\InquiryController::class, 'index'])->name('inquiries.index');
+        Route::patch('/inquiries/{id}/process', [\App\Http\Controllers\InquiryController::class, 'process'])->name('inquiries.process');
 
         // SMS Activity Monitor (rate limiting)
         Route::get('/sms/activity', [\App\Http\Controllers\RateLimitController::class, 'index'])->name('sms.activity');
