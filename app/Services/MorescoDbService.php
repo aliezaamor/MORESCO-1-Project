@@ -877,6 +877,7 @@ class MorescoDbService
                     'phone'        => $this->toUtf8($row['ContactNo'] ?? ''),
                     'mode'         => $this->toUtf8($row['Mode'] ?? ''),
                     'inquiry'      => $this->toUtf8($row['inquiry'] ?? ''),
+                    'action_taken' => $this->toUtf8($row['action_taken'] ?? ''),
                     'date'         => $row['inquiry_date'] ? (new \DateTime($row['inquiry_date']))->format('Y-m-d h:i A') : 'N/A',
                     'address'      => $this->toUtf8($row['address'] ?? ''),
                     'type'         => $this->toUtf8($row['type_description'] ?? 'General'),
@@ -950,11 +951,11 @@ class MorescoDbService
             
             $sql = "
                 INSERT INTO dbo.Inquiries_Log (
-                    Firstname, LastName, ContactNo, Mode, inquiry, 
+                    Firstname, LastName, ContactNo, Mode, inquiry, action_taken,
                     inquiry_date, address, inquiryType_ID, status_id, 
                     account_no, member_id
                 ) VALUES (
-                    ?, ?, ?, ?, ?, 
+                    ?, ?, ?, ?, ?, ?,
                     GETDATE(), ?, ?, ?, 
                     ?, ?
                 )
@@ -967,6 +968,7 @@ class MorescoDbService
                 $data['contact_no']    ?? null,
                 $data['mode']          ?? 'SMS',
                 $data['inquiry']       ?? null,
+                $data['action_taken']  ?? null,
                 $data['address']       ?? null,
                 $data['type_id']       ?? 1, // Default type
                 $data['status_id']     ?? 1, // Default status (New)

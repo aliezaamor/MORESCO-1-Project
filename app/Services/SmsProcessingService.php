@@ -206,6 +206,7 @@ class SmsProcessingService
                 }
 
                 // ── Action processing ─────────────────────────────────────────
+                $inquiryToLog = null;
                 switch ($actionType) {
 
                     case 'billing_info':
@@ -271,19 +272,19 @@ class SmsProcessingService
                             $lastName  = trim($nameParts[0]);
                             $firstName = isset($nameParts[1]) ? trim($nameParts[1]) : '';
 
-                            // Log to Moresco Inquiries_Log
-                            $morescoService->logInquiry([
+                            // Queue for logging into Moresco Inquiries_Log (we log at the end to capture the auto-reply)
+                            $inquiryToLog = [
                                 'first_name' => $firstName,
                                 'last_name'  => $lastName,
                                 'contact_no' => $phoneNumber,
                                 'mode'       => 'SMS',
                                 'inquiry'    => $inquiryText,
                                 'address'    => ($member['barangay'] ?? '') . ', ' . ($member['municipality'] ?? ''),
-                                'type_id'    => $isReport ? 1 : 2, // 1=Outage, 2=General (Need to verify IDs)
+                                'type_id'    => $isReport ? 1 : 2,
                                 'status_id'  => 1, // New
                                 'account_no' => $accountNumber,
                                 'member_id'  => $member['id']
-                            ]);
+                            ];
 
                             // If they provided details, we don't need to ask for them in the guide
                             if ($wordCount > 2) {
@@ -366,6 +367,11 @@ class SmsProcessingService
                     'type'    => 'auto_reply',
                     'user_id' => null,
                 ]);
+
+                if ($inquiryToLog && $autoReply) {
+                    $inquiryToLog['action_taken'] = $autoReply->content;
+                    $morescoService->logInquiry($inquiryToLog);
+                }
 
             } else {
                 // No keyword matched — reset context and send fallback
