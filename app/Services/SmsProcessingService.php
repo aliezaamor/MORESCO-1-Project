@@ -254,7 +254,7 @@ class SmsProcessingService
                         $isInfo = ($actionType === 'outage_info');
                         
                         $outage = null;
-                        if ($isReport || $isInfo) {
+                        if ($isInfo) {
                             $outage = $morescoService->getMemberOutageData($accountNumber, $member['sa_code'] ?? null, $member['barangay'] ?? null, $member['municipality'] ?? null);
                         }
 
@@ -292,17 +292,10 @@ class SmsProcessingService
 
                                 $successType = $isReport ? 'report' : 'concern';
                                 $replyContent = $actionData['detailed'] ?? "MORESCO-1: Thank you. We have logged your {$successType}: \"{$inquiryText}\". Our team will investigate. Stay safe!";
-                                
-                                if ($isReport && $outage && isset($actionData['has_outage'])) {
-                                    $replyContent = $actionData['has_outage'] . "\n\n" . $replyContent;
-                                }
                             } else {
                                 $typeString = $isReport ? "report" : "concern";
-                                $replyContent = "MORESCO-1: Please include the details of your {$typeString} in a single message.\nExample: {$kw} {$accountNumber} followed by your details.";
-                                
-                                if ($isReport && $outage && isset($actionData['has_outage'])) {
-                                    $replyContent = $actionData['has_outage'] . "\n\n" . $replyContent;
-                                }
+                                $defaultPrompt = "MORESCO-1: Please include the details of your {$typeString} in a single message.\nExample: {$kw} {$accountNumber} followed by your details.";
+                                $replyContent = $actionData['prompt_details'] ?? $defaultPrompt;
 
                                 $inquiryToLog = null; 
                             }
@@ -348,7 +341,7 @@ class SmsProcessingService
                 }
 
                 // Outage placeholders
-                if ($member && in_array($actionType, ['outage_info', 'outage_report'])) {
+                if ($member && $actionType === 'outage_info') {
                     $outage = $morescoService->getMemberOutageData($accountNumber, $member['sa_code'] ?? null, $member['barangay'] ?? null, $member['municipality'] ?? null);
                     $replyContent = str_replace(
                         ['{work_name}',                   '{work_status}',                   '{date_created}',                   '{power_interruption}',                   '{location}',                   '{remarks}'           ],

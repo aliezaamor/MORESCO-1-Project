@@ -174,17 +174,17 @@
         },
         'outage_report': {
             fields: [
-                { key: 'has_outage', label: 'Reply (Aware of Outage + Guide)' },
-                { key: 'no_outage',  label: 'Reply (No Outage + Logged Report)' },
+                { key: 'prompt_details', label: 'Reply (Prompt for Missing Details)' },
                 { key: 'detailed',   label: 'Reply (Detailed Report Received)' }
             ],
             placeholders: ['{name}', '{account}', '{inquiry}', '{work_name}', '{work_status}', '{date_created}', '{power_interruption}', '{location}', '{remarks}']
         },
         'general_inquiry': {
             fields: [
-                { key: 'success', label: 'Reply (Report Logged Successfully)' }
+                { key: 'detailed', label: 'Reply (Detailed Concern Received)' },
+                { key: 'prompt_details', label: 'Reply (Prompt for Missing Details)' }
             ],
-            placeholders: ['{name}', '{account}']
+            placeholders: ['{name}', '{account}', '{inquiry}']
         }
     };
 
