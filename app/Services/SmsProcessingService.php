@@ -270,7 +270,8 @@ class SmsProcessingService
                             $kw = strtoupper($keywordText);
                             
                             if ($wordCount > 2) {
-                                $inquiryText = $content;
+                                // Strip emojis and non-Latin characters to prevent SQL Server Error 2402
+                                $inquiryText = preg_replace('/[\x{10000}-\x{10FFFF}]/u', '', $content);
 
                                 $fullName = $member['name'] ?? '';
                                 $nameParts = explode(',', $fullName, 2);
