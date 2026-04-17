@@ -290,6 +290,8 @@ class SmsProcessingService
                                     'member_id'  => $member['id']
                                 ];
 
+                                $member['inquiry'] = $inquiryText;
+
                                 $successType = $isReport ? 'report' : 'concern';
                                 $replyContent = $actionData['detailed'] ?? "MORESCO-1: Thank you. We have logged your {$successType}: \"{$inquiryText}\". Our team will investigate. Stay safe!";
                             } else {
@@ -313,8 +315,8 @@ class SmsProcessingService
                 // Member info placeholders (always available when $member is set)
                 if ($member) {
                     $replyContent = str_replace(
-                        ['{name}',               '{account}',      '{area}',                     '{status}',              '{municipality}',               '{barangay}'              ],
-                        [$member['name'] ?? '',  $accountNumber,   $member['service_area'] ?? '', $member['status'] ?? '', $member['municipality'] ?? '', $member['barangay'] ?? ''],
+                        ['{name}',               '{account}',      '{area}',                     '{status}',              '{municipality}',               '{barangay}',               '{inquiry}'],
+                        [$member['name'] ?? '',  $accountNumber,   $member['service_area'] ?? '', $member['status'] ?? '', $member['municipality'] ?? '', $member['barangay'] ?? '', $member['inquiry'] ?? ''],
                         $replyContent
                     );
                 }
