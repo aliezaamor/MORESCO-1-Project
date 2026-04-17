@@ -148,7 +148,8 @@ class SmsProcessingService
             // Extract the remaining text as the account number
             if ($keywordMatch) {
                 $remainder = trim(substr($normalizedContent, strlen($keywordText)));
-                $accountNumber = $remainder !== '' ? $remainder : null;
+                $remainderParts = explode(' ', $remainder, 2);
+                $accountNumber = isset($remainderParts[0]) && $remainderParts[0] !== '' ? $remainderParts[0] : null;
             } else {
                 // If no match at all, fallback to the old split logic just to record it
                 $parts         = explode(' ', $normalizedContent, 2);
@@ -177,7 +178,8 @@ class SmsProcessingService
                     'payment_history',
                     'account_status',
                     'outage_info',
-                    'outage_report'
+                    'outage_report',
+                    'general_inquiry'
                 ]);
 
                 $member = null;
@@ -249,62 +251,60 @@ class SmsProcessingService
                         // 1. Identify context
                         $isReport = ($actionType === 'outage_report');
                         $isGeneral = ($actionType === 'general_inquiry');
+                        $isInfo = ($actionType === 'outage_info');
                         
                         $outage = null;
-                        if ($isReport) {
+                        if ($isReport || $isInfo) {
                             $outage = $morescoService->getMemberOutageData($accountNumber, $member['sa_code'] ?? null, $member['barangay'] ?? null, $member['municipality'] ?? null);
                         }
 
-                        // ── "Smart" Inquiry Logging ──
-                        if (($isReport || $isGeneral) && $member) {
-                            $parts = explode(' ', trim(preg_replace('/\s+/', ' ', $content)));
-                            $wordCount = count($parts);
-                            
-                            // Instead of splitting and extracting details, log exactly what the consumer texted
-                            $inquiryText = $content;
-
-                            // Split name for Moresco DB
-                            $fullName = $member['name'] ?? '';
-                            $nameParts = explode(',', $fullName, 2);
-                            $lastName  = trim($nameParts[0]);
-                            $firstName = isset($nameParts[1]) ? trim($nameParts[1]) : '';
-
-                            // Queue for logging into Moresco Inquiries_Log (we log at the end to capture the auto-reply)
-                            $inquiryToLog = [
-                                'first_name' => $firstName,
-                                'last_name'  => $lastName,
-                                'contact_no' => $phoneNumber,
-                                'mode'       => 'SMS',
-                                'inquiry'    => $inquiryText,
-                                'address'    => ($member['barangay'] ?? '') . ', ' . ($member['municipality'] ?? ''),
-                                'type_id'    => $isReport ? 1 : 2,
-                                'status_id'  => 1, // New
-                                'account_no' => $accountNumber,
-                                'member_id'  => $member['id']
-                            ];
-
-                            // If they provided details, we don't need to ask for them in the guide
-                            if ($wordCount > 2) {
-                                // Add details to placeholders for replacement
-                                $member['inquiry'] = $inquiryText;
-                                
-                                $replyContent = $actionData['detailed'] ?? "MORESCO-1: Thank you. We have logged your report: \"{$inquiryText}\". Our team will investigate. Stay safe!";
-                                $actionType = 'static'; // Use this custom reply
-                            }
-                        }
-
-                        // Fallback to standard Outage Info if no specific details were provided
-                        if ($actionType !== 'static' && $isReport) {
+                        if ($isInfo) {
                             if ($outage) {
                                 $replyContent = $actionData['has_outage'] ?? $replyContent;
-
-                                // Verification Prompt: If it's a wide-area outage and they didn't send details yet,
-                                // we append a verification question.
-                                if (($outage['is_wide_area'] ?? false) && $wordCount === 2) {
-                                    $replyContent .= "\n\nIs this the outage you are reporting? If not, please reply with: REPORT {$accountNumber} followed by details.";
-                                }
                             } else {
                                 $replyContent = $actionData['no_outage'] ?? $replyContent;
+                            }
+                        } else if (($isReport || $isGeneral) && $member) {
+                            $parts = explode(' ', trim(preg_replace('/\s+/', ' ', $content)));
+                            $wordCount = count($parts);
+                            $kw = strtoupper($keywordText);
+                            
+                            if ($wordCount > 2) {
+                                $inquiryText = $content;
+
+                                $fullName = $member['name'] ?? '';
+                                $nameParts = explode(',', $fullName, 2);
+                                $lastName  = trim($nameParts[0]);
+                                $firstName = isset($nameParts[1]) ? trim($nameParts[1]) : '';
+
+                                $inquiryToLog = [
+                                    'first_name' => $firstName,
+                                    'last_name'  => $lastName,
+                                    'contact_no' => $phoneNumber,
+                                    'mode'       => 'SMS',
+                                    'inquiry'    => $inquiryText,
+                                    'address'    => ($member['barangay'] ?? '') . ', ' . ($member['municipality'] ?? ''),
+                                    'type_id'    => $isReport ? 1 : 2,
+                                    'status_id'  => 1, // New
+                                    'account_no' => $accountNumber,
+                                    'member_id'  => $member['id']
+                                ];
+
+                                $successType = $isReport ? 'report' : 'concern';
+                                $replyContent = $actionData['detailed'] ?? "MORESCO-1: Thank you. We have logged your {$successType}: \"{$inquiryText}\". Our team will investigate. Stay safe!";
+                                
+                                if ($isReport && $outage && isset($actionData['has_outage'])) {
+                                    $replyContent = $actionData['has_outage'] . "\n\n" . $replyContent;
+                                }
+                            } else {
+                                $typeString = $isReport ? "report" : "concern";
+                                $replyContent = "MORESCO-1: Please include the details of your {$typeString} in a single message.\nExample: {$kw} {$accountNumber} followed by your details.";
+                                
+                                if ($isReport && $outage && isset($actionData['has_outage'])) {
+                                    $replyContent = $actionData['has_outage'] . "\n\n" . $replyContent;
+                                }
+
+                                $inquiryToLog = null; 
                             }
                         }
                         break;
