@@ -293,7 +293,7 @@ class SmsProcessingService
                                 $member['inquiry'] = $inquiryText;
 
                                 $successType = $isReport ? 'report' : 'concern';
-                                $replyContent = $actionData['detailed'] ?? "MORESCO-1: Thank you. We have logged your {$successType}: \"{$inquiryText}\". Our team will investigate. Stay safe!";
+                                $replyContent = $actionData['detailed'] ?? "MORESCO-1: Thank you, {name}! We have logged your {$successType} for account {account}: \"{inquiry}\". Our team will investigate. Stay safe!";
                             } else {
                                 $typeString = $isReport ? "report" : "concern";
                                 $defaultPrompt = "MORESCO-1: Please include the details of your {$typeString} in a single message.\nExample: {$kw} {$accountNumber} followed by your details.";
