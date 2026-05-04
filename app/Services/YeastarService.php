@@ -59,14 +59,17 @@ class YeastarService
         }
 
         try {
+            stream_set_timeout($socket, 2);
             fwrite($socket, "Action: Login\r\n");
             fwrite($socket, "Username: {$this->username}\r\n");
             fwrite($socket, "Secret: {$this->password}\r\n");
             fwrite($socket, "\r\n");
-            
+            usleep(500000); // Wait 500ms for login
+
             fwrite($socket, "Action: smscommand\r\n");
             fwrite($socket, "Command: sms delete {$gsmPort} {$index}\r\n");
             fwrite($socket, "\r\n");
+            usleep(200000); // Wait 200ms for command processing
 
             fwrite($socket, "Action: Logoff\r\n\r\n");
             

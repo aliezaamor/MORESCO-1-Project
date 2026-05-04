@@ -105,7 +105,7 @@ class ListenToYeastarAmi extends Command
                 // Empty line means end of the current AMI event block
                 if ($line === '') {
                     if (!empty($currentEvent) && isset($currentEvent['Event']) && $currentEvent['Event'] === 'ReceivedSMS') {
-                        $this->processSmsEvent($currentEvent, $smsService);
+                        $this->processSmsEvent($currentEvent, $smsService, $socket);
                     }
                     $currentEvent = [];
                     $isContentReading = false;
@@ -147,7 +147,7 @@ class ListenToYeastarAmi extends Command
         return Command::SUCCESS;
     }
 
-    private function processSmsEvent(array $eventData, SmsProcessingService $smsService)
+    private function processSmsEvent(array $eventData, SmsProcessingService $smsService, $socket)
     {
         $sender = $eventData['Sender'] ?? null;
         $content = $eventData['Content'] ?? null;
@@ -174,13 +174,9 @@ class ListenToYeastarAmi extends Command
 
                 // Automatically delete from Yeastar gateway to prevent full SIM
                 if ($index !== null && $port !== null) {
-                    $yeastar = app(\App\Services\YeastarService::class);
-                    $deleted = $yeastar->deleteSms((int)$port, (int)$index);
-                    if ($deleted) {
-                        $this->info("   -> ✓ Sent deletion command to Yeastar gateway.");
-                    } else {
-                        $this->warn("   -> ⚠ Failed to send deletion command to gateway.");
-                    }
+                    fwrite($socket, "Action: smscommand\r\nCommand: sms delete {$port} {$index}\r\n\r\n");
+                    $this->info("   -> ✓ Sent deletion command to Yeastar gateway via active socket.");
+                    Log::info("Yeastar AMI: Sent deletion command for Port: {$port}, Index: {$index}");
                 }
             } catch (\Exception $e) {
                 $this->error("   -> Failed to save SMS: " . $e->getMessage());
