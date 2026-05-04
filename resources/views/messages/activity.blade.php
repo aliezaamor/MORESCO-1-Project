@@ -270,24 +270,49 @@
 
     async function unblockContact(contactId, btn, origText = 'Unblock', origIcon = 'fa-lock-open') {
         btn.disabled = true;
+        const originalHtml = btn.innerHTML;
         btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i>';
+        
         try {
-            const resp = await fetch(`/sms/activity/${contactId}/unblock`, {
+            // Build URL dynamically to handle subdirectories or IP-based hosting
+            const url = `{{ url('/sms/activity') }}/${contactId}/unblock`;
+            
+            const resp = await fetch(url, {
                 method: 'POST',
-                headers: { 'X-CSRF-TOKEN': CSRF_TOKEN, 'Accept': 'application/json', 'Content-Type': 'application/json' }
+                headers: { 
+                    'X-CSRF-TOKEN': CSRF_TOKEN, 
+                    'Accept': 'application/json', 
+                    'Content-Type': 'application/json' 
+                }
             });
+
+            if (!resp.ok) {
+                let errorMsg = 'Server Error (Status: ' + resp.status + ')';
+                try {
+                    const errorData = await resp.json();
+                    errorMsg = errorData.message || errorMsg;
+                } catch (e) {}
+                throw new Error(errorMsg);
+            }
+
             const result = await resp.json();
             if (result.success) {
-                await loadActivityData();
+                // Show success feedback
+                btn.style.background = '#10b981';
+                btn.style.color = '#fff';
+                btn.innerHTML = '<i class="fa-solid fa-check"></i> Done';
+                
+                // Reload data after a short delay
+                setTimeout(() => loadActivityData(), 1000);
             } else {
-                alert('Failed to process. Please try again.');
+                alert(result.message || 'Failed to process. Please try again.');
                 btn.disabled = false;
-                btn.innerHTML = `<i class="fa-solid ${origIcon}"></i> ${origText}`;
+                btn.innerHTML = originalHtml;
             }
         } catch (e) {
-            alert('Error: ' + e.message);
+            alert('Action Failed: ' + e.message);
             btn.disabled = false;
-            btn.innerHTML = `<i class="fa-solid ${origIcon}"></i> ${origText}`;
+            btn.innerHTML = originalHtml;
         }
     }
 
