@@ -151,6 +151,9 @@
                     <a href="{{ route('profile.edit') }}" class="profile-menu-item">
                         <i class="fa-solid fa-user"></i> My Profile
                     </a>
+                    <a href="{{ route('manual.index') }}" class="profile-menu-item">
+                        <i class="fa-solid fa-book"></i> User Manual
+                    </a>
                     <a href="{{ route('settings.index') }}" class="profile-menu-item">
                         <i class="fa-solid fa-gear"></i> Settings
                     </a>
