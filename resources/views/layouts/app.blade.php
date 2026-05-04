@@ -48,9 +48,9 @@
                     <i class="fa-solid fa-address-book"></i> Contacts & Groups
                 </a>
             </li>
-            <li>
-                <a href="{{ route('sms.activity') }}" class="nav-link {{ request()->routeIs('sms.activity') ? 'active' : '' }}">
-                    <i class="fa-solid fa-chart-line"></i> SMS Activity Monitor
+             <li>
+                <a href="{{ route('inquiries.index') }}" class="nav-link {{ request()->routeIs('inquiries.index') ? 'active' : '' }}">
+                    <i class="fa-solid fa-clipboard-question"></i> Consumer Inquiries
                 </a>
             </li>
             <li class="nav-item has-dropdown">
@@ -114,8 +114,8 @@
                 </ul>
             </li>
             <li>
-                <a href="{{ route('inquiries.index') }}" class="nav-link {{ request()->routeIs('inquiries.index') ? 'active' : '' }}">
-                    <i class="fa-solid fa-clipboard-question"></i> Consumer Inquiries
+                <a href="{{ route('sms.activity') }}" class="nav-link {{ request()->routeIs('sms.activity') ? 'active' : '' }}">
+                    <i class="fa-solid fa-chart-line"></i> SMS Activity Monitor
                 </a>
             </li>
             <li>
