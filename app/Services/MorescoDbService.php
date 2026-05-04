@@ -853,7 +853,7 @@ class MorescoDbService
             if ($statusFilter === 'new') {
                 $conditions[] = "L.status_id = 1";
             } elseif ($statusFilter === 'processed') {
-                $conditions[] = "L.status_id = 2";
+                $conditions[] = "ISNULL(L.status_id, 0) <> 1";
             }
 
             if (!empty($conditions)) {
@@ -978,7 +978,7 @@ class MorescoDbService
             if ($statusFilter === 'new') {
                 $conditions[] = "status_id = 1";
             } elseif ($statusFilter === 'processed') {
-                $conditions[] = "status_id = 2";
+                $conditions[] = "ISNULL(status_id, 0) <> 1";
             }
 
             if (!empty($conditions)) {
