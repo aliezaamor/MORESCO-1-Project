@@ -706,7 +706,12 @@
                 const recipientsRow = `
                         <div style="font-size: 0.72rem; color: ${isOutgoing ? 'var(--text-light)' : 'var(--text-light)'}; display: flex; align-items: center; gap: 0.35rem; margin-top: 0.2rem; ${isOutgoing ? 'justify-content: flex-end;' : ''}">
                             <i class="fa-solid ${isOutgoing ? 'fa-paper-plane' : 'fa-envelope-open-text'}" style="font-size: 0.6rem;"></i>
-                            ${m.recipients.length > 0 ? m.recipients.map(r => r.contact ? r.contact.name : 'Unknown').join(', ') : '(No Recipients Attached)'}
+                            ${m.recipients.length > 0 ? m.recipients.map(r => {
+                                const name = r.contact ? r.contact.name : 'Unknown';
+                                const status = (r.status || 'pending').toLowerCase();
+                                const statusColor = status === 'sent' ? '#10b981' : (status === 'failed' ? '#ef4444' : '#f59e0b');
+                                return `${name} <span style="color: ${statusColor}; font-weight: 700; font-size: 0.6rem; margin-left: 0.15rem; text-transform: uppercase;">[${status}]</span>`;
+                            }).join(', ') : '(No Recipients Attached)'}
                         </div>`;
 
                 return `
