@@ -270,8 +270,13 @@ class SmsProcessingService
                             $kw = strtoupper($keywordText);
                             
                             if ($wordCount > 2) {
+                                // Extract only the text after KEYWORD and ACCOUNT_NUMBER
+                                // We use the original content to preserve casing, but split it carefully
+                                $contentParts = preg_split('/\s+/', trim($content), 3);
+                                $inquiryText  = $contentParts[2] ?? '';
+
                                 // Strip emojis and non-Latin characters to prevent SQL Server Error 2402
-                                $inquiryText = preg_replace('/[\x{10000}-\x{10FFFF}]/u', '', $content);
+                                $inquiryText = preg_replace('/[\x{10000}-\x{10FFFF}]/u', '', $inquiryText);
 
                                 $fullName = $member['name'] ?? '';
                                 $nameParts = explode(',', $fullName, 2);
