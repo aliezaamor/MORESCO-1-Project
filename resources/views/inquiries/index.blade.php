@@ -185,6 +185,11 @@
     .inq-badge-others { background: #e9ecef; color: #6c757d; }
 
     .disabled { pointer-events: none; opacity: 0.5; }
+
+    /* Ensure SweetAlert pops up over the inquiry details modal */
+    .swal2-container {
+        z-index: 9999 !important;
+    }
 </style>
 
 <script>
