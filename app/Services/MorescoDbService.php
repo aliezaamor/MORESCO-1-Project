@@ -1077,4 +1077,23 @@ class MorescoDbService
             return false;
         }
     }
+
+    public function reopenInquiry(int $inquiryId, string $userName): bool
+    {
+        try {
+            $pdo = $this->getConnection();
+            $actionAppend = "\n\n[Reopened by " . static::toUtf8($userName) . " on " . date('Y-m-d H:i') . "]";
+            
+            $sql = "UPDATE dbo.Inquiries_Log 
+                    SET status_id = 1, 
+                        action_taken = ISNULL(CAST(action_taken AS nvarchar(max)), '') + ? 
+                    WHERE inq_ID = ?";
+            
+            $stmt = $pdo->prepare($sql);
+            return $stmt->execute([$actionAppend, $inquiryId]);
+        } catch (\Exception $e) {
+            Log::error('MorescoDbService::reopenInquiry failed: ' . $e->getMessage());
+            return false;
+        }
+    }
 }

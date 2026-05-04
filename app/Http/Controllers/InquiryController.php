@@ -68,6 +68,25 @@ class InquiryController extends Controller
     }
 
     /**
+     * Mark a processed inquiry back to new status.
+     */
+    public function reopen(Request $request, $id)
+    {
+        $userName = auth()->check() ? auth()->user()->name : 'System Admin';
+        $success = $this->morescoService->reopenInquiry($id, $userName);
+
+        if ($request->wantsJson()) {
+            return response()->json(['success' => $success]);
+        }
+
+        if ($success) {
+            return redirect()->back()->with('success', 'Inquiry reopened.');
+        } else {
+            return redirect()->back()->with('error', 'Failed to update inquiry status.');
+        }
+    }
+
+    /**
      * Fetch threaded history for an account.
      */
     public function history(Request $request)

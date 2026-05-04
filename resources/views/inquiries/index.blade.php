@@ -62,10 +62,10 @@
                             onmouseout="this.style.background='transparent'">
                             <td style="padding: 0.75rem 1rem; text-align: center; border-bottom: 1px solid var(--border-color);">
                                 @if($inq['status_id'] == 1)
-                                    <form action="{{ route('inquiries.process', $inq['id']) }}" method="POST" style="margin:0;">
+                                    <form action="{{ route('inquiries.process', $inq['id']) }}" method="POST" style="margin:0;" id="form-process-{{ $inq['id'] }}">
                                         @csrf
                                         @method('PATCH')
-                                        <input type="checkbox" title="Mark as Processed" onchange="this.disabled=true; this.form.submit()" style="cursor: pointer; width: 1.1rem; height: 1.1rem; accent-color: #10b981;">
+                                        <input type="checkbox" title="Mark as Processed" onclick="handleCheckboxProcess(event, this, {{ $inq['id'] }})" style="cursor: pointer; width: 1.1rem; height: 1.1rem; accent-color: #10b981;">
                                     </form>
                                 @else
                                     <i class="fa-solid fa-check" style="color: #10b981; font-size: 1.1rem;" title="Processed"></i>
@@ -96,9 +96,20 @@
                                 @endif
                             </td>
                             <td style="padding: 0.75rem 1rem; border-bottom: 1px solid var(--border-color); text-align: right;">
-                                <button class="btn btn-icon btn-sm" onclick='inspectInquiry(@json($inq))' title="View Full Message" style="color: var(--primary-color);">
-                                    <i class="fa-solid fa-magnifying-glass"></i>
-                                </button>
+                                <div style="display: flex; justify-content: flex-end; gap: 0.5rem; align-items: center;">
+                                    @if($inq['status_id'] != 1)
+                                        <form action="{{ route('inquiries.reopen', $inq['id']) }}" method="POST" style="margin:0;" id="form-reopen-{{ $inq['id'] }}">
+                                            @csrf
+                                            @method('PATCH')
+                                            <button type="button" class="btn btn-icon btn-sm" onclick="confirmAction('Undo Status?', 'This will move the inquiry back to New. Are you sure?', '#f59e0b', 'Yes, undo it', 'form-reopen-{{ $inq['id'] }}')" title="Undo / Mark as New" style="color: #f59e0b;">
+                                                <i class="fa-solid fa-arrow-rotate-left"></i>
+                                            </button>
+                                        </form>
+                                    @endif
+                                    <button class="btn btn-icon btn-sm" onclick='inspectInquiry(@json($inq))' title="View Full Message" style="color: var(--primary-color);">
+                                        <i class="fa-solid fa-magnifying-glass"></i>
+                                    </button>
+                                </div>
                             </td>
                         </tr>
                     @empty
@@ -233,15 +244,25 @@
 
             ${inq.status_id == 1 ? `
             <div style="margin-top: 2rem; padding-top: 1.5rem; border-top: 1px solid var(--border-color); display: flex; justify-content: flex-end;">
-                <form action="{{ url('/inquiries') }}/${inq.id}/process" method="POST" style="margin: 0;">
+                <form action="{{ url('/inquiries') }}/${inq.id}/process" method="POST" style="margin: 0;" id="modal-form-process-${inq.id}">
                     <input type="hidden" name="_token" value="{{ csrf_token() }}">
                     <input type="hidden" name="_method" value="PATCH">
-                    <button type="submit" class="btn btn-primary" style="padding: 0.6rem 2rem; border-radius: 8px; display: flex; align-items: center; gap: 0.5rem;" onclick="this.disabled=true; this.form.submit();">
+                    <button type="button" class="btn btn-primary" style="padding: 0.6rem 2rem; border-radius: 8px; display: flex; align-items: center; gap: 0.5rem;" onclick="confirmAction('Mark as Processed?', 'Are you sure you want to mark this inquiry as processed?', '#10b981', 'Yes, process it', 'modal-form-process-${inq.id}')">
                         <i class="fa-solid fa-check"></i> Mark as Processed
                     </button>
                 </form>
             </div>
-            ` : ''}
+            ` : `
+            <div style="margin-top: 2rem; padding-top: 1.5rem; border-top: 1px solid var(--border-color); display: flex; justify-content: flex-end;">
+                <form action="{{ url('/inquiries') }}/${inq.id}/reopen" method="POST" style="margin: 0;" id="modal-form-reopen-${inq.id}">
+                    <input type="hidden" name="_token" value="{{ csrf_token() }}">
+                    <input type="hidden" name="_method" value="PATCH">
+                    <button type="button" class="btn" style="background: transparent; color: #f59e0b; border: 1px solid #f59e0b; padding: 0.6rem 2rem; border-radius: 8px; display: flex; align-items: center; gap: 0.5rem;" onclick="confirmAction('Undo Status?', 'This will move the inquiry back to New. Are you sure?', '#f59e0b', 'Yes, undo it', 'modal-form-reopen-${inq.id}')">
+                        <i class="fa-solid fa-arrow-rotate-left"></i> Undo / Mark as New
+                    </button>
+                </form>
+            </div>
+            `}
 
             <div id="historyContainer" style="margin-top: 2rem; border-top: 2px dashed var(--border-color); padding-top: 1.5rem;">
                 <div style="text-align: center; color: var(--text-light); padding: 1rem;">
@@ -310,6 +331,55 @@
         const modal = document.getElementById('inquiryModal');
         if (event.target == modal) {
             closeInquiryModal();
+        }
+    }
+
+    function confirmAction(title, text, confirmColor, confirmText, formId) {
+        if (typeof Swal !== 'undefined') {
+            Swal.fire({
+                title: title,
+                text: text,
+                icon: 'question',
+                showCancelButton: true,
+                confirmButtonColor: confirmColor,
+                cancelButtonColor: '#64748b',
+                confirmButtonText: confirmText
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    document.getElementById(formId).submit();
+                }
+            });
+        } else {
+            if (confirm(text)) {
+                document.getElementById(formId).submit();
+            }
+        }
+    }
+
+    function handleCheckboxProcess(event, checkbox, id) {
+        event.preventDefault(); // Prevent immediate checking
+        if (typeof Swal !== 'undefined') {
+            Swal.fire({
+                title: 'Mark as Processed?',
+                text: "Are you sure you want to mark this inquiry as processed?",
+                icon: 'question',
+                showCancelButton: true,
+                confirmButtonColor: '#10b981',
+                cancelButtonColor: '#64748b',
+                confirmButtonText: 'Yes, process it'
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    checkbox.checked = true;
+                    checkbox.disabled = true;
+                    document.getElementById('form-process-' + id).submit();
+                }
+            });
+        } else {
+            if (confirm("Are you sure you want to mark this inquiry as processed?")) {
+                checkbox.checked = true;
+                checkbox.disabled = true;
+                document.getElementById('form-process-' + id).submit();
+            }
         }
     }
 </script>
