@@ -47,7 +47,7 @@ Route::middleware(['web', 'auth'])->group(function () {
     Route::post('/groups/{group}/contacts', [GroupController::class, 'addContacts']);
     Route::delete('/groups/{group}/contacts/{contactId}', [GroupController::class, 'removeContact']);
 
-    Route::apiResource('messages', MessageController::class)->only(['index', 'store']);
+    Route::apiResource('messages', MessageController::class)->only(['index', 'store', 'destroy']);
 
     Route::apiResource('keywords', KeywordController::class);
 

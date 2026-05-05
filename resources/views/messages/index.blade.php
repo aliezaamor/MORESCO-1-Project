@@ -722,6 +722,9 @@
                                 ${categoryLabel}
                                 ${noReplyBadge}
                                 <span style="font-size: 0.68rem; color: var(--text-light);">${new Date(m.created_at).toLocaleString([], { year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' })}</span>
+                                <button onclick="confirmDelete(${m.id})" style="background: none; border: none; padding: 0; margin: ${isOutgoing ? '0 0.5rem 0 0' : '0 0 0 0.5rem'}; cursor: pointer; color: #ef4444;" title="Delete Message">
+                                    <i class="fa-solid fa-trash" style="font-size: 0.7rem;"></i>
+                                </button>
                             </div>
                             ${scheduledInfo}
                             <div style="${bubble}">
@@ -799,6 +802,64 @@
 
             list.innerHTML = html;
             filterMessages();
+        }
+
+        async function confirmDelete(messageId) {
+            const { value: password } = await Swal.fire({
+                title: 'Delete Message',
+                text: "This action cannot be undone. Please enter your admin password to confirm.",
+                icon: 'warning',
+                input: 'password',
+                inputPlaceholder: 'Admin Password',
+                inputAttributes: {
+                    autocapitalize: 'off',
+                    autocorrect: 'off'
+                },
+                showCancelButton: true,
+                confirmButtonColor: '#ef4444',
+                cancelButtonColor: '#64748b',
+                confirmButtonText: '<i class="fa-solid fa-trash"></i> Yes, Delete',
+                showLoaderOnConfirm: true,
+                preConfirm: async (pwd) => {
+                    if (!pwd) {
+                        Swal.showValidationMessage('Please enter your password');
+                        return false;
+                    }
+                    try {
+                        const csrfToken = document.querySelector('meta[name="csrf-token"]') ? document.querySelector('meta[name="csrf-token"]').content : '';
+                        const response = await fetch(`/api/messages/${messageId}`, {
+                            method: 'DELETE',
+                            headers: {
+                                'Content-Type': 'application/json',
+                                'Accept': 'application/json',
+                                'X-CSRF-TOKEN': csrfToken
+                            },
+                            body: JSON.stringify({ password: pwd })
+                        });
+                        const data = await response.json();
+                        
+                        if (!response.ok) {
+                            throw new Error(data.message || 'Deletion failed');
+                        }
+                        return data;
+                    } catch (error) {
+                        Swal.showValidationMessage(error.message);
+                    }
+                },
+                allowOutsideClick: () => !Swal.isLoading()
+            });
+
+            if (password) {
+                Swal.fire({
+                    title: 'Deleted!',
+                    text: 'The message has been permanently deleted.',
+                    icon: 'success',
+                    timer: 1500,
+                    showConfirmButton: false
+                });
+                // Reload messages
+                loadMessages(new URLSearchParams(window.location.search).get('scheduled') === '1');
+            }
         }
 
         function clearDateFilter() {

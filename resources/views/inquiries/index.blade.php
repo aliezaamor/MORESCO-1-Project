@@ -17,7 +17,7 @@
                 <i class="fa-solid fa-search" style="position: absolute; left: 1rem; top: 50%; transform: translateY(-50%); color: var(--text-light);"></i>
             </div>
             <button class="btn btn-secondary" onclick="window.location.href='{{ route('inquiries.index') }}'" style="display: flex; align-items: center; gap: 0.5rem; border-radius: 8px;">
-                <i class="fa-solid fa-arrows-rotate"></i> Reset
+                <i class="fa-solid fa-arrows-rotate"></i> Refresh
             </button>
         </div>
     </div>

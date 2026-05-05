@@ -258,8 +258,23 @@ class MessageController extends Controller
     /**
      * Remove the specified resource from storage.
      */
-    public function destroy(string $id)
+    public function destroy(Request $request, string $id)
     {
-    //
+        $request->validate([
+            'password' => 'required|string',
+        ]);
+
+        if (!\Illuminate\Support\Facades\Hash::check($request->password, auth()->user()->password)) {
+            return response()->json(['message' => 'Incorrect admin password.'], 403);
+        }
+
+        $message = Message::findOrFail($id);
+        
+        // Log the activity
+        $this->logUserActivity("Deleted message ID: {$id}");
+
+        $message->delete();
+
+        return response()->json(['message' => 'Message deleted successfully.']);
     }
 }
