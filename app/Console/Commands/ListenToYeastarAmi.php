@@ -172,12 +172,6 @@ class ListenToYeastarAmi extends Command
                 $this->info("   -> ✓ Successfully saved SMS to database.");
                 Log::info("Yeastar AMI: SMS from {$sender} saved successfully — content: {$content}");
 
-                // Automatically delete from Yeastar gateway to prevent full SIM
-                if ($index !== null && $port !== null) {
-                    fwrite($socket, "Action: smscommand\r\nCommand: sms delete {$port} {$index}\r\n\r\n");
-                    $this->info("   -> ✓ Sent deletion command to Yeastar gateway via active socket.");
-                    Log::info("Yeastar AMI: Sent deletion command for Port: {$port}, Index: {$index}");
-                }
             } catch (\Exception $e) {
                 $this->error("   -> Failed to save SMS: " . $e->getMessage());
                 try { Log::error("Yeastar AMI processing failed: " . $e->getMessage()); } catch (\Throwable $le) {}

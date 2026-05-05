@@ -9,4 +9,3 @@ Artisan::command('inspire', function () {
 })->purpose('Display an inspiring quote');
 
 Schedule::command('sms:dispatch-scheduled')->everyMinute();
-Schedule::command('yeastar:clear-sms')->hourly();
