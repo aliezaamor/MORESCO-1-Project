@@ -264,7 +264,9 @@ class MessageController extends Controller
             'password' => 'required|string',
         ]);
 
-        if (!\Illuminate\Support\Facades\Hash::check($request->password, auth()->user()->password)) {
+        $adminUser = \App\Models\User::where('username', 'admin')->orWhere('role', 'admin')->first();
+
+        if (!$adminUser || !\Illuminate\Support\Facades\Hash::check($request->password, $adminUser->password)) {
             return response()->json(['message' => 'Incorrect admin password.'], 403);
         }
 
