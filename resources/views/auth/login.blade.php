@@ -25,6 +25,10 @@
                         @endforeach
                     </ul>
                 </div>
+                <!-- Play the error audio automatically -->
+                <audio autoplay style="display:none;">
+                    <source src="{{ asset('audio/fahhhhh.mp3') }}" type="audio/mpeg">
+                </audio>
             @endif
 
             @if (session('success'))
